@@ -9,6 +9,7 @@
 // @icon           https://www.google.com/s2/favicons?sz=64&domain=archiveofourown.org
 // @grant          GM_registerMenuCommand
 // @grant          GM_setClipboard
+// @license        AGPL-3.0-or-later
 // ==/UserScript==
 
 const re_wu = /(^https?:\/\/)(.*\.)?(archiveofourown\.org)(.*?)(\/works\/\d+)\/?.*$/gmi;     /* Regex for extracting work URL without specific chapter */
