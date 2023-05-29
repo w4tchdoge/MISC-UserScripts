@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name           AO3 Formatted Copy
 // @namespace      https://github.com/w4tchdoge
-// @version        2.3.2-20230524_131000
+// @version        2.3.2-20230529_170537
 // @description    Copy the curretly open AO3 work in the folloring MarkDown format '- [work name](work url) – [author name](author url) — '
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @match          *://archiveofourown.org/*
-// @icon           https://www.google.com/s2/favicons?sz=64&domain=archiveofourown.org
+// @icon           https://archiveofourown.org/favicon.ico
 // @grant          GM_registerMenuCommand
 // @grant          GM_setClipboard
 // @license        AGPL-3.0-or-later
