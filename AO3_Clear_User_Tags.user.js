@@ -1,17 +1,23 @@
 // ==UserScript==
 // @name           AO3: Clear User Tags
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.3-20230528_173919
+// @version        1.0.3-20230529_160257
 // @description    Adds a button for clearing user added tags on a bookmark. Script does not work on bookmark pages (i.e. pages with the url archiveofourown.org/bookmarks/{BOOKMARK_ID}) as the #bookmark-form element is not present on page load. Script is guarenteed to work when editing a bookmark from a work page.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @match          *://archiveofourown.org/works*
 // @icon           https://www.google.com/s2/favicons?sz=64&domain=archiveofourown.org
-// @license        AGPL-3.0-or-later; https://spdx.org/licenses/AGPL-3.0-or-later.html
+// @license        AGPL-3.0-or-later
 // ==/UserScript==
 
 (function () {
 	`use strict`;
+	/* 
+	<TODO>
+	- Add a user definable list of whitelisted tags
+
+	</TODO>
+	*/
 
 	// Check if bookmark form exists
 	if (document.querySelector(`#bookmark-form`)) {
@@ -34,9 +40,11 @@
 		// Append button element
 		yourTags_elem.after(clearTags_btn_elem);
 
-		// Change the display style of the parent dt of the yourTags_elems to contents
+		// Select the parent dt element to which the button will be a child of
 		var yourTags_parent_dt_xp = `.//div[@id="main"]//div[@id="bookmark-form"]//dt[./label[text() = 'Your tags']]`,
 			yourTags_parent_dt_elem = document.evaluate(yourTags_parent_dt_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;;
+
+		// Change the display style of the parent dt of the yourTags_elems to contents
 		yourTags_parent_dt_elem.style.display = `contents`;
 
 		// Add click listener to clearTags_btn_elem
@@ -61,7 +69,7 @@
 		function clearTags_func() {
 
 			// Check if UserTagsExist is true or false
-			if (!UserTagsExist) {
+			if (!UserTagsExist) { // if User Tags do not exist
 
 				// Console log and alert user that there are no tags to be cleared
 				console.log(`
@@ -71,7 +79,7 @@ No user tags to clear`
 				alert(`No User Tags to Clear`);
 
 			}
-			else if (UserTagsExist) {
+			else if (UserTagsExist) { // if User Tags do exist
 
 				// Add Tag Names to an array
 				var tagNames_arr = Array.from(UserTagsNodeList).map(x => x.textContent.trim().replace(/\s×/, ``));
