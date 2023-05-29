@@ -7,6 +7,7 @@
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @match          *://archiveofourown.org/*
 // @icon           https://www.google.com/s2/favicons?sz=64&domain=archiveofourown.org
+// @license        AGPL-3.0-or-later
 // ==/UserScript==
 
 (function () {
