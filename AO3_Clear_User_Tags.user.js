@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name           AO3: Clear User Tags
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.3-20230529_160257
+// @version        1.0.3-20230529_170523
 // @description    Adds a button for clearing user added tags on a bookmark. Script does not work on bookmark pages (i.e. pages with the url archiveofourown.org/bookmarks/{BOOKMARK_ID}) as the #bookmark-form element is not present on page load. Script is guarenteed to work when editing a bookmark from a work page.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @match          *://archiveofourown.org/works*
-// @icon           https://www.google.com/s2/favicons?sz=64&domain=archiveofourown.org
+// @icon           https://archiveofourown.org/favicon.ico
 // @license        AGPL-3.0-or-later
 // ==/UserScript==
 
