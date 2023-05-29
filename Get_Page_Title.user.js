@@ -16,8 +16,8 @@ function html_decode(txt_str) {
 }
 
 function copy_pg_title() {
-	var ttl = html_decode(document.title)
-	GM_setClipboard(ttl)
+	let ttl = html_decode(document.title);
+	GM_setClipboard(ttl);
 	console.log(
 		`
 Executed Get Page Title (UserScript)
@@ -28,4 +28,4 @@ ${ttl}
 	);
 }
 
-GM_registerMenuCommand(`Copy Page Title`, copy_pg_title)
+GM_registerMenuCommand(`Copy Page Title`, copy_pg_title);
