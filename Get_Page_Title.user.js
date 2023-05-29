@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name           Get Page Title
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.3-20230523_141458
+// @version        1.0.3-20230529_160631
 // @description    Paste the title of the current webpage into the clipboard
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @match          *://*/*
 // @grant          GM_registerMenuCommand
 // @grant          GM_setClipboard
+// @license        AGPL-3.0-or-later
 // ==/UserScript==
 
 function html_decode(txt_str) {
