@@ -8,7 +8,7 @@
 // @match          *://archiveofourown.org/*
 // @icon           https://www.google.com/s2/favicons?sz=64&domain=archiveofourown.org
 // @run-at         document-idle
-// @license        AGPL-3.0-or-later; https://spdx.org/licenses/AGPL-3.0-or-later.html
+// @license        AGPL-3.0-or-later
 // ==/UserScript==
 
 (function () {
