@@ -6,7 +6,7 @@
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @match          *://archiveofourown.org/*
-// @icon           https://www.google.com/s2/favicons?sz=64&domain=archiveofourown.org
+// @icon           https://archiveofourown.org/favicon.ico
 // @run-at         document-idle
 // @license        AGPL-3.0-or-later
 // ==/UserScript==
