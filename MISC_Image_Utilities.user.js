@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           MISC Image Utilities
 // @namespace      https://github.com/w4tchdoge
-// @version        3.3.1-20230523_141428
+// @version        3.3.1-20230529_160722
 // @description    Miscellaneous IMG related utilities
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -9,6 +9,7 @@
 // @include        /^https?:\/\/pbs\.twimg\.com\/media\/(.*?)$/
 // @include        /^https?:\/\/preview\.redd\.it\/(.*?)$/
 // @grant          GM_registerMenuCommand
+// @license        AGPL-3.0-or-later
 // ==/UserScript==
 
 /* SCRIPT GOES FUCKY WUCKY IF YOU SET THIS TO TRUE, EXCEPT NOT ANYMORE XD */
@@ -72,7 +73,7 @@ if (window.location.href.toLowerCase().toString().includes(`discordapp`)) {
 		}
 
 		function Discord_LosslessImage_yesSIZE() {
-			var { newurl } = Discord_gen_IMG_Util(7, /^(.*)\.(.*?)(\?size=).*?$/i, `$1.$2?size=4096&quality=lossless`)
+			var { newurl } = Discord_gen_IMG_Util(7, /^(.*)\.(.*?)(\?size=).*?$/i, `$1.$2?size=4096&quality=lossless`);
 
 			window.location.href = newurl;
 		}
@@ -140,7 +141,7 @@ if (window.location.href.toLowerCase().toString().includes(`discordapp`)) {
 		}
 
 		function Discord_LosslessImage_yesSIZE() {
-			var { newurl } = Discord_gen_IMG_Util(4, /^(.*)\.(.*?)(\?size=).*?$/i, `$1.$2?size=4096&quality=lossless`)
+			var { newurl } = Discord_gen_IMG_Util(4, /^(.*)\.(.*?)(\?size=).*?$/i, `$1.$2?size=4096&quality=lossless`);
 
 			window.location.href = newurl;
 		}
