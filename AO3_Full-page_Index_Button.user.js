@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3: Visible Full-page Index Button
 // @namespace      https://github.com/w4tchdoge
-// @version        1.3.0-20230530_122204
+// @version        1.3.1-20230530_122731
 // @description    Moves or copies (setting is user configurable) the "Full-page index" button to the main work navigation bar for ease of access
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -15,6 +15,9 @@
 
 	/* IMPORTANT – Change this value depending on whether or not you want the initial "Full-page index" button remove from the "Chapter Index" dropdown – IMPORTANT */
 	const remove_ini_fpi_btn = true;
+
+	/* IMPORTANT- Change this value to false if you do not want a "Full-page index" button when viewing an entire work */
+	const enti_wrk_fpi_btn = true;
 
 	// Only execute the rest of the script if the "Chapter Index" element exists (this is so it doesn't throw an error in the console when viewing an entire work or a single chapter work)
 	if (document.querySelector(`ul.work.navigation.actions li[class="chapter"]`) != null) {
@@ -50,7 +53,8 @@
 		}
 
 	}
-	else if (document.querySelector(`ul.work.navigation.actions li.chapter.bychapter`) != null) {
+	// Add a "Full-page index" button when viewing an entire work (enti_wrk_fpi_btn must be set to true)
+	else if (document.querySelector(`ul.work.navigation.actions li.chapter.bychapter`) != null && enti_wrk_fpi_btn) {
 
 		// Find the "Chapter by Chapter" button on the main work navbar
 		var ch_by_ch_btn = document.querySelector(`ul.work.navigation.actions li.chapter.bychapter`);
