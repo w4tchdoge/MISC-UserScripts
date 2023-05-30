@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3: Visible Full-page Index Button
 // @namespace      https://github.com/w4tchdoge
-// @version        1.2.3-20230529_170545
+// @version        1.3.0-20230530_122204
 // @description    Moves or copies (setting is user configurable) the "Full-page index" button to the main work navigation bar for ease of access
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -49,6 +49,28 @@
 
 		}
 
+	}
+	else if (document.querySelector(`ul.work.navigation.actions li.chapter.bychapter`) != null) {
+
+		// Find the "Chapter by Chapter" button on the main work navbar
+		var ch_by_ch_btn = document.querySelector(`ul.work.navigation.actions li.chapter.bychapter`);
+
+		// Set up RegEx to get the work ID
+		const re_wid = /(^https?:\/\/)(.*\.)?(archiveofourown\.org)(.*?)(\/works\/\d+)\/?.*$/gmi;
+
+		// Construct href for the "Full-page Index" button
+		var fpi_href = `${window.location.href.replace(re_wid, `$5`)}/navigate`;
+
+		// Create the "Full-page index" button element
+		var fpi_button = Object.assign(document.createElement(`a`), {
+			id: `navbar_full_page_index_btn`,
+			href: `${fpi_href}`,
+			style: `margin-left: 0.3em`,
+			innerHTML: `Full-page index`
+		});
+
+		// Append the "Full-page index" button to the "Chapter by Chapter" button
+		ch_by_ch_btn.append(fpi_button);
 	}
 
 })();
