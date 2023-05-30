@@ -9,3 +9,6 @@ Below is a list of the userscripts I've written that are mirrored on Greasy Fork
 - AO3 Main Nav User Bookmarks – [Greasy Fork](https://greasyfork.org/en/scripts/467412-ao3-user-bookmarks-button-on-main-navbar)
 - Get Page Title – [Greasy Fork](https://greasyfork.org/en/scripts/467406-get-page-title)
 - MISC lmage Utilities – [Greasy Fork](https://greasyfork.org/en/scripts/467413-misc-image-utilities)
+
+List of scripts written by other people that I have modified for personal use"
+- `Ellililunch_AO3_Bookmark_Maker_MOD.user.js` – [Original Script on Greasy Fork](https://greasyfork.org/en/scripts/458631-ellililunch-ao3-bookmark-maker)
