@@ -2,7 +2,7 @@
 // @name           Ellililunch AO3 Bookmark Maker MOD
 // @namespace      Ellililunch AO3 Bookmark Maker
 // @description    Modified from "Bairdel AO3 Bookmarking Records" this for automatically add title, author, and summary to the bookmark desciption. This should help with record keeping especially with deleted fics. So I can stop going insane. Also adds read date.
-// @version        0.15.3
+// @version        0.15.4-20230601_142647
 // @author         Ellililunch
 // @match          *://archiveofourown.org/works/*
 // @match          *://archiveofourown.org/series/*
@@ -71,8 +71,7 @@ then you can set divider = '<hr />' and splitSelect = 1, which replaces everythi
 
 	// change to preferred date format
 
-	var date;
-	date = `${yyyy}/${mm}/${dd}`;
+	var date = `${yyyy}/${mm}/${dd}`;
 	// date = `${yyyy}/${mm}/${dd} ${hh}${mm}hrs`;
 	// date = dd + '/' + mm + '/' + yyyy + " " + hh + ":" + mins;
 	//date = mm + '/' + dd + '/' + yyyy;    //this is the USA standard date format
@@ -149,7 +148,7 @@ Date Generated: ${date}`
 			// '\n          <h3 class="heading">Summary:</h3>\n            <blockquote class="userstuff">\n              <p>Lorem ipsum dolor...</p>\n            </blockquote>\n        '
 
 		}
-		else if (!simpleWorkSummary && falseSWS_asBlockquote) { // new method #1
+		else if (!simpleWorkSummary && falseSWS_asBlockquote && main.querySelector(`.summary blockquote`) !== null) { // new method #1
 			summary = main.querySelector(`.summary blockquote`).outerHTML;
 
 			// example output of the above method:
@@ -157,7 +156,7 @@ Date Generated: ${date}`
 			// '<blockquote class="userstuff">\n              <p>Lorem ipsum dolor...</p>\n            </blockquote>'
 
 		}
-		else if (!simpleWorkSummary && !falseSWS_asBlockquote) { // new method #2
+		else if (!simpleWorkSummary && !falseSWS_asBlockquote && main.querySelector(`.summary blockquote`) !== null) { // new method #2
 			summary = main.querySelector(`.summary blockquote`).innerHTML.trim();
 
 			// example output of the above method:
