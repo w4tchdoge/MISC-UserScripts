@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3: Kudos/Hits Ratio VanillaJS
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0-20230601_135255
+// @version        1.0.1-20230601_141142
 // @description    Adds the Kudos to Hits ratio of a work as a percentage with optional (user configurable) coloured backgrounds depending on the ratio. Also adds the ability to sort based on the ratio.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -96,7 +96,7 @@
 
 		if (found_stats.length) {
 
-			if (found_stats.length !== 1 && (found_stats.at(-0).closest(`li`).matches(`.work`) || found_stats.at(-0).closest(`li`).matches(`.bookmark`))) {    // Checks if user is on a page that lists works/bookmarks
+			if (found_stats.length !== 1 && (found_stats.at(-0).closest(`li`).matches(`.work`) || found_stats.at(-0).closest(`li`).matches(`.bookmark`))) { // Checks if user is on a page that lists works/bookmarks
 
 				countable = true;
 				sortable = true;
@@ -167,7 +167,9 @@
 					}
 
 					// add attribute to the blurb for sorting
-					x.closest(`li`).setAttribute(`kudospercent`, kr_percentage);
+					if (x.closest(`li`) !== null) {
+						x.closest(`li`).setAttribute(`kudospercent`, kr_percentage);
+					}
 				}
 				else {
 					// add attribute to the blurb for sorting
@@ -221,9 +223,14 @@
 		// create and insert menu button
 		ratio_menu = Object.assign(document.createElement(`li`), {
 			className: `dropdown`,
+			id: `KHR_main_dropdown_elem`,
 			innerHTML: `<a>Kudos/hits</a>`
 		});
-		header_menu.querySelector(`li.search`).before(ratio_menu);
+		if (document.querySelector(`#navbar_bookmarks_button`) !== null) {
+			document.querySelector(`#navbar_bookmarks_button`).before(ratio_menu);
+		} else {
+			header_menu.querySelector(`li.search`).before(ratio_menu);
+		}
 
 		// create and append dropdown menu
 		drop_menu = Object.assign(document.createElement(`ul`), {
