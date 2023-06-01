@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3: Kudos/Hits Ratio VanillaJS
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0
+// @version        1.0.0-20230601_135255
 // @description    Adds the Kudos to Hits ratio of a work as a percentage with optional (user configurable) coloured backgrounds depending on the ratio. Also adds the ability to sort based on the ratio.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -144,7 +144,8 @@
 					var ratio_value = Object.assign(document.createElement(`dd`), {
 						id: `usr_js_khr_ratio_value`,
 						className: `kudoshits`,
-						style: `color: #2a2a2a; margin-left: 0.3em;`,
+						// style: `color: #2a2a2a; margin-left: 0.3em;`,
+						style: `margin-left: 0.3em;`,
 						innerHTML: `${kr_percentage_print}%`
 					});
 					x.append(ratio_label, ratio_value);
