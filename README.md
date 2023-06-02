@@ -10,5 +10,8 @@ Below is a list of the userscripts I've written that are mirrored on Greasy Fork
 - Get Page Title – [Greasy Fork](https://greasyfork.org/en/scripts/467406-get-page-title)
 - MISC lmage Utilities – [Greasy Fork](https://greasyfork.org/en/scripts/467413-misc-image-utilities)
 
-List of scripts written by other people that I have modified for personal use"
-- `Ellililunch_AO3_Bookmark_Maker_MOD.user.js` – [Original Script on Greasy Fork](https://greasyfork.org/en/scripts/458631-ellililunch-ao3-bookmark-maker)
+List of scripts written by other people that I have modified for personal use:
+- `Ellililunch_AO3_Bookmark_Maker_MOD.user.js` – [Original Script on Greasy Fork](https://greasyfork.org/scripts/458631)
+
+List of scripts written by other people that I have rewritten to VanillaJS for compatibility with [uazo's Bromite](https://github.com/uazo/bromite-buildtools):
+- `AO3_Kudos-Hits_Ratio_VanillaJS.user.js` – [Original Script on Greasy Fork](https://greasyfork.org/scripts/3144)
