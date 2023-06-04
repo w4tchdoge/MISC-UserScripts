@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0-20230604_143347
+// @version        1.0.0-20230604_150103
 // @description    Modified from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -24,9 +24,7 @@
 
 	/* constants that can be changed by the end user to affect how the script functions */
 
-	const main = document.querySelector(`div#main`),    /* add main element that all querySelector operations will be done on */
-
-		divider = `</details>\n\n`,                       /* string which is used to indicate where the bookmark should be split in half */
+	const divider = `</details>\n\n`,                       /* string which is used to indicate where the bookmark should be split in half */
 
 		autoPrivate = false,                              /* if true, automatically checks the checkbox to private the bookmark */
 
@@ -67,7 +65,8 @@ Then you can set divider = '<hr />' and splitSelect = 1, which replaces everythi
 Another way to explain it is that the script works by taking the current contents of your bookmark and splitting it into two pieces along a user defined "divider", thus creating an array. Depending on the way you want the bookmark to be structured, the part of the bookmark that you want to keep could be before the divider or after the divider. splitSelect lets you tell the script which half of the array contains the bit of the bookmark you want to keep. If it's the first half splitSelect is 0, if it's the last half splitSelect is 1.
 		*/
 
-
+	// add main element that all querySelector operations will be done on
+	main = document.querySelector(`div#main`);
 
 	if (autoPrivate) { // for auto-privating your bookmarks
 		main.querySelector(`#bookmark_private`).checked = true;
