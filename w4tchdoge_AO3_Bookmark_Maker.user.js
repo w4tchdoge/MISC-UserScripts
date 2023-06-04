@@ -1,14 +1,15 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0-20230604_150103
+// @version        1.0.0-20230604_160458
 // @description    Modified from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
-// @match          *://archiveofourown.org/works/*
-// @match          *://archiveofourown.org/series/*
 // @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/w4tchdoge_AO3_Bookmark_Maker.user.js
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/w4tchdoge_AO3_Bookmark_Maker.user.js
+// @match          *://archiveofourown.org/works/*
+// @match          *://archiveofourown.org/series/*
+// @icon           https://archiveofourown.org/favicon.ico
 // @license        GNU GPLv3
 // ==/UserScript==
 
