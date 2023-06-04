@@ -16,7 +16,9 @@ List of other's scripts that I've "forked"
     Forked from [Ellililunch AO3 Bookmark Maker](https://greasyfork.org/en/scripts/458631)
 
 List of scripts written by other people that I have modified for personal use:
-- `Ellililunch_AO3_Bookmark_Maker_MOD.user.js` – [Original Script on Greasy Fork](https://greasyfork.org/scripts/458631)
+- ~~`Ellililunch_AO3_Bookmark_Maker_MOD.user.js` – [Original Script on Greasy Fork](https://greasyfork.org/scripts/458631)~~
+
+    Formally converted to a "fork" in the form of [w4tchdoge's AO3 Bookmark Maker](https://greasyfork.org/en/scripts/467885)
 
 List of scripts written by other people that I have rewritten to VanillaJS for compatibility with [uazo's Bromite](https://github.com/uazo/bromite-buildtools):
 - `AO3_Kudos-Hits_Ratio_VanillaJS.user.js` – [Original Script on Greasy Fork](https://greasyfork.org/scripts/3144)
