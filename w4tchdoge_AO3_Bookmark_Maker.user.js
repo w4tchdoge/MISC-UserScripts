@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.1-20230604_161408
+// @version        1.0.2-20230605_133221
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -296,7 +296,8 @@ ${bookmarkNotes}`; */
 	// divider = `<br />\n<details>`
 	// splitSelect = 0
 
-	/* var newBookmarkNotes = `${bookmarkNotes}<br />
+	/* var newBookmarkNotes = `${bookmarkNotes}
+<br />
 <details><summary>Work Details</summary>
 \t${title} by ${author}
 \t${status}
@@ -311,7 +312,8 @@ ${bookmarkNotes}`; */
 	// divider = `<br />\n<details>`
 	// splitSelect = 0
 
-	/* var newBookmarkNotes = `${bookmarkNotes}<br />
+	/* var newBookmarkNotes = `${bookmarkNotes}
+<br />
 <details><summary>Work Details</summary>
 \t${title} by ${author}
 \t${status}
