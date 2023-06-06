@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.0.0-20230606_012030
+// @version        2.0.1-20230606_143942
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -90,24 +90,40 @@ Another way to explain it is that the script works by taking the current content
 
 	*/
 
+	// from https://stackoverflow.com/a/1414175/11750206 ; used to convert the 'true' & 'false' strings in localStorage to actual booleans
+	const stringToBoolean = (stringValue) => {
+		switch (stringValue?.toLowerCase()?.trim()) {
+			case "true":
+			case "yes":
+			case "1":
+				return true;
+
+			case "false":
+			case "no":
+			case "0":
+			case null:
+			case undefined:
+				return false;
+
+			default:
+				return JSON.parse(stringValue);
+		}
+	};
+
 	// Declare user-configurable variables
 	var divider, autoPrivate, bottomEntireWork, simpleWorkSummary, FWS_asBlockquote, splitSelect;
 
-	// localStorage stuff
-	if (typeof Storage != `undefined`) { // If localStorage exists
-
-		divider = localStorage.getItem(`w4BM_divider`) || settings_dict.divider;
-		autoPrivate = localStorage.getItem(`w4BM_autoPrivate`) || settings_dict.autoPrivate;
-		bottomEntireWork = localStorage.getItem(`w4BM_bottomEntireWork`) || settings_dict.bottomEntireWork;
-		simpleWorkSummary = localStorage.getItem(`w4BM_simpleWorkSummary`) || settings_dict.simpleWorkSummary;
-		FWS_asBlockquote = localStorage.getItem(`w4BM_FWS_asBlockquote`) || settings_dict.FWS_asBlockquote;
-		splitSelect = localStorage.getItem(`w4BM_splitSelect`) || settings_dict.splitSelect;
-
-	}
+	// check if variable is in localStorage. if not, assign from settings_dict
+	divider = localStorage.getItem(`w4BM_divider`) || settings_dict.divider;
+	autoPrivate = stringToBoolean(localStorage.getItem(`w4BM_autoPrivate`)) || settings_dict.autoPrivate;
+	bottomEntireWork = stringToBoolean(localStorage.getItem(`w4BM_bottomEntireWork`)) || settings_dict.bottomEntireWork;
+	simpleWorkSummary = stringToBoolean(localStorage.getItem(`w4BM_simpleWorkSummary`)) || settings_dict.simpleWorkSummary;
+	FWS_asBlockquote = stringToBoolean(localStorage.getItem(`w4BM_FWS_asBlockquote`)) || settings_dict.FWS_asBlockquote;
+	splitSelect = parseInt(localStorage.getItem(`w4BM_splitSelect`)) || settings_dict.splitSelect;
 
 
 	// add main element that all querySelector operations will be done on
-	main = document.querySelector(`div#main`);
+	const main = document.querySelector(`div#main`);
 
 
 	// Get current page URL
