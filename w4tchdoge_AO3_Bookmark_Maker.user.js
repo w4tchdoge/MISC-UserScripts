@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.0.2-20230606_150408
+// @version        2.0.3-20230606_152409
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -12,6 +12,9 @@
 // @match          *://archiveofourown.org/users/*
 // @icon           https://archiveofourown.org/favicon.ico
 // @license        GNU GPLv3
+// @history        2.0.3 — Fix the script replacing an existing summary in the bookmark notes with undefined
+// @history        2.0.2 — Alert the user that their input for a new divider value has been accepted + Minor styling changes in the setting dropdown
+// @history        2.0.1 — Fix if statements that used variables that needed to be true or false by using a function to convert the 'true' & 'false' strings from localStorage to booleans
 // @history        2.0.0 — Implement localStorage for the majority of user settings. Presets must still be set via editing the script
 // @history        1.0.0 — Initial Publishing to GresyFork
 // ==/UserScript==
@@ -398,7 +401,9 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 
 	// make the bookmarking part of the script work only in places where you can make bookmarks
 	// this if statement was the easiest way i could think of (im lazy ok) to solve the problem of it erroring on the user preferences page
-	if (currPgURL.includes(`works`) || currPgURL.includes(`series`)) {
+	// oh and it also makes sure that the script only works and replaces your current bookmark with new text when a summary element exists
+	// (yet again, the easiest way i could think of to stop the script from replacing a summary with 'undefined')
+	if ((currPgURL.includes(`works`) || currPgURL.includes(`series`)) && !!document.getElementsByClassName(`summary`).length) {
 
 		if (autoPrivate) { // for auto-privating your bookmarks
 			main.querySelector(`#bookmark_private`).checked = true;
