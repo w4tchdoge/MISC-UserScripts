@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.0.1-20230606_143942
+// @version        2.0.2-20230606_150408
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -58,7 +58,7 @@ If false, retrieves the work summary in a way (which I call the fancy way) that 
 
 
 FWS_asBlockquote : If using the fancy work summary method, set whether you want to retrieve the summary as a blockquote.
-For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 458
+For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 499
 
 
 splitSelect           : splitSelect changes which half of bookmarkNotes your initial bookmark is supposed to live in.
@@ -205,7 +205,8 @@ Another way to explain it is that the script works by taking the current content
 		var w4BM_divider_input_box = Object.assign(document.createElement(`input`), {
 			type: `text`,
 			id: `w4BM_divider_input_box`,
-			name: `w4BM_divider_input_box`
+			name: `w4BM_divider_input_box`,
+			style: `width: 16em; margin-left: 0.2em`
 		});
 		w4BM_divider_input_box.setAttribute(`value`, localStorage.getItem(`w4BM_divider`).replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`) || `divider\\n\\n`);
 		w4BM_divider_input_area.append(w4BM_divider_input_box);
@@ -213,6 +214,7 @@ Another way to explain it is that the script works by taking the current content
 		// create divider input submit button
 		var w4BM_divider_input_btn = Object.assign(document.createElement(`button`), {
 			id: `w4BM_divider_input_btn`,
+			style: `margin-left: 0.3em`,
 			innerHTML: `Enter`
 		});
 
@@ -223,6 +225,16 @@ Another way to explain it is that the script works by taking the current content
 		w4BM_divider_input_btn.addEventListener(`click`, function () {
 			var input_value = unescapeSlashes(document.querySelector(`#w4BM_divider_input_box`).value);
 			localStorage.setItem(`w4BM_divider`, input_value);
+			console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+New value set for the 'divider' variable in localStorage.
+New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}'`
+			);
+			alert(`w4tchdoge's AO3 Bookmark Maker
+New value set for the 'divider' variable in localStorage.
+New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}'`
+			);
 		});
 
 		// append input area to dropdown
@@ -384,198 +396,201 @@ Another way to explain it is that the script works by taking the current content
 
 	}
 
+	// make the bookmarking part of the script work only in places where you can make bookmarks
+	// this if statement was the easiest way i could think of (im lazy ok) to solve the problem of it erroring on the user preferences page
+	if (currPgURL.includes(`works`) || currPgURL.includes(`series`)) {
 
-	if (autoPrivate) { // for auto-privating your bookmarks
-		main.querySelector(`#bookmark_private`).checked = true;
-	}
-
-
-	// keeps any bookmark notes you've made previously
-	var bookmarkNotes = main.querySelector(`#bookmark_notes`).textContent.split(divider).at(`-${splitSelect}`);
-
-
-	// Define variables used in date configuration
-	var currdate = new Date(),
-		dd = String(currdate.getDate()).padStart(2, `0`),
-		mm = String(currdate.getMonth() + 1).padStart(2, `0`), //January is 0
-		yyyy = currdate.getFullYear(),
-		hh = String(currdate.getHours()).padStart(2, `0`),
-		mins = String(currdate.getMinutes()).padStart(2, `0`);
-
-	// Define variables used in bookmark configuration
-	var author,
-		words,
-		status,
-		title,
-		summary,
-		lastChapter,
-		latestChapterNumLength,
-		chapNumPadCount;
-
-
-	// Checks if the current page is either the first chapter of a work or the entire work
-	if (currPgURL.includes(`works`) && main.querySelector(`li.chapter.previous`) != null && bottomEntireWork) {
-		// If all above conditions are true, add a second "Entire Work" button at the bottom nav bar
-
-		// Clone the "Entire Work" button
-		var enti_work = main.querySelector(`li.chapter.entire`).cloneNode(true);
-		// Add padding to make it look more natural in the bottom nav bar
-		enti_work.style.paddingLeft = `0.5663em`;
-
-		// Get the "↑ Top" button that's in the bottom nav bar
-		let toTop_xp = `.//*[@id="feedback"]//*[@role="navigation"]//li[*[text()[contains(.,"Top")]]]`;
-		let toTop_btn = document.evaluate(toTop_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-
-		// Add the cloned "Entire Work" button after the "↑ Top" button in the bottom navbar
-		toTop_btn.after(enti_work);
-	}
-
-
-	// Look for HTML DOM element only present on series pages
-	var seriesTrue = document.evaluate(`.//*[@id="main"]//span[text()="Series"]`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-
-	// Check if current page is a series page
-	if (seriesTrue != undefined) {
-		// Retrieve series information
-
-		// Retrieve series title
-		title = main.querySelector(`:scope > h2.heading`).textContent.trim();
-		// Retrieve series word count
-		words = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
-		// Retrieve series author
-		author = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dt[text()="Creator:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
-		// Retrieve series summary
-		summary = main.querySelector(`.series.meta.group .userstuff`).innerHTML;
-
-		// Retrieve series status
-		let pub_xp = `//dl[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[contains(text(), "Complete")]/following-sibling::*[1]`;
-		let complete = document.evaluate(pub_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
-		var updated = main.querySelector(`.series.meta.group`).getElementsByTagName(`dd`)[2].textContent;
-		if (complete == `No`) {
-			status = `Updated: ${updated}`;
-		} else if (complete == `Yes`) {
-			status = `Completed: ${updated}`;
+		if (autoPrivate) { // for auto-privating your bookmarks
+			main.querySelector(`#bookmark_private`).checked = true;
 		}
 
 
-	}
-	else {
-		// Retrieve work information
+		// keeps any bookmark notes you've made previously
+		var bookmarkNotes = main.querySelector(`#bookmark_notes`).textContent.split(divider).at(`-${splitSelect}`);
 
-		// Calculate appropriate padding count for lastChapter
-		latestChapterNumLength = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Chapters:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.split(`/`).at(0).length;
-		if (latestChapterNumLength >= 3) {
-			chapNumPadCount = 3;
+
+		// Define variables used in date configuration
+		var currdate = new Date(),
+			dd = String(currdate.getDate()).padStart(2, `0`),
+			mm = String(currdate.getMonth() + 1).padStart(2, `0`), //January is 0
+			yyyy = currdate.getFullYear(),
+			hh = String(currdate.getHours()).padStart(2, `0`),
+			mins = String(currdate.getMinutes()).padStart(2, `0`);
+
+		// Define variables used in bookmark configuration
+		var author,
+			words,
+			status,
+			title,
+			summary,
+			lastChapter,
+			latestChapterNumLength,
+			chapNumPadCount;
+
+
+		// Checks if the current page is either the first chapter of a work or the entire work
+		if (currPgURL.includes(`works`) && main.querySelector(`li.chapter.previous`) != null && bottomEntireWork) {
+			// If all above conditions are true, add a second "Entire Work" button at the bottom nav bar
+
+			// Clone the "Entire Work" button
+			var enti_work = main.querySelector(`li.chapter.entire`).cloneNode(true);
+			// Add padding to make it look more natural in the bottom nav bar
+			enti_work.style.paddingLeft = `0.5663em`;
+
+			// Get the "↑ Top" button that's in the bottom nav bar
+			let toTop_xp = `.//*[@id="feedback"]//*[@role="navigation"]//li[*[text()[contains(.,"Top")]]]`;
+			let toTop_btn = document.evaluate(toTop_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+
+			// Add the cloned "Entire Work" button after the "↑ Top" button in the bottom navbar
+			toTop_btn.after(enti_work);
+		}
+
+
+		// Look for HTML DOM element only present on series pages
+		var seriesTrue = document.evaluate(`.//*[@id="main"]//span[text()="Series"]`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+
+		// Check if current page is a series page
+		if (seriesTrue != undefined) {
+			// Retrieve series information
+
+			// Retrieve series title
+			title = main.querySelector(`:scope > h2.heading`).textContent.trim();
+			// Retrieve series word count
+			words = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
+			// Retrieve series author
+			author = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dt[text()="Creator:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
+			// Retrieve series summary
+			summary = main.querySelector(`.series.meta.group .userstuff`).innerHTML;
+
+			// Retrieve series status
+			let pub_xp = `//dl[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[contains(text(), "Complete")]/following-sibling::*[1]`;
+			let complete = document.evaluate(pub_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
+			var updated = main.querySelector(`.series.meta.group`).getElementsByTagName(`dd`)[2].textContent;
+			if (complete == `No`) {
+				status = `Updated: ${updated}`;
+			} else if (complete == `Yes`) {
+				status = `Completed: ${updated}`;
+			}
+
+
 		}
 		else {
-			chapNumPadCount = 2;
+			// Retrieve work information
+
+			// Calculate appropriate padding count for lastChapter
+			latestChapterNumLength = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Chapters:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.split(`/`).at(0).length;
+			if (latestChapterNumLength >= 3) {
+				chapNumPadCount = 3;
+			}
+			else {
+				chapNumPadCount = 2;
+			}
+
+			// Retrieve last chapter of work
+			lastChapter = `Chapter ${document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Chapters:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.split(`/`).at(0).padStart(chapNumPadCount, `0`)}`;
+			// Retrieve work title
+			title = main.querySelector(`#workskin .title.heading`).textContent.trim();
+			// Retrieve work work count
+			words = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
+			// Retrieve work author
+			author = main.querySelector(`#workskin > .preface .byline`).textContent.trim(); // fic author
+
+			// Retrieve work summary
+			if (simpleWorkSummary) { // the original methos to retrieve the work's summary
+				summary = document.getElementsByClassName(`summary`)[0].innerHTML;
+
+				// Example output of the above method:
+				// summary will be a var equal to the following string
+				// '\n          <h3 class="heading">Summary:</h3>\n            <blockquote class="userstuff">\n              <p>Lorem ipsum dolor...</p>\n            </blockquote>\n        '
+
+			}
+			else if (!simpleWorkSummary && FWS_asBlockquote && main.querySelector(`.summary blockquote`) != null) { // new method #1
+				summary = main.querySelector(`.summary blockquote`).outerHTML;
+
+				// Example output of the above method:
+				// summary will be a var equal to the following string
+				// '<blockquote class="userstuff">\n              <p>Lorem ipsum dolor...</p>\n            </blockquote>'
+
+			}
+			else if (!simpleWorkSummary && !FWS_asBlockquote && main.querySelector(`.summary blockquote`) != null) { // new method #2
+				summary = main.querySelector(`.summary blockquote`).innerHTML.trim();
+
+				// Example output of the above method:
+				// summary will be a var equal to the following string
+				// '<p>Lorem ipsum dolor...</p>'
+
+			}
+
+			// Retrieve work status
+			if (document.getElementsByClassName(`status`).length != 0) {
+				// Retrieval method for multi-chapter works
+				status = `${main.querySelector(`dt.status`).textContent} ${main.querySelector(`dd.status`).textContent}`;
+			}
+			else {
+				// Retrieval method for single chapter works
+				status = `${main.querySelector(`dt.published`).textContent} ${main.querySelector(`dd.published`).textContent}`;
+			}
+
 		}
 
-		// Retrieve last chapter of work
-		lastChapter = `Chapter ${document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Chapters:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.split(`/`).at(0).padStart(chapNumPadCount, `0`)}`;
-		// Retrieve work title
-		title = main.querySelector(`#workskin .title.heading`).textContent.trim();
-		// Retrieve work work count
-		words = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
-		// Retrieve work author
-		author = main.querySelector(`#workskin > .preface .byline`).textContent.trim(); // fic author
-
-		// Retrieve work summary
-		if (simpleWorkSummary) { // the original methos to retrieve the work's summary
-			summary = document.getElementsByClassName(`summary`)[0].innerHTML;
-
-			// Example output of the above method:
-			// summary will be a var equal to the following string
-			// '\n          <h3 class="heading">Summary:</h3>\n            <blockquote class="userstuff">\n              <p>Lorem ipsum dolor...</p>\n            </blockquote>\n        '
-
-		}
-		else if (!simpleWorkSummary && FWS_asBlockquote && main.querySelector(`.summary blockquote`) != null) { // new method #1
-			summary = main.querySelector(`.summary blockquote`).outerHTML;
-
-			// Example output of the above method:
-			// summary will be a var equal to the following string
-			// '<blockquote class="userstuff">\n              <p>Lorem ipsum dolor...</p>\n            </blockquote>'
-
-		}
-		else if (!simpleWorkSummary && !FWS_asBlockquote && main.querySelector(`.summary blockquote`) != null) { // new method #2
-			summary = main.querySelector(`.summary blockquote`).innerHTML.trim();
-
-			// Example output of the above method:
-			// summary will be a var equal to the following string
-			// '<p>Lorem ipsum dolor...</p>'
-
-		}
-
-		// Retrieve work status
-		if (document.getElementsByClassName(`status`).length != 0) {
-			// Retrieval method for multi-chapter works
-			status = `${main.querySelector(`dt.status`).textContent} ${main.querySelector(`dd.status`).textContent}`;
-		}
-		else {
-			// Retrieval method for single chapter works
-			status = `${main.querySelector(`dt.published`).textContent} ${main.querySelector(`dd.published`).textContent}`;
-		}
-
-	}
 
 
+		/* ///////////////// USER CONFIGURABLE SETTINGS ///////////////// */
+		/*
+		// Below are the configurations for the autogenerated bookmark content, including the date configuraton
+		// THE CONFIGURATION RELIES HEAVILY ON TEMPLATE LITERALS
+		// FOR MORE INFORMATION ON TEMPLATE LITERALS PLEASE VISIT THE FOLLOWING WEBPAGE
+		// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals
+		*/
 
-	/* ///////////////// USER CONFIGURABLE SETTINGS ///////////////// */
-	/*
-	// Below are the configurations for the autogenerated bookmark content, including the date configuraton
-	// THE CONFIGURATION RELIES HEAVILY ON TEMPLATE LITERALS
-	// FOR MORE INFORMATION ON TEMPLATE LITERALS PLEASE VISIT THE FOLLOWING WEBPAGE
-	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals
-	*/
+		/* ///////////////// Bookmark content configuration section ///////////////// */
+		/*
 
-	/* ///////////////// Bookmark content configuration section ///////////////// */
-	/*
+		Variables that can be used when creating the string for newBookmarkNotes:
+		- date           // Current date (and time) – User configurable in the Date configuration sub-section
+		- title          // Title of the work or series
+		- author         // Author of the work or series
+		- status         // Status of the work or series. i.e. Completed: 2020-08-23, Updated: 2022-05-08, Published: 2015-06-29
+		- summary        // Summary of the work or series
+		- words          // Current word count of the work or series
 
-	Variables that can be used when creating the string for newBookmarkNotes:
-	- date           // Current date (and time) – User configurable in the Date configuration sub-section
-	- title          // Title of the work or series
-	- author         // Author of the work or series
-	- status         // Status of the work or series. i.e. Completed: 2020-08-23, Updated: 2022-05-08, Published: 2015-06-29
-	- summary        // Summary of the work or series
-	- words          // Current word count of the work or series
+		Variables specific to series:
+		NONE
 
-	Variables specific to series:
-	NONE
+		Variables specific to works:
+		- lastChapter    // Last published chapter of the work or series
 
-	Variables specific to works:
-	- lastChapter    // Last published chapter of the work or series
+		*/
 
-	*/
+		/* //// Date configuration sub-section //// */
+		/*
+		// THE CONFIGURATION RELIES HEAVILY ON TEMPLATE LITERALS
+		// FOR MORE INFORMATION ON TEMPLATE LITERALS PLEASE VISIT THE FOLLOWING WEBPAGE
+		// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals
+		*/
 
-	/* //// Date configuration sub-section //// */
-	/*
-	// THE CONFIGURATION RELIES HEAVILY ON TEMPLATE LITERALS
-	// FOR MORE INFORMATION ON TEMPLATE LITERALS PLEASE VISIT THE FOLLOWING WEBPAGE
-	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals
-	*/
-
-	// Setting the date
-	// Feel free to use your own date format, you don't need to stick to the presets here
-	var date = `${yyyy}/${mm}/${dd}`; // Date without time
-	// date = `${yyyy}/${mm}/${dd} ${hh}${mm}hrs`; // Date with time
-	console.log(`
+		// Setting the date
+		// Feel free to use your own date format, you don't need to stick to the presets here
+		var date = `${yyyy}/${mm}/${dd}`; // Date without time
+		// date = `${yyyy}/${mm}/${dd} ${hh}${mm}hrs`; // Date with time
+		console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 Date Generated: ${date}`
-	);
+		);
 
-	/* ///////////// Select from Presets ///////////// */
+		/* ///////////// Select from Presets ///////////// */
 
-	// To stop using a preset, wrap it in a block comment (add /* to the start and */ to the end); To start using a preset, do the opposite.
+		// To stop using a preset, wrap it in a block comment (add /* to the start and */ to the end); To start using a preset, do the opposite.
 
-	// ------------------------
+		// ------------------------
 
-	// Preset 1 – With last read date
-	// To use this preset, scroll to the top where the constants are defined and set divider and splitSelect to the following values:
-	// divider = `</details>\n\n`
-	// splitSelect = 1
+		// Preset 1 – With last read date
+		// To use this preset, scroll to the top where the constants are defined and set divider and splitSelect to the following values:
+		// divider = `</details>\n\n`
+		// splitSelect = 1
 
-	var newBookmarkNotes = `<details><summary>Work Details</summary>
+		var newBookmarkNotes = `<details><summary>Work Details</summary>
 \t${title} by ${author}
 \t${status}
 \t<details><summary>Work Summary:</summary>
@@ -584,60 +599,62 @@ Date Generated: ${date}`
 
 ${bookmarkNotes}`;
 
-	// ------------------------
+		// ------------------------
 
-	// Preset 2 – Without last read date
-	// To use this preset, scroll to the top where the constants are defined and set divider and splitSelect to the following values:
-	// divider = `</details>\n\n`
-	// splitSelect = 1
+		// Preset 2 – Without last read date
+		// To use this preset, scroll to the top where the constants are defined and set divider and splitSelect to the following values:
+		// divider = `</details>\n\n`
+		// splitSelect = 1
 
-	/* var newBookmarkNotes = `<details><summary>Work Details</summary>
-\t${title} by ${author}
-\t${status}
-\t<details><summary>Work Summary:</summary>
-\t${summary}</details>
-</details>
+		/* var newBookmarkNotes = `<details><summary>Work Details</summary>
+	\t${title} by ${author}
+	\t${status}
+	\t<details><summary>Work Summary:</summary>
+	\t${summary}</details>
+	</details>
 
-${bookmarkNotes}`; */
+	${bookmarkNotes}`; */
 
-	// ------------------------
+		// ------------------------
 
-	// Preset 3 – Preset 1 but reversed
-	// To use this preset, scroll to the top where the constants are defined and set divider and splitSelect to the following values:
-	// divider = `<br />\n<details>`
-	// splitSelect = 0
+		// Preset 3 – Preset 1 but reversed
+		// To use this preset, scroll to the top where the constants are defined and set divider and splitSelect to the following values:
+		// divider = `<br />\n<details>`
+		// splitSelect = 0
 
-	/* var newBookmarkNotes = `${bookmarkNotes}
-<br />
-<details><summary>Work Details</summary>
-\t${title} by ${author}
-\t${status}
-\t<details><summary>Work Summary:</summary>
-\t${summary}</details>
-(Approximate) Last Read: ${date}</details>`; */
+		/* var newBookmarkNotes = `${bookmarkNotes}
+	<br />
+	<details><summary>Work Details</summary>
+	\t${title} by ${author}
+	\t${status}
+	\t<details><summary>Work Summary:</summary>
+	\t${summary}</details>
+	(Approximate) Last Read: ${date}</details>`; */
 
-	// ------------------------
+		// ------------------------
 
-	// Preset 4 – Preset 2 but reversed
-	// To use this preset, scroll to the top where the constants are defined and set divider and splitSelect to the following values:
-	// divider = `<br />\n<details>`
-	// splitSelect = 0
+		// Preset 4 – Preset 2 but reversed
+		// To use this preset, scroll to the top where the constants are defined and set divider and splitSelect to the following values:
+		// divider = `<br />\n<details>`
+		// splitSelect = 0
 
-	/* var newBookmarkNotes = `${bookmarkNotes}
-<br />
-<details><summary>Work Details</summary>
-\t${title} by ${author}
-\t${status}
-\t<details><summary>Work Summary:</summary>
-\t${summary}</details>
-(Approximate) Last Read: ${date}</details>`; */
+		/* var newBookmarkNotes = `${bookmarkNotes}
+	<br />
+	<details><summary>Work Details</summary>
+	\t${title} by ${author}
+	\t${status}
+	\t<details><summary>Work Summary:</summary>
+	\t${summary}</details>
+	(Approximate) Last Read: ${date}</details>`; */
 
-	// ------------------------
+		// ------------------------
 
-	// You are free to define your own string for the newBookmarkNotes variable as you see fit
+		// You are free to define your own string for the newBookmarkNotes variable as you see fit
 
 
-	// Fills the bookmark box with the autogenerated bookmark
-	document.getElementById("bookmark_notes").innerHTML = newBookmarkNotes;
+		// Fills the bookmark box with the autogenerated bookmark
+		document.getElementById("bookmark_notes").innerHTML = newBookmarkNotes;
+
+	}
 
 })();
