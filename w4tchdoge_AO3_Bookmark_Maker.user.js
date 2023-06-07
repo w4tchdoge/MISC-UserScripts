@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.0.4-20230606_154854
+// @version        2.0.5-20230607_162103
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -12,6 +12,7 @@
 // @match          *://archiveofourown.org/users/*
 // @icon           https://archiveofourown.org/favicon.ico
 // @license        GNU GPLv3
+// @history        2.0.5 — Fixing localStorage stuff
 // @history        2.0.4 — More summary related bugfixes
 // @history        2.0.3 — Fix the script replacing an existing summary in the bookmark notes with 'undefined'
 // @history        2.0.2 — Alert the user that their input for a new divider value has been accepted + Minor styling changes in the setting dropdown
@@ -62,7 +63,7 @@ If false, retrieves the work summary in a way (which I call the fancy way) that 
 
 
 FWS_asBlockquote : If using the fancy work summary method, set whether you want to retrieve the summary as a blockquote.
-For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 499
+For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 674
 
 
 splitSelect           : splitSelect changes which half of bookmarkNotes your initial bookmark is supposed to live in.
@@ -117,13 +118,178 @@ Another way to explain it is that the script works by taking the current content
 	// Declare user-configurable variables
 	var divider, autoPrivate, bottomEntireWork, simpleWorkSummary, FWS_asBlockquote, splitSelect;
 
-	// check if variable is in localStorage. if not, assign from settings_dict
-	divider = localStorage.getItem(`w4BM_divider`) || settings_dict.divider;
-	autoPrivate = stringToBoolean(localStorage.getItem(`w4BM_autoPrivate`)) || settings_dict.autoPrivate;
-	bottomEntireWork = stringToBoolean(localStorage.getItem(`w4BM_bottomEntireWork`)) || settings_dict.bottomEntireWork;
-	simpleWorkSummary = stringToBoolean(localStorage.getItem(`w4BM_simpleWorkSummary`)) || settings_dict.simpleWorkSummary;
-	FWS_asBlockquote = stringToBoolean(localStorage.getItem(`w4BM_FWS_asBlockquote`)) || settings_dict.FWS_asBlockquote;
-	splitSelect = parseInt(localStorage.getItem(`w4BM_splitSelect`)) || settings_dict.splitSelect;
+	// localStorage stuff
+	if (typeof Storage != `undefined`) { // If localStorage exists
+
+		console.log(`
+	w4tchdoge's AO3 Bookmark Maker UserScript – Log
+	--------------------
+	localStorage exists`
+		);
+
+
+		// Execute if statement only if w4BM_divider is not set in localStorage
+		if (!!!localStorage.getItem(`w4BM_divider`)) {
+
+			console.log(`
+	w4tchdoge's AO3 Bookmark Maker UserScript – Log
+	--------------------
+	'w4BM_divider' is not set in the localStorage
+	Now setting it to '${ini_settings_dict.divider.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}'`
+			);
+
+			// set the divider in localStorage and current script execution to the default value
+			// this will only happen on the first ever execution of the script, because this action only happens when:
+			// a) localStorage exists
+			// b) w4BM_divider does not exist in the localStorage
+			divider = ini_settings_dict.divider;
+			localStorage.setItem(`w4BM_divider`, ini_settings_dict.divider);
+		}
+
+		// Execute if statement only if w4BM_divider is set in localStorage
+		else if (!!localStorage.getItem(`w4BM_divider`)) {
+
+			/* console.log(`
+	w4tchdoge's AO3 Bookmark Maker UserScript – Log
+	--------------------
+	'w4BM_divider' IS SET in the localStorage`
+			); */
+
+			divider = localStorage.getItem(`w4BM_divider`);
+		}
+
+
+		// doing the same thing as the first if else on line 130
+		if (!!!localStorage.getItem(`w4BM_autoPrivate`)) {
+
+			console.log(`
+	w4tchdoge's AO3 Bookmark Maker UserScript – Log
+	--------------------
+	'w4BM_autoPrivate' is not set in the localStorage
+	Now setting it to '${ini_settings_dict.autoPrivate}'`
+			);
+
+			autoPrivate = ini_settings_dict.autoPrivate;
+			localStorage.setItem(`w4BM_autoPrivate`, ini_settings_dict.autoPrivate);
+		}
+		else if (!!localStorage.getItem(`w4BM_autoPrivate`)) {
+
+			/* console.log(`
+	w4tchdoge's AO3 Bookmark Maker UserScript – Log
+	--------------------
+	'w4BM_autoPrivate' IS SET in the localStorage`
+			); */
+
+			divider = stringToBoolean(localStorage.getItem(`w4BM_autoPrivate`));
+		}
+
+		// doing the same thing as the first if else on line 130
+		if (!!!localStorage.getItem(`w4BM_bottomEntireWork`)) {
+
+			console.log(`
+	w4tchdoge's AO3 Bookmark Maker UserScript – Log
+	--------------------
+	'w4BM_bottomEntireWork' is not set in the localStorage
+	Now setting it to '${ini_settings_dict.bottomEntireWork}'`
+			);
+
+			bottomEntireWork = ini_settings_dict.bottomEntireWork;
+			localStorage.setItem(`w4BM_bottomEntireWork`, ini_settings_dict.bottomEntireWork);
+		}
+		else if (!!localStorage.getItem(`w4BM_bottomEntireWork`)) {
+
+			/* console.log(`
+	w4tchdoge's AO3 Bookmark Maker UserScript – Log
+	--------------------
+	'w4BM_bottomEntireWork' IS SET in the localStorage`
+			); */
+
+			divider = stringToBoolean(localStorage.getItem(`w4BM_bottomEntireWork`));
+		}
+
+		// doing the same thing as the first if else on line 130
+		if (!!!localStorage.getItem(`w4BM_simpleWorkSummary`)) {
+
+			console.log(`
+	w4tchdoge's AO3 Bookmark Maker UserScript – Log
+	--------------------
+	'w4BM_simpleWorkSummary' is not set in the localStorage
+	Now setting it to '${ini_settings_dict.simpleWorkSummary}'`
+			);
+
+			simpleWorkSummary = ini_settings_dict.simpleWorkSummary;
+			localStorage.setItem(`w4BM_simpleWorkSummary`, ini_settings_dict.simpleWorkSummary);
+		}
+		else if (!!localStorage.getItem(`w4BM_simpleWorkSummary`)) {
+
+			/* console.log(`
+	w4tchdoge's AO3 Bookmark Maker UserScript – Log
+	--------------------
+	'w4BM_simpleWorkSummary' IS SET in the localStorage`
+			); */
+
+			divider = stringToBoolean(localStorage.getItem(`w4BM_simpleWorkSummary`));
+		}
+
+		// doing the same thing as the first if else on line 130
+		if (!!!localStorage.getItem(`w4BM_FWS_asBlockquote`)) {
+
+			console.log(`
+	w4tchdoge's AO3 Bookmark Maker UserScript – Log
+	--------------------
+	'w4BM_FWS_asBlockquote' is not set in the localStorage
+	Now setting it to '${ini_settings_dict.FWS_asBlockquote}'`
+			);
+
+			FWS_asBlockquote = ini_settings_dict.FWS_asBlockquote;
+			localStorage.setItem(`w4BM_FWS_asBlockquote`, ini_settings_dict.FWS_asBlockquote);
+		}
+		else if (!!localStorage.getItem(`w4BM_FWS_asBlockquote`)) {
+
+			/* console.log(`
+	w4tchdoge's AO3 Bookmark Maker UserScript – Log
+	--------------------
+	'w4BM_FWS_asBlockquote' IS SET in the localStorage`
+			); */
+
+			divider = stringToBoolean(localStorage.getItem(`w4BM_FWS_asBlockquote`));
+		}
+
+		// doing the same thing as the first if else on line 130
+		if (!!!localStorage.getItem(`w4BM_splitSelect`)) {
+
+			console.log(`
+	w4tchdoge's AO3 Bookmark Maker UserScript – Log
+	--------------------
+	'w4BM_splitSelect' is not set in the localStorage
+	Now setting it to '${ini_settings_dict.splitSelect}'`
+			);
+
+			splitSelect = ini_settings_dict.splitSelect;
+			localStorage.setItem(`w4BM_splitSelect`, ini_settings_dict.splitSelect);
+		}
+		else if (!!localStorage.getItem(`w4BM_splitSelect`)) {
+
+			/* console.log(`
+	w4tchdoge's AO3 Bookmark Maker UserScript – Log
+	--------------------
+	'w4BM_splitSelect' IS SET in the localStorage`
+			); */
+
+			divider = parseInt(localStorage.getItem(`w4BM_splitSelect`));
+		}
+
+	}
+	else { // if localStorage does not exist
+
+		divider = ini_settings_dict.divider;
+		autoPrivate = ini_settings_dict.autoPrivate;
+		bottomEntireWork = ini_settings_dict.bottomEntireWork;
+		simpleWorkSummary = ini_settings_dict.simpleWorkSummary;
+		FWS_asBlockquote = ini_settings_dict.FWS_asBlockquote;
+		splitSelect = ini_settings_dict.splitSelect;
+
+	}
 
 
 	// add main element that all querySelector operations will be done on
