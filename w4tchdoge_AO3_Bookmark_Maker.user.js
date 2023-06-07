@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.0.5-20230607_162103
+// @version        2.0.5-20230607_162946
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -36,7 +36,7 @@
 (function () {
 
 	/* Dictionary of "constants" that can be changed by the end user to affect how the script functions */
-	let settings_dict = {
+	let ini_settings_dict = {
 		divider: `</details>\n\n`,
 		autoPrivate: false,
 		bottomEntireWork: true,
@@ -122,9 +122,9 @@ Another way to explain it is that the script works by taking the current content
 	if (typeof Storage != `undefined`) { // If localStorage exists
 
 		console.log(`
-	w4tchdoge's AO3 Bookmark Maker UserScript – Log
-	--------------------
-	localStorage exists`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+localStorage exists`
 		);
 
 
@@ -132,10 +132,10 @@ Another way to explain it is that the script works by taking the current content
 		if (!!!localStorage.getItem(`w4BM_divider`)) {
 
 			console.log(`
-	w4tchdoge's AO3 Bookmark Maker UserScript – Log
-	--------------------
-	'w4BM_divider' is not set in the localStorage
-	Now setting it to '${ini_settings_dict.divider.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}'`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_divider' is not set in the localStorage
+Now setting it to '${ini_settings_dict.divider.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}'`
 			);
 
 			// set the divider in localStorage and current script execution to the default value
@@ -150,9 +150,9 @@ Another way to explain it is that the script works by taking the current content
 		else if (!!localStorage.getItem(`w4BM_divider`)) {
 
 			/* console.log(`
-	w4tchdoge's AO3 Bookmark Maker UserScript – Log
-	--------------------
-	'w4BM_divider' IS SET in the localStorage`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_divider' IS SET in the localStorage`
 			); */
 
 			divider = localStorage.getItem(`w4BM_divider`);
@@ -163,10 +163,10 @@ Another way to explain it is that the script works by taking the current content
 		if (!!!localStorage.getItem(`w4BM_autoPrivate`)) {
 
 			console.log(`
-	w4tchdoge's AO3 Bookmark Maker UserScript – Log
-	--------------------
-	'w4BM_autoPrivate' is not set in the localStorage
-	Now setting it to '${ini_settings_dict.autoPrivate}'`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_autoPrivate' is not set in the localStorage
+Now setting it to '${ini_settings_dict.autoPrivate}'`
 			);
 
 			autoPrivate = ini_settings_dict.autoPrivate;
@@ -175,9 +175,9 @@ Another way to explain it is that the script works by taking the current content
 		else if (!!localStorage.getItem(`w4BM_autoPrivate`)) {
 
 			/* console.log(`
-	w4tchdoge's AO3 Bookmark Maker UserScript – Log
-	--------------------
-	'w4BM_autoPrivate' IS SET in the localStorage`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_autoPrivate' IS SET in the localStorage`
 			); */
 
 			divider = stringToBoolean(localStorage.getItem(`w4BM_autoPrivate`));
@@ -187,10 +187,10 @@ Another way to explain it is that the script works by taking the current content
 		if (!!!localStorage.getItem(`w4BM_bottomEntireWork`)) {
 
 			console.log(`
-	w4tchdoge's AO3 Bookmark Maker UserScript – Log
-	--------------------
-	'w4BM_bottomEntireWork' is not set in the localStorage
-	Now setting it to '${ini_settings_dict.bottomEntireWork}'`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_bottomEntireWork' is not set in the localStorage
+Now setting it to '${ini_settings_dict.bottomEntireWork}'`
 			);
 
 			bottomEntireWork = ini_settings_dict.bottomEntireWork;
@@ -199,9 +199,9 @@ Another way to explain it is that the script works by taking the current content
 		else if (!!localStorage.getItem(`w4BM_bottomEntireWork`)) {
 
 			/* console.log(`
-	w4tchdoge's AO3 Bookmark Maker UserScript – Log
-	--------------------
-	'w4BM_bottomEntireWork' IS SET in the localStorage`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_bottomEntireWork' IS SET in the localStorage`
 			); */
 
 			divider = stringToBoolean(localStorage.getItem(`w4BM_bottomEntireWork`));
@@ -211,10 +211,10 @@ Another way to explain it is that the script works by taking the current content
 		if (!!!localStorage.getItem(`w4BM_simpleWorkSummary`)) {
 
 			console.log(`
-	w4tchdoge's AO3 Bookmark Maker UserScript – Log
-	--------------------
-	'w4BM_simpleWorkSummary' is not set in the localStorage
-	Now setting it to '${ini_settings_dict.simpleWorkSummary}'`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_simpleWorkSummary' is not set in the localStorage
+Now setting it to '${ini_settings_dict.simpleWorkSummary}'`
 			);
 
 			simpleWorkSummary = ini_settings_dict.simpleWorkSummary;
@@ -223,9 +223,9 @@ Another way to explain it is that the script works by taking the current content
 		else if (!!localStorage.getItem(`w4BM_simpleWorkSummary`)) {
 
 			/* console.log(`
-	w4tchdoge's AO3 Bookmark Maker UserScript – Log
-	--------------------
-	'w4BM_simpleWorkSummary' IS SET in the localStorage`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_simpleWorkSummary' IS SET in the localStorage`
 			); */
 
 			divider = stringToBoolean(localStorage.getItem(`w4BM_simpleWorkSummary`));
@@ -235,10 +235,10 @@ Another way to explain it is that the script works by taking the current content
 		if (!!!localStorage.getItem(`w4BM_FWS_asBlockquote`)) {
 
 			console.log(`
-	w4tchdoge's AO3 Bookmark Maker UserScript – Log
-	--------------------
-	'w4BM_FWS_asBlockquote' is not set in the localStorage
-	Now setting it to '${ini_settings_dict.FWS_asBlockquote}'`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_FWS_asBlockquote' is not set in the localStorage
+Now setting it to '${ini_settings_dict.FWS_asBlockquote}'`
 			);
 
 			FWS_asBlockquote = ini_settings_dict.FWS_asBlockquote;
@@ -247,9 +247,9 @@ Another way to explain it is that the script works by taking the current content
 		else if (!!localStorage.getItem(`w4BM_FWS_asBlockquote`)) {
 
 			/* console.log(`
-	w4tchdoge's AO3 Bookmark Maker UserScript – Log
-	--------------------
-	'w4BM_FWS_asBlockquote' IS SET in the localStorage`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_FWS_asBlockquote' IS SET in the localStorage`
 			); */
 
 			divider = stringToBoolean(localStorage.getItem(`w4BM_FWS_asBlockquote`));
@@ -259,10 +259,10 @@ Another way to explain it is that the script works by taking the current content
 		if (!!!localStorage.getItem(`w4BM_splitSelect`)) {
 
 			console.log(`
-	w4tchdoge's AO3 Bookmark Maker UserScript – Log
-	--------------------
-	'w4BM_splitSelect' is not set in the localStorage
-	Now setting it to '${ini_settings_dict.splitSelect}'`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_splitSelect' is not set in the localStorage
+Now setting it to '${ini_settings_dict.splitSelect}'`
 			);
 
 			splitSelect = ini_settings_dict.splitSelect;
@@ -271,9 +271,9 @@ Another way to explain it is that the script works by taking the current content
 		else if (!!localStorage.getItem(`w4BM_splitSelect`)) {
 
 			/* console.log(`
-	w4tchdoge's AO3 Bookmark Maker UserScript – Log
-	--------------------
-	'w4BM_splitSelect' IS SET in the localStorage`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_splitSelect' IS SET in the localStorage`
 			); */
 
 			divider = parseInt(localStorage.getItem(`w4BM_splitSelect`));
