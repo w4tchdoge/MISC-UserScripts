@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.0.5-20230607_190813
+// @version        2.0.6-20230608_141622
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -12,6 +12,7 @@
 // @match          *://archiveofourown.org/users/*
 // @icon           https://archiveofourown.org/favicon.ico
 // @license        GNU GPLv3
+// @history        2.0.6 — Fix even more localStorage issues, this time caused by my own incompetence
 // @history        2.0.5 — Fixing localStorage stuff
 // @history        2.0.4 — More summary related bugfixes
 // @history        2.0.3 — Fix the script replacing an existing summary in the bookmark notes with 'undefined'
@@ -180,7 +181,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 'w4BM_autoPrivate' IS SET in the localStorage`
 			); */
 
-			divider = stringToBoolean(localStorage.getItem(`w4BM_autoPrivate`));
+			autoPrivate = stringToBoolean(localStorage.getItem(`w4BM_autoPrivate`));
 		}
 
 		// doing the same thing as the first if else on line 130
@@ -204,7 +205,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 'w4BM_bottomEntireWork' IS SET in the localStorage`
 			); */
 
-			divider = stringToBoolean(localStorage.getItem(`w4BM_bottomEntireWork`));
+			bottomEntireWork = stringToBoolean(localStorage.getItem(`w4BM_bottomEntireWork`));
 		}
 
 		// doing the same thing as the first if else on line 130
@@ -228,7 +229,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 'w4BM_simpleWorkSummary' IS SET in the localStorage`
 			); */
 
-			divider = stringToBoolean(localStorage.getItem(`w4BM_simpleWorkSummary`));
+			simpleWorkSummary = stringToBoolean(localStorage.getItem(`w4BM_simpleWorkSummary`));
 		}
 
 		// doing the same thing as the first if else on line 130
@@ -252,7 +253,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 'w4BM_FWS_asBlockquote' IS SET in the localStorage`
 			); */
 
-			divider = stringToBoolean(localStorage.getItem(`w4BM_FWS_asBlockquote`));
+			FWS_asBlockquote = stringToBoolean(localStorage.getItem(`w4BM_FWS_asBlockquote`));
 		}
 
 		// doing the same thing as the first if else on line 130
@@ -276,7 +277,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 'w4BM_splitSelect' IS SET in the localStorage`
 			); */
 
-			divider = parseInt(localStorage.getItem(`w4BM_splitSelect`));
+			splitSelect = parseInt(localStorage.getItem(`w4BM_splitSelect`));
 		}
 
 	}
@@ -296,13 +297,22 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 	console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
-Logging the current state of the localStorage vars used by the script
+Logging the current state of vars used by the script
+localStorage vars:
 divider          : ${localStorage.getItem(`w4BM_divider`).replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}
 autoPrivate      : ${localStorage.getItem(`w4BM_autoPrivate`)}
 bottomEntireWork : ${localStorage.getItem(`w4BM_bottomEntireWork`)}
 simpleWorkSummary: ${localStorage.getItem(`w4BM_simpleWorkSummary`)}
 FWS_asBlockquote : ${localStorage.getItem(`w4BM_FWS_asBlockquote`)}
-splitSelect      : ${localStorage.getItem(`w4BM_splitSelect`)}`
+splitSelect      : ${localStorage.getItem(`w4BM_splitSelect`)}
+
+current script vars:
+divider          : ${divider.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}
+autoPrivate      : ${autoPrivate}
+bottomEntireWork : ${bottomEntireWork}
+simpleWorkSummary: ${simpleWorkSummary}
+FWS_asBlockquote : ${FWS_asBlockquote}
+splitSelect      : ${splitSelect}`
 	);
 
 
