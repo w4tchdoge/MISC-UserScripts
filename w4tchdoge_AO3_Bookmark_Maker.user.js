@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.0.6-20230608_141622
+// @version        2.0.7-20230608_144145
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -12,6 +12,7 @@
 // @match          *://archiveofourown.org/users/*
 // @icon           https://archiveofourown.org/favicon.ico
 // @license        GNU GPLv3
+// @history        2.0.7 — Fix bottomEntireWork not functioning because of the placement of the code responsible for putting the button there being inside an if statement that only executes on specific pages
 // @history        2.0.6 — Fix even more localStorage issues, this time caused by my own incompetence
 // @history        2.0.5 — Fixing localStorage stuff
 // @history        2.0.4 — More summary related bugfixes
@@ -590,6 +591,33 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 
 	}
 
+
+	var BEW_conditonal = (currPgURL.includes(`works`) && main.querySelector(`li.chapter.previous`) != null && bottomEntireWork);
+	console.log(`
+All conditions met for "Entire Work" button in the bottom nav bar?: ${BEW_conditonal}`
+	);
+
+	// Checks if the current page is either the first chapter of a work or the entire work
+	if (BEW_conditonal) {
+		// If all above conditions are true, add a second "Entire Work" button at the bottom nav bar
+
+		// Clone the "Entire Work" button
+		var enti_work = main.querySelector(`li.chapter.entire`).cloneNode(true);
+		// Add padding to make it look more natural in the bottom nav bar
+		enti_work.style.paddingLeft = `0.5663em`;
+
+		// console.log(enti_work);
+
+		// Get the "↑ Top" button that's in the bottom nav bar
+		let toTop_xp = `.//*[@id="feedback"]//*[@role="navigation"]//li[*[text()[contains(.,"Top")]]]`;
+		let toTop_btn = document.evaluate(toTop_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+
+		// console.log(toTop_btn);
+
+		// Add the cloned "Entire Work" button after the "↑ Top" button in the bottom navbar
+		toTop_btn.after(enti_work);
+	}
+
 	// make the bookmarking part of the script work only in places where you can make bookmarks
 	// this if statement was the easiest way i could think of (im lazy ok) to solve the problem of it erroring on the user preferences page
 	// oh and it also makes sure that the script only works and replaces your current bookmark with new text when a summary element exists
@@ -622,24 +650,6 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 			lastChapter,
 			latestChapterNumLength,
 			chapNumPadCount;
-
-
-		// Checks if the current page is either the first chapter of a work or the entire work
-		if (currPgURL.includes(`works`) && main.querySelector(`li.chapter.previous`) != null && bottomEntireWork) {
-			// If all above conditions are true, add a second "Entire Work" button at the bottom nav bar
-
-			// Clone the "Entire Work" button
-			var enti_work = main.querySelector(`li.chapter.entire`).cloneNode(true);
-			// Add padding to make it look more natural in the bottom nav bar
-			enti_work.style.paddingLeft = `0.5663em`;
-
-			// Get the "↑ Top" button that's in the bottom nav bar
-			let toTop_xp = `.//*[@id="feedback"]//*[@role="navigation"]//li[*[text()[contains(.,"Top")]]]`;
-			let toTop_btn = document.evaluate(toTop_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-
-			// Add the cloned "Entire Work" button after the "↑ Top" button in the bottom navbar
-			toTop_btn.after(enti_work);
-		}
 
 
 		// Look for HTML DOM element only present on series pages
