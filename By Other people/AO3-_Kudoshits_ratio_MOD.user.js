@@ -3,7 +3,7 @@
 // @description  Replace hitcount with kudos/hits percentage. Sort works on the page by this ratio.
 // @namespace	   https://greasyfork.org/scripts/3144-ao3-kudos-hits-ratio
 // @author	     Min
-// @version	     1.5.1-20230610_020811
+// @version	     1.5.2-20230610_150950
 // @history	     1.4 - always show hits on stats page, require jquery (for firefox)
 // @history	     1.3 - works for statistics, option to show hitcount
 // @history	     1.2 - makes use of new stats classes
