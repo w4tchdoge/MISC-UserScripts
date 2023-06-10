@@ -26,4 +26,6 @@ List of scripts written by other people that I have modified for personal use:
 
 
 List of scripts written by other people that I have rewritten to VanillaJS for compatibility with [uazo's Bromite](https://github.com/uazo/bromite-buildtools):
-- `AO3_Kudos-Hits_Ratio_VanillaJS.user.js` – [Original Script on Greasy Fork](https://greasyfork.org/scripts/3144)
+- ~~`AO3_Kudos-Hits_Ratio_VanillaJS.user.js` – [Original Script on Greasy Fork](https://greasyfork.org/scripts/3144)~~
+
+    Deprecated in favour of using the original script with jQuery included in the actual file
