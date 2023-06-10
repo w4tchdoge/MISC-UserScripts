@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name           AO3: Kudos/Hits Ratio VanillaJS
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.2-20230606_203127
+// @version        1.0.3-20230610_013557
 // @description    Adds the Kudos to Hits ratio of a work as a percentage with optional (user configurable) coloured backgrounds depending on the ratio. Also adds the ability to sort based on the ratio.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @match          *://archiveofourown.org/*
 // @license        AGPL-3.0-or-later
+// @history        1.0.3 — Fix checkCountable not working on series pages
 // ==/UserScript==
 
 (function () {
@@ -96,7 +97,7 @@
 
 		if (!!found_stats.length) {
 
-			if (found_stats.length != 1 && (found_stats.at(-0).closest(`li`).matches(`.work`) || found_stats.at(-0).closest(`li`).matches(`.bookmark`))) { // Checks if user is on a page that lists works/bookmarks
+			if (found_stats.length != 1 && (found_stats.at(-1).closest(`li`).matches(`.work`) || found_stats.at(-1).closest(`li`).matches(`.bookmark`))) { // Checks if user is on a page that lists works/bookmarks
 
 				countable = true;
 				sortable = true;
