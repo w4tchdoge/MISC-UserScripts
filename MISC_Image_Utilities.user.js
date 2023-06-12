@@ -1,15 +1,19 @@
 // ==UserScript==
 // @name           MISC Image Utilities
 // @namespace      https://github.com/w4tchdoge
-// @version        3.3.1-20230529_160722
+// @version        3.4.0-20230612_133820
 // @description    Miscellaneous IMG related utilities
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
+// @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/MISC_Image_Utilities.user.js
+// @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/MISC_Image_Utilities.user.js
 // @include        /^https?:\/\/(.*?)\.(.*?)discord(.*?)\/(.*?)avatar(.*?)$/
+// @include        /^https?:\/\/(.*?)\.(.*?)discord(.*?)\/(.*?)banners(.*?)$/
 // @include        /^https?:\/\/pbs\.twimg\.com\/media\/(.*?)$/
 // @include        /^https?:\/\/preview\.redd\.it\/(.*?)$/
 // @grant          GM_registerMenuCommand
 // @license        AGPL-3.0-or-later
+// @history        3.4.0 — Added support for Discord banner images
 // ==/UserScript==
 
 /* SCRIPT GOES FUCKY WUCKY IF YOU SET THIS TO TRUE, EXCEPT NOT ANYMORE XD */
@@ -36,8 +40,10 @@ function Discord_gen_IMG_Util(url_par_inx, re_ser, re_rep) {
 	};
 }
 
-if (window.location.href.toLowerCase().toString().includes(`discordapp`)) {
-	if (window.location.href.toLowerCase().toString().includes(`guilds`)) {
+const currPG_URL = window.location.href;
+
+if (currPG_URL.toLowerCase().toString().includes(`discordapp`)) {
+	if (currPG_URL.toLowerCase().toString().includes(`guilds`)) {
 		function Discord_WEBPtoPNG_noSIZE() {
 			var { to_rep, re_ser, re_rep, newurl } = Discord_gen_IMG_Util(7, /^(.*?)(\.(webp)).*?$/i, `$1.png?size=4096&quality=lossless`);
 
@@ -79,19 +85,19 @@ if (window.location.href.toLowerCase().toString().includes(`discordapp`)) {
 		}
 
 		function Discord_WEBPtoPNG() {
-			if (window.location.href.toLowerCase().toString().includes(`.webp`) && window.location.href.toLowerCase().toString().includes(`size`) === false && window.location.href.toLowerCase().toString().includes(`quality`) === false) {
+			if (currPG_URL.toLowerCase().toString().includes(`.webp`) && currPG_URL.toLowerCase().toString().includes(`size`) === false && currPG_URL.toLowerCase().toString().includes(`quality`) === false) {
 				Discord_WEBPtoPNG_noSIZE();
 			}
-			if (window.location.href.toLowerCase().toString().includes(`.webp`) && window.location.href.toLowerCase().toString().includes(`size`) === true && window.location.href.toLowerCase().toString().includes(`quality`) === false) {
+			if (currPG_URL.toLowerCase().toString().includes(`.webp`) && currPG_URL.toLowerCase().toString().includes(`size`) === true && currPG_URL.toLowerCase().toString().includes(`quality`) === false) {
 				Discord_WEBPtoPNG_yesSIZE();
 			}
 		}
 
 		function Discord_LosslessImage() {
-			if (window.location.href.toLowerCase().toString().includes(`size`) === false && window.location.href.toLowerCase().toString().includes(`quality`) === false) {
+			if (currPG_URL.toLowerCase().toString().includes(`size`) === false && currPG_URL.toLowerCase().toString().includes(`quality`) === false) {
 				Discord_LosslessImage_noSIZE();
 			}
-			if (window.location.href.toLowerCase().toString().includes(`size`) && window.location.href.includes(`quality`) === false) {
+			if (currPG_URL.toLowerCase().toString().includes(`size`) && currPG_URL.includes(`quality`) === false) {
 				Discord_LosslessImage_yesSIZE();
 			}
 		}
@@ -99,13 +105,14 @@ if (window.location.href.toLowerCase().toString().includes(`discordapp`)) {
 		GM_registerMenuCommand(`Discord – WEBP → PNG`, Discord_WEBPtoPNG);
 		GM_registerMenuCommand(`Discord – Lossless Image`, Discord_LosslessImage);
 
-		if (discord_autofix === true && window.location.href.toLowerCase().toString().includes(`webp`)) {
+		if (discord_autofix === true && currPG_URL.toLowerCase().toString().includes(`webp`)) {
 			Discord_WEBPtoPNG();
 		}
-		if (discord_autofix === true && window.location.href.toLowerCase().toString().includes(`quality`) === false) {
+		if (discord_autofix === true && currPG_URL.toLowerCase().toString().includes(`quality`) === false) {
 			Discord_LosslessImage();
 		}
-	} else {
+	}
+	else if (currPG_URL.toLowerCase().toString().includes(`banners`)) {
 		function Discord_WEBPtoPNG_noSIZE() {
 			var { to_rep, re_ser, re_rep, newurl } = Discord_gen_IMG_Util(4, /^(.*?)(\.(webp)).*?$/i, `$1.png?size=4096&quality=lossless`);
 
@@ -147,19 +154,19 @@ if (window.location.href.toLowerCase().toString().includes(`discordapp`)) {
 		}
 
 		function Discord_WEBPtoPNG() {
-			if (window.location.href.toLowerCase().toString().includes(`.webp`) && window.location.href.toLowerCase().toString().includes(`size`) === false && window.location.href.toLowerCase().toString().includes(`quality`) === false) {
+			if (currPG_URL.toLowerCase().toString().includes(`.webp`) && currPG_URL.toLowerCase().toString().includes(`size`) === false && currPG_URL.toLowerCase().toString().includes(`quality`) === false) {
 				Discord_WEBPtoPNG_noSIZE();
 			}
-			if (window.location.href.toLowerCase().toString().includes(`.webp`) && window.location.href.toLowerCase().toString().includes(`size`) === true && window.location.href.toLowerCase().toString().includes(`quality`) === false) {
+			if (currPG_URL.toLowerCase().toString().includes(`.webp`) && currPG_URL.toLowerCase().toString().includes(`size`) === true && currPG_URL.toLowerCase().toString().includes(`quality`) === false) {
 				Discord_WEBPtoPNG_yesSIZE();
 			}
 		}
 
 		function Discord_LosslessImage() {
-			if (window.location.href.toLowerCase().toString().includes(`size`) === false && window.location.href.toLowerCase().toString().includes(`quality`) === false) {
+			if (currPG_URL.toLowerCase().toString().includes(`size`) === false && currPG_URL.toLowerCase().toString().includes(`quality`) === false) {
 				Discord_LosslessImage_noSIZE();
 			}
-			if (window.location.href.toLowerCase().toString().includes(`size`) && window.location.href.includes(`quality`) === false) {
+			if (currPG_URL.toLowerCase().toString().includes(`size`) && currPG_URL.includes(`quality`) === false) {
 				Discord_LosslessImage_yesSIZE();
 			}
 		}
@@ -167,16 +174,85 @@ if (window.location.href.toLowerCase().toString().includes(`discordapp`)) {
 		GM_registerMenuCommand(`Discord – WEBP → PNG`, Discord_WEBPtoPNG);
 		GM_registerMenuCommand(`Discord – Lossless Image`, Discord_LosslessImage);
 
-		if (discord_autofix === true && window.location.href.toLowerCase().toString().includes(`webp`)) {
+		if (discord_autofix === true && currPG_URL.toLowerCase().toString().includes(`webp`)) {
 			Discord_WEBPtoPNG();
 		}
-		if (discord_autofix === true && window.location.href.toLowerCase().toString().includes(`quality`) === false) {
+		if (discord_autofix === true && currPG_URL.toLowerCase().toString().includes(`quality`) === false) {
+			Discord_LosslessImage();
+		}
+	}
+	else {
+		function Discord_WEBPtoPNG_noSIZE() {
+			var { to_rep, re_ser, re_rep, newurl } = Discord_gen_IMG_Util(4, /^(.*?)(\.(webp)).*?$/i, `$1.png?size=4096&quality=lossless`);
+
+			window.location.href = newurl;
+
+			console.log(`href:`, url_parts);
+			console.log(`
+	regex:
+	to replace: ${to_rep}
+	regex strings: \"${re_ser}\", \"${re_rep}\"
+	final string: ${repd_str}`
+			);
+		}
+
+		function Discord_WEBPtoPNG_yesSIZE() {
+			var { to_rep, re_ser, re_rep, newurl } = Discord_gen_IMG_Util(4, /^(.*?)(\.webp)(\?size=).*?$/i, `$1.png$34096&quality=lossless`);
+
+			window.location.href = newurl;
+
+			console.log(`href:`, url_parts);
+			console.log(`
+	regex:
+	to replace: ${to_rep}
+	regex strings: \"${re_ser}\", \"${re_rep}\"
+	final string: ${repd_str}`
+			);
+		}
+
+		function Discord_LosslessImage_noSIZE() {
+			var { newurl } = Discord_gen_IMG_Util(4, /^(.*)(\..(.+)?)\??.*?$/i, `$1$2?size=4096&quality=lossless`);
+
+			window.location.href = newurl;
+		}
+
+		function Discord_LosslessImage_yesSIZE() {
+			var { newurl } = Discord_gen_IMG_Util(4, /^(.*)\.(.*?)(\?size=).*?$/i, `$1.$2?size=4096&quality=lossless`);
+
+			window.location.href = newurl;
+		}
+
+		function Discord_WEBPtoPNG() {
+			if (currPG_URL.toLowerCase().toString().includes(`.webp`) && currPG_URL.toLowerCase().toString().includes(`size`) === false && currPG_URL.toLowerCase().toString().includes(`quality`) === false) {
+				Discord_WEBPtoPNG_noSIZE();
+			}
+			if (currPG_URL.toLowerCase().toString().includes(`.webp`) && currPG_URL.toLowerCase().toString().includes(`size`) === true && currPG_URL.toLowerCase().toString().includes(`quality`) === false) {
+				Discord_WEBPtoPNG_yesSIZE();
+			}
+		}
+
+		function Discord_LosslessImage() {
+			if (currPG_URL.toLowerCase().toString().includes(`size`) === false && currPG_URL.toLowerCase().toString().includes(`quality`) === false) {
+				Discord_LosslessImage_noSIZE();
+			}
+			if (currPG_URL.toLowerCase().toString().includes(`size`) && currPG_URL.includes(`quality`) === false) {
+				Discord_LosslessImage_yesSIZE();
+			}
+		}
+
+		GM_registerMenuCommand(`Discord – WEBP → PNG`, Discord_WEBPtoPNG);
+		GM_registerMenuCommand(`Discord – Lossless Image`, Discord_LosslessImage);
+
+		if (discord_autofix === true && currPG_URL.toLowerCase().toString().includes(`webp`)) {
+			Discord_WEBPtoPNG();
+		}
+		if (discord_autofix === true && currPG_URL.toLowerCase().toString().includes(`quality`) === false) {
 			Discord_LosslessImage();
 		}
 	}
 }
 
-if (window.location.href.toLowerCase().toString().includes(`twimg`)) {
+if (currPG_URL.toLowerCase().toString().includes(`twimg`)) {
 	function Twitter_Image2PNG() {
 		var init_url = window.location.href;
 		var url_parts = init_url.split(`/`)
@@ -201,12 +277,12 @@ if (window.location.href.toLowerCase().toString().includes(`twimg`)) {
 
 	GM_registerMenuCommand(`Twitter – Image → PNG`, Twitter_Image2PNG);
 
-	if (twitter_autofix === true && window.location.href.toLowerCase().toString().includes(`4096x4096`) === false) {
+	if (twitter_autofix === true && currPG_URL.toLowerCase().toString().includes(`4096x4096`) === false) {
 		Twitter_Image2PNG();
 	}
 }
 
-if (window.location.href.toLowerCase().toString().includes(`preview.redd.it`)) {
+if (currPG_URL.toLowerCase().toString().includes(`preview.redd.it`)) {
 	function i_redd_it_FixPreview() {
 		var init_url = window.location.href;
 		var url_parts = init_url.split(`/`)
