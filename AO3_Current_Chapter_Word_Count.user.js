@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3: Get Current Chapter Word Count
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0-20230621_160023
+// @version        1.0.0-20230621_161918
 // @description    Counts the number of words in the current chapter
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -30,7 +30,7 @@
       }
 
       const matches = content.match(WORD_RE);
-      if (Boolean(matches)) {
+      if (matches) {
         return matches.length;
       }
       return 0;
