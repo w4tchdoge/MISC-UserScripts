@@ -4,6 +4,7 @@ This repo is not meant for userscript distribution, it exists so that a PUSH web
 
 Below is a list of the userscripts I've written that are mirrored on Greasy Fork via a webhook on this repo:
 - AO3 Clear User Tags – [Greasy Fork](https://greasyfork.org/en/scripts/467410)
+- AO3 Current Chapter Word Count – [Greasy Fork](https://greasyfork.org/en/scripts/469161)
 - AO3 Formatted Copy – [Greasy Fork](https://greasyfork.org/en/scripts/467411)
 - AO3 Full-page lndex Button – [Greasy Fork](https://greasyfork.org/en/scripts/467408)
 - AO3 Main Nav User Bookmarks – [Greasy Fork](https://greasyfork.org/en/scripts/467412)
