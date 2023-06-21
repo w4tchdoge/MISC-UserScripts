@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name           AO3: Get Current Chapter Word Count
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0-20230621_162903
+// @version        1.0.0-20230621_163058
 // @description    Counts and displays the number of words in the current chapter
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Current_Chapter_Word_Count.user.js
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Current_Chapter_Word_Count.user.js
 // @match          *://archiveofourown.org/*
+// @icon           https://archiveofourown.org/favicon.ico
 // @license        AGPL-3.0-or-later
 // ==/UserScript==
 
