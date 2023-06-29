@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3: Get Current Chapter Word Count
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0-20230621_163058
+// @version        1.0.1-20230629_123742
 // @description    Counts and displays the number of words in the current chapter
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -21,7 +21,7 @@
   // Execute script only on multi-chapter works AND only when a single chapter is being viewed
   if (currPG_URL.includes('works') && currPG_URL.includes('chapters')) {
 
-    function Word_Counter(content, simpleWordCount = false) {
+    function Word_Counter(content) {
       // function adapted from https://github.com/Kirozen/vsce-wordcounter/blob/master/src/wordCounter.ts
 
       const WORD_RE = /[\S]+/g;
