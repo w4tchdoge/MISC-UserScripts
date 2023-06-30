@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3 Formatted Copy
 // @namespace      https://github.com/w4tchdoge
-// @version        2.3.2-20230529_170537
+// @version        2.3.3-20230630_131923
 // @description    Copy the curretly open AO3 work in the folloring MarkDown format '- [work name](work url) – [author name](author url) — '
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -324,7 +324,7 @@ ${performance.now() - s_t} ms
 			);
 		}
 
-		var cr_dt = `${new Date().getFullYear()}/${new Date().getMonth().toString().padStart(2, `0`)}/${new Date().getDate().toString().padStart(2, `0`)}`;
+		var cr_dt = `${new Date().getFullYear()}/${(new Date().getMonth()+1).toString().padStart(2, `0`)}/${new Date().getDate().toString().padStart(2, `0`)}`;
 
 		return {
 			word_count: word_count,
