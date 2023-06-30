@@ -1,10 +1,12 @@
 // ==UserScript==
 // @name           AO3 Formatted Copy
 // @namespace      https://github.com/w4tchdoge
-// @version        2.3.3-20230630_131923
+// @version        2.3.3-20230630_132515
 // @description    Copy the curretly open AO3 work in the folloring MarkDown format '- [work name](work url) – [author name](author url) — '
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
+// @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Formatted_Copy.user.js
+// @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Formatted_Copy.user.js
 // @match          *://archiveofourown.org/*
 // @icon           https://archiveofourown.org/favicon.ico
 // @grant          GM_registerMenuCommand
