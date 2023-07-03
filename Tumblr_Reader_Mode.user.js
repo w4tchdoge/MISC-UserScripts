@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Tumblr: Post Reader Mode
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0-20230703_145257
+// @version        1.0.0-20230703_150015
 // @description    Add a clickable div element to a tumblr post to toggle a "Reader Mode" which removes the tags and related posts
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -10,6 +10,7 @@
 // @exclude        http://www.tumblr.com/*
 // @exclude        https://www.tumblr.com/*
 // @match          http*://*.tumblr.com/*
+// @icon           https://www.google.com/s2/favicons?sz=64&domain=tumblr.com
 // @grant          GM_registerMenuCommand
 // @grant          GM.registerMenuCommand
 // @require        https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
