@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.0.7-20230608_144145
+// @version        2.0.8-20230712_024944
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -12,6 +12,7 @@
 // @match          *://archiveofourown.org/users/*
 // @icon           https://archiveofourown.org/favicon.ico
 // @license        GNU GPLv3
+// @history        2.0.8 — Make some if statements in the localStorage section more readable
 // @history        2.0.7 — Fix bottomEntireWork not functioning because of the placement of the code responsible for putting the button there being inside an if statement that only executes on specific pages
 // @history        2.0.6 — Fix even more localStorage issues, this time caused by my own incompetence
 // @history        2.0.5 — Fixing localStorage stuff
@@ -65,7 +66,7 @@ If false, retrieves the work summary in a way (which I call the fancy way) that 
 
 
 FWS_asBlockquote : If using the fancy work summary method, set whether you want to retrieve the summary as a blockquote.
-For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 690
+For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 710
 
 
 splitSelect           : splitSelect changes which half of bookmarkNotes your initial bookmark is supposed to live in.
@@ -131,7 +132,7 @@ localStorage exists`
 
 
 		// Execute if statement only if w4BM_divider is not set in localStorage
-		if (!!!localStorage.getItem(`w4BM_divider`)) {
+		if (Boolean(localStorage.getItem(`w4BM_divider`)) == false) {
 
 			console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
@@ -149,7 +150,7 @@ Now setting it to '${ini_settings_dict.divider.replace(/\n/gi, `\\n`).replace(/\
 		}
 
 		// Execute if statement only if w4BM_divider is set in localStorage
-		else if (!!localStorage.getItem(`w4BM_divider`)) {
+		else if (Boolean(localStorage.getItem(`w4BM_divider`)) == true) {
 
 			/* console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
@@ -161,8 +162,8 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 		}
 
 
-		// doing the same thing as the first if else on line 130
-		if (!!!localStorage.getItem(`w4BM_autoPrivate`)) {
+		// doing the same thing as the first if else on line 135
+		if (Boolean(localStorage.getItem(`w4BM_autoPrivate`)) == false) {
 
 			console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
@@ -174,7 +175,7 @@ Now setting it to '${ini_settings_dict.autoPrivate}'`
 			autoPrivate = ini_settings_dict.autoPrivate;
 			localStorage.setItem(`w4BM_autoPrivate`, ini_settings_dict.autoPrivate);
 		}
-		else if (!!localStorage.getItem(`w4BM_autoPrivate`)) {
+		else if (Boolean(localStorage.getItem(`w4BM_autoPrivate`)) == true) {
 
 			/* console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
@@ -185,8 +186,8 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 			autoPrivate = stringToBoolean(localStorage.getItem(`w4BM_autoPrivate`));
 		}
 
-		// doing the same thing as the first if else on line 130
-		if (!!!localStorage.getItem(`w4BM_bottomEntireWork`)) {
+		// doing the same thing as the first if else on line 135
+		if (Boolean(localStorage.getItem(`w4BM_bottomEntireWork`)) == false) {
 
 			console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
@@ -198,7 +199,7 @@ Now setting it to '${ini_settings_dict.bottomEntireWork}'`
 			bottomEntireWork = ini_settings_dict.bottomEntireWork;
 			localStorage.setItem(`w4BM_bottomEntireWork`, ini_settings_dict.bottomEntireWork);
 		}
-		else if (!!localStorage.getItem(`w4BM_bottomEntireWork`)) {
+		else if (Boolean(localStorage.getItem(`w4BM_bottomEntireWork`)) == true) {
 
 			/* console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
@@ -209,8 +210,8 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 			bottomEntireWork = stringToBoolean(localStorage.getItem(`w4BM_bottomEntireWork`));
 		}
 
-		// doing the same thing as the first if else on line 130
-		if (!!!localStorage.getItem(`w4BM_simpleWorkSummary`)) {
+		// doing the same thing as the first if else on line 135
+		if (Boolean(localStorage.getItem(`w4BM_simpleWorkSummary`)) == false) {
 
 			console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
@@ -222,7 +223,7 @@ Now setting it to '${ini_settings_dict.simpleWorkSummary}'`
 			simpleWorkSummary = ini_settings_dict.simpleWorkSummary;
 			localStorage.setItem(`w4BM_simpleWorkSummary`, ini_settings_dict.simpleWorkSummary);
 		}
-		else if (!!localStorage.getItem(`w4BM_simpleWorkSummary`)) {
+		else if (Boolean(localStorage.getItem(`w4BM_simpleWorkSummary`)) == true) {
 
 			/* console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
@@ -233,8 +234,8 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 			simpleWorkSummary = stringToBoolean(localStorage.getItem(`w4BM_simpleWorkSummary`));
 		}
 
-		// doing the same thing as the first if else on line 130
-		if (!!!localStorage.getItem(`w4BM_FWS_asBlockquote`)) {
+		// doing the same thing as the first if else on line 135
+		if (Boolean(localStorage.getItem(`w4BM_FWS_asBlockquote`)) == false) {
 
 			console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
@@ -246,7 +247,7 @@ Now setting it to '${ini_settings_dict.FWS_asBlockquote}'`
 			FWS_asBlockquote = ini_settings_dict.FWS_asBlockquote;
 			localStorage.setItem(`w4BM_FWS_asBlockquote`, ini_settings_dict.FWS_asBlockquote);
 		}
-		else if (!!localStorage.getItem(`w4BM_FWS_asBlockquote`)) {
+		else if (Boolean(localStorage.getItem(`w4BM_FWS_asBlockquote`)) == true) {
 
 			/* console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
@@ -257,8 +258,8 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 			FWS_asBlockquote = stringToBoolean(localStorage.getItem(`w4BM_FWS_asBlockquote`));
 		}
 
-		// doing the same thing as the first if else on line 130
-		if (!!!localStorage.getItem(`w4BM_splitSelect`)) {
+		// doing the same thing as the first if else on line 135
+		if (Boolean(localStorage.getItem(`w4BM_splitSelect`)) == false) {
 
 			console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
@@ -270,7 +271,7 @@ Now setting it to '${ini_settings_dict.splitSelect}'`
 			splitSelect = ini_settings_dict.splitSelect;
 			localStorage.setItem(`w4BM_splitSelect`, ini_settings_dict.splitSelect);
 		}
-		else if (!!localStorage.getItem(`w4BM_splitSelect`)) {
+		else if (Boolean(localStorage.getItem(`w4BM_splitSelect`)) == true) {
 
 			/* console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
