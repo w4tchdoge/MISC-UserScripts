@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.0.8-20230712_024944
+// @version        2.0.9-20230712_100800
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -12,6 +12,7 @@
 // @match          *://archiveofourown.org/users/*
 // @icon           https://archiveofourown.org/favicon.ico
 // @license        GNU GPLv3
+// @history        2.0.9 — Add functionality to retrieve the ID of the work or series being bookmarked. Credit to oliver t@greasyfork on Ellililunch AO3 Bookmark Maker's feedback page(https://greasyfork.org/en/scripts/458631/discussions/182803#comment-393989) for the suggestion and elli-lili-lunch for implementing it first
 // @history        2.0.8 — Make some if statements in the localStorage section more readable
 // @history        2.0.7 — Fix bottomEntireWork not functioning because of the placement of the code responsible for putting the button there being inside an if statement that only executes on specific pages
 // @history        2.0.6 — Fix even more localStorage issues, this time caused by my own incompetence
@@ -66,7 +67,7 @@ If false, retrieves the work summary in a way (which I call the fancy way) that 
 
 
 FWS_asBlockquote : If using the fancy work summary method, set whether you want to retrieve the summary as a blockquote.
-For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 710
+For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 720
 
 
 splitSelect           : splitSelect changes which half of bookmarkNotes your initial bookmark is supposed to live in.
@@ -650,7 +651,8 @@ All conditions met for "Entire Work" button in the bottom nav bar?: ${BEW_condit
 			summary,
 			lastChapter,
 			latestChapterNumLength,
-			chapNumPadCount;
+			chapNumPadCount,
+			ws_id;
 
 
 		// Look for HTML DOM element only present on series pages
@@ -659,6 +661,9 @@ All conditions met for "Entire Work" button in the bottom nav bar?: ${BEW_condit
 		// Check if current page is a series page
 		if (seriesTrue != undefined) {
 			// Retrieve series information
+
+			// Define RegEx for extracing series ID from URL
+			const re_su = /(^https?:\/\/)(.*\.)?(archiveofourown\.org)(.*?)(\/series\/)(\d+)\/?.*$/i;
 
 			// Retrieve series title
 			title = main.querySelector(`:scope > h2.heading`).textContent.trim();
@@ -682,11 +687,16 @@ All conditions met for "Entire Work" button in the bottom nav bar?: ${BEW_condit
 			} else if (complete == `Yes`) {
 				status = `Completed: ${updated}`;
 			}
+			// Retrieve series ID
+			ws_id = currPgURL.replace(re_su, `$6`);
 
 
 		}
 		else {
 			// Retrieve work information
+
+			// Define RegEx for extracting work ID from URL
+			const re_wu = /(^https?:\/\/)(.*\.)?(archiveofourown\.org)(.*?)(\/works\/)(\d+)\/?.*$/i;
 
 			// Calculate appropriate padding count for lastChapter
 			latestChapterNumLength = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Chapters:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.split(`/`).at(0).length;
@@ -742,6 +752,9 @@ All conditions met for "Entire Work" button in the bottom nav bar?: ${BEW_condit
 				status = `${main.querySelector(`dt.published`).textContent} ${main.querySelector(`dd.published`).textContent}`;
 			}
 
+			// Retrieve work ID
+			ws_id = currPgURL.replace(re_wu, `$6`);
+
 		}
 
 
@@ -764,6 +777,7 @@ All conditions met for "Entire Work" button in the bottom nav bar?: ${BEW_condit
 		- status         // Status of the work or series. i.e. Completed: 2020-08-23, Updated: 2022-05-08, Published: 2015-06-29
 		- summary        // Summary of the work or series
 		- words          // Current word count of the work or series
+		- ws_id          // ID of the work/series being bookmarked
 
 		Variables specific to series:
 		NONE
@@ -804,6 +818,7 @@ Date Generated: ${date}`
 		var newBookmarkNotes = `<details><summary>Work Details</summary>
 \t${title} by ${author}
 \t${status}
+\tWork/Series ID: ${ws_id}
 \t<details><summary>Work Summary:</summary>
 \t${summary}</details>
 (Approximate) Last Read: ${date}</details>
@@ -818,13 +833,14 @@ ${bookmarkNotes}`;
 		// splitSelect = 1
 
 		/* var newBookmarkNotes = `<details><summary>Work Details</summary>
-	\t${title} by ${author}
-	\t${status}
-	\t<details><summary>Work Summary:</summary>
-	\t${summary}</details>
-	</details>
+\t${title} by ${author}
+\t${status}
+\tWork/Series ID: ${ws_id}
+\t<details><summary>Work Summary:</summary>
+\t${summary}</details>
+</details>
 
-	${bookmarkNotes}`; */
+${bookmarkNotes}`; */
 
 		// ------------------------
 
@@ -834,13 +850,14 @@ ${bookmarkNotes}`;
 		// splitSelect = 0
 
 		/* var newBookmarkNotes = `${bookmarkNotes}
-	<br />
-	<details><summary>Work Details</summary>
-	\t${title} by ${author}
-	\t${status}
-	\t<details><summary>Work Summary:</summary>
-	\t${summary}</details>
-	(Approximate) Last Read: ${date}</details>`; */
+<br />
+<details><summary>Work Details</summary>
+\t${title} by ${author}
+\t${status}
+\tWork/Series ID: ${ws_id}
+\t<details><summary>Work Summary:</summary>
+\t${summary}</details>
+(Approximate) Last Read: ${date}</details>`; */
 
 		// ------------------------
 
@@ -850,13 +867,14 @@ ${bookmarkNotes}`;
 		// splitSelect = 0
 
 		/* var newBookmarkNotes = `${bookmarkNotes}
-	<br />
-	<details><summary>Work Details</summary>
-	\t${title} by ${author}
-	\t${status}
-	\t<details><summary>Work Summary:</summary>
-	\t${summary}</details>
-	(Approximate) Last Read: ${date}</details>`; */
+<br />
+<details><summary>Work Details</summary>
+\t${title} by ${author}
+\t${status}
+\tWork/Series ID: ${ws_id}
+\t<details><summary>Work Summary:</summary>
+\t${summary}</details>
+(Approximate) Last Read: ${date}</details>`; */
 
 		// ------------------------
 
