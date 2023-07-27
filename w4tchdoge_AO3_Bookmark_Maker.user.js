@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.0.9-20230712_100800
+// @version        2.1.0-20230727_043030
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -12,7 +12,8 @@
 // @match          *://archiveofourown.org/users/*
 // @icon           https://archiveofourown.org/favicon.ico
 // @license        GNU GPLv3
-// @history        2.0.9 — Add functionality to retrieve the ID of the work or series being bookmarked. Credit to oliver t@greasyfork on Ellililunch AO3 Bookmark Maker's feedback page(https://greasyfork.org/en/scripts/458631/discussions/182803#comment-393989) for the suggestion and elli-lili-lunch for implementing it first
+// @history        2.1.0 — Tweaked the bookmarking process which should hopefully make it easier to configure. Also rewrote *some* of the code to hopefully make it better perfoming
+// @history        2.0.9 — Add functionality to retrieve the ID of the work or series being bookmarked
 // @history        2.0.8 — Make some if statements in the localStorage section more readable
 // @history        2.0.7 — Fix bottomEntireWork not functioning because of the placement of the code responsible for putting the button there being inside an if statement that only executes on specific pages
 // @history        2.0.6 — Fix even more localStorage issues, this time caused by my own incompetence
@@ -67,7 +68,7 @@ If false, retrieves the work summary in a way (which I call the fancy way) that 
 
 
 FWS_asBlockquote : If using the fancy work summary method, set whether you want to retrieve the summary as a blockquote.
-For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 720
+For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 779
 
 
 splitSelect           : splitSelect changes which half of bookmarkNotes your initial bookmark is supposed to live in.
@@ -120,7 +121,15 @@ Another way to explain it is that the script works by taking the current content
 	};
 
 	// Declare user-configurable variables
-	var divider, autoPrivate, bottomEntireWork, simpleWorkSummary, FWS_asBlockquote, splitSelect;
+	var
+		divider,
+		autoPrivate,
+		bottomEntireWork,
+		simpleWorkSummary,
+		FWS_asBlockquote,
+		splitSelect,
+		workInfo,
+		new_notes;
 
 	// localStorage stuff
 	if (typeof Storage != `undefined`) { // If localStorage exists
@@ -132,155 +141,196 @@ localStorage exists`
 		);
 
 
-		// Execute if statement only if w4BM_divider is not set in localStorage
-		if (Boolean(localStorage.getItem(`w4BM_divider`)) == false) {
-
-			console.log(`
+		switch (Boolean(localStorage.getItem(`w4BM_divider`))) {
+			// Execute if statement only if w4BM_divider is not set in localStorage
+			case false:
+				console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_divider' is not set in the localStorage
 Now setting it to '${ini_settings_dict.divider.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}'`
-			);
+				);
 
-			// set the divider in localStorage and current script execution to the default value
-			// this will only happen on the first ever execution of the script, because this action only happens when:
-			// a) localStorage exists
-			// b) w4BM_divider does not exist in the localStorage
-			divider = ini_settings_dict.divider;
-			localStorage.setItem(`w4BM_divider`, ini_settings_dict.divider);
-		}
+				// set the divider in localStorage and current script execution to the default value
+				// this will only happen on the first ever execution of the script, because this action only happens when:
+				// a) localStorage exists
+				// b) w4BM_divider does not exist in the localStorage
+				divider = ini_settings_dict.divider;
+				localStorage.setItem(`w4BM_divider`, ini_settings_dict.divider);
 
-		// Execute if statement only if w4BM_divider is set in localStorage
-		else if (Boolean(localStorage.getItem(`w4BM_divider`)) == true) {
+				break;
 
-			/* console.log(`
+			// Execute if statement only if w4BM_divider is set in localStorage
+			case true:
+				console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_divider' IS SET in the localStorage`
-			); */
+				);
 
-			divider = localStorage.getItem(`w4BM_divider`);
+				divider = localStorage.getItem(`w4BM_divider`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_divider`);
+				break;
 		}
 
 
-		// doing the same thing as the first if else on line 135
-		if (Boolean(localStorage.getItem(`w4BM_autoPrivate`)) == false) {
-
-			console.log(`
+		// doing the same thing as the first if else on line 144
+		switch (Boolean(localStorage.getItem(`w4BM_autoPrivate`))) {
+			case false:
+				console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_autoPrivate' is not set in the localStorage
 Now setting it to '${ini_settings_dict.autoPrivate}'`
-			);
+				);
 
-			autoPrivate = ini_settings_dict.autoPrivate;
-			localStorage.setItem(`w4BM_autoPrivate`, ini_settings_dict.autoPrivate);
-		}
-		else if (Boolean(localStorage.getItem(`w4BM_autoPrivate`)) == true) {
+				autoPrivate = ini_settings_dict.autoPrivate;
+				localStorage.setItem(`w4BM_autoPrivate`, ini_settings_dict.autoPrivate);
 
-			/* console.log(`
+				break;
+
+			case true:
+				console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_autoPrivate' IS SET in the localStorage`
-			); */
+				);
 
-			autoPrivate = stringToBoolean(localStorage.getItem(`w4BM_autoPrivate`));
+				autoPrivate = stringToBoolean(localStorage.getItem(`w4BM_autoPrivate`));
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_autoPrivate`);
+				break;
 		}
 
-		// doing the same thing as the first if else on line 135
-		if (Boolean(localStorage.getItem(`w4BM_bottomEntireWork`)) == false) {
-
-			console.log(`
+		// doing the same thing as the first if else on line 144
+		switch (Boolean(localStorage.getItem(`w4BM_bottomEntireWork`))) {
+			case false:
+				console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_bottomEntireWork' is not set in the localStorage
 Now setting it to '${ini_settings_dict.bottomEntireWork}'`
-			);
+				);
 
-			bottomEntireWork = ini_settings_dict.bottomEntireWork;
-			localStorage.setItem(`w4BM_bottomEntireWork`, ini_settings_dict.bottomEntireWork);
-		}
-		else if (Boolean(localStorage.getItem(`w4BM_bottomEntireWork`)) == true) {
+				bottomEntireWork = ini_settings_dict.bottomEntireWork;
+				localStorage.setItem(`w4BM_bottomEntireWork`, ini_settings_dict.bottomEntireWork);
 
-			/* console.log(`
+				break;
+
+			case true:
+				console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_bottomEntireWork' IS SET in the localStorage`
-			); */
+				);
 
-			bottomEntireWork = stringToBoolean(localStorage.getItem(`w4BM_bottomEntireWork`));
+				bottomEntireWork = stringToBoolean(localStorage.getItem(`w4BM_bottomEntireWork`));
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_bottomEntireWork`);
+				break;
 		}
 
-		// doing the same thing as the first if else on line 135
-		if (Boolean(localStorage.getItem(`w4BM_simpleWorkSummary`)) == false) {
-
-			console.log(`
+		// doing the same thing as the first if else on line 144
+		switch (Boolean(localStorage.getItem(`w4BM_simpleWorkSummary`))) {
+			case false:
+				console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_simpleWorkSummary' is not set in the localStorage
 Now setting it to '${ini_settings_dict.simpleWorkSummary}'`
-			);
+				);
 
-			simpleWorkSummary = ini_settings_dict.simpleWorkSummary;
-			localStorage.setItem(`w4BM_simpleWorkSummary`, ini_settings_dict.simpleWorkSummary);
-		}
-		else if (Boolean(localStorage.getItem(`w4BM_simpleWorkSummary`)) == true) {
+				simpleWorkSummary = ini_settings_dict.simpleWorkSummary;
+				localStorage.setItem(`w4BM_simpleWorkSummary`, ini_settings_dict.simpleWorkSummary);
 
-			/* console.log(`
+				break;
+
+			case true:
+				console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_simpleWorkSummary' IS SET in the localStorage`
-			); */
+				);
 
-			simpleWorkSummary = stringToBoolean(localStorage.getItem(`w4BM_simpleWorkSummary`));
+				simpleWorkSummary = stringToBoolean(localStorage.getItem(`w4BM_simpleWorkSummary`));
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_simpleWorkSummary`);
+				break;
 		}
 
-		// doing the same thing as the first if else on line 135
-		if (Boolean(localStorage.getItem(`w4BM_FWS_asBlockquote`)) == false) {
-
-			console.log(`
+		// doing the same thing as the first if else on line 144
+		switch (Boolean(localStorage.getItem(`w4BM_FWS_asBlockquote`))) {
+			case false:
+				console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_FWS_asBlockquote' is not set in the localStorage
 Now setting it to '${ini_settings_dict.FWS_asBlockquote}'`
-			);
+				);
 
-			FWS_asBlockquote = ini_settings_dict.FWS_asBlockquote;
-			localStorage.setItem(`w4BM_FWS_asBlockquote`, ini_settings_dict.FWS_asBlockquote);
-		}
-		else if (Boolean(localStorage.getItem(`w4BM_FWS_asBlockquote`)) == true) {
+				FWS_asBlockquote = ini_settings_dict.FWS_asBlockquote;
+				localStorage.setItem(`w4BM_FWS_asBlockquote`, ini_settings_dict.FWS_asBlockquote);
 
-			/* console.log(`
+				break;
+
+			case true:
+				console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_FWS_asBlockquote' IS SET in the localStorage`
-			); */
+				);
 
-			FWS_asBlockquote = stringToBoolean(localStorage.getItem(`w4BM_FWS_asBlockquote`));
+				FWS_asBlockquote = stringToBoolean(localStorage.getItem(`w4BM_FWS_asBlockquote`));
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_FWS_asBlockquote`);
+				break;
 		}
 
-		// doing the same thing as the first if else on line 135
-		if (Boolean(localStorage.getItem(`w4BM_splitSelect`)) == false) {
-
-			console.log(`
+		// doing the same thing as the first if else on line 144
+		switch (Boolean(localStorage.getItem(`w4BM_splitSelect`))) {
+			case false:
+				console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_splitSelect' is not set in the localStorage
 Now setting it to '${ini_settings_dict.splitSelect}'`
-			);
+				);
 
-			splitSelect = ini_settings_dict.splitSelect;
-			localStorage.setItem(`w4BM_splitSelect`, ini_settings_dict.splitSelect);
-		}
-		else if (Boolean(localStorage.getItem(`w4BM_splitSelect`)) == true) {
+				splitSelect = ini_settings_dict.splitSelect;
+				localStorage.setItem(`w4BM_splitSelect`, ini_settings_dict.splitSelect);
 
-			/* console.log(`
+				break;
+
+			case true:
+				console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_splitSelect' IS SET in the localStorage`
-			); */
+				);
 
-			splitSelect = parseInt(localStorage.getItem(`w4BM_splitSelect`));
+				splitSelect = parseInt(localStorage.getItem(`w4BM_splitSelect`));
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_splitSelect`);
+				break;
 		}
 
 	}
@@ -632,7 +682,7 @@ All conditions met for "Entire Work" button in the bottom nav bar?: ${BEW_condit
 
 
 		// keeps any bookmark notes you've made previously
-		var bookmarkNotes = main.querySelector(`#bookmark_notes`).textContent.split(divider).at(`-${splitSelect}`);
+		// var bookmarkNotes = main.querySelector(`#bookmark_notes`).textContent.split(divider).at(`-${splitSelect}`);
 
 
 		// Define variables used in date configuration
@@ -644,7 +694,9 @@ All conditions met for "Entire Work" button in the bottom nav bar?: ${BEW_condit
 			mins = String(currdate.getMinutes()).padStart(2, `0`);
 
 		// Define variables used in bookmark configuration
-		var author,
+		var
+			curr_notes = main.querySelector(`#bookmark_notes`).textContent.split(divider).at(`-${splitSelect}`),
+			author,
 			words,
 			status,
 			title,
@@ -682,10 +734,17 @@ All conditions met for "Entire Work" button in the bottom nav bar?: ${BEW_condit
 			let pub_xp = `//dl[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[contains(text(), "Complete")]/following-sibling::*[1]`;
 			let complete = document.evaluate(pub_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
 			var updated = main.querySelector(`.series.meta.group`).getElementsByTagName(`dd`)[2].textContent;
-			if (complete == `No`) {
-				status = `Updated: ${updated}`;
-			} else if (complete == `Yes`) {
-				status = `Completed: ${updated}`;
+			switch (complete) {
+				case `No`:
+					status = `Updated: ${updated}`;
+					break;
+
+				case `Yes`:
+					status = `Completed: ${updated}`;
+					break;
+
+				default:
+					break;
 			}
 			// Retrieve series ID
 			ws_id = currPgURL.replace(re_su, `$6`);
@@ -807,6 +866,11 @@ Date Generated: ${date}`
 		/* ///////////// Select from Presets ///////////// */
 
 		// To stop using a preset, wrap it in a block comment (add /* to the start and */ to the end); To start using a preset, do the opposite.
+		// Remember to make sure the variables are set correctly for that preset
+		// divider and splitSelect are set in the dropdown menu on your User Preferences page
+		// new_notes is set at the bottom of the script
+		// If you're experiencing any issues with the script, please do not hesitate to PM me on GreasyFork
+		// I could have simply made a mistake in the documentation which is messing everything up (I am not infallible XD)
 
 		// ------------------------
 
@@ -814,16 +878,15 @@ Date Generated: ${date}`
 		// To use this preset, scroll to the top where the constants are defined and set divider and splitSelect to the following values:
 		// divider = `</details>\n\n`
 		// splitSelect = 1
+		// new_notes = `${workInfo}\n\n${curr_notes}`
 
-		var newBookmarkNotes = `<details><summary>Work Details</summary>
+		workInfo = `<details><summary>Work Details</summary>
 \t${title} by ${author}
 \t${status}
 \tWork/Series ID: ${ws_id}
 \t<details><summary>Work Summary:</summary>
 \t${summary}</details>
-(Approximate) Last Read: ${date}</details>
-
-${bookmarkNotes}`;
+(Approximate) Last Read: ${date}</details>`;
 
 		// ------------------------
 
@@ -831,16 +894,15 @@ ${bookmarkNotes}`;
 		// To use this preset, scroll to the top where the constants are defined and set divider and splitSelect to the following values:
 		// divider = `</details>\n\n`
 		// splitSelect = 1
+		// new_notes = `${workInfo}\n\n${curr_notes}`
 
-		/* var newBookmarkNotes = `<details><summary>Work Details</summary>
+		/* workInfo = `<details><summary>Work Details</summary>
 \t${title} by ${author}
 \t${status}
 \tWork/Series ID: ${ws_id}
 \t<details><summary>Work Summary:</summary>
 \t${summary}</details>
-</details>
-
-${bookmarkNotes}`; */
+</details>`; */
 
 		// ------------------------
 
@@ -848,10 +910,9 @@ ${bookmarkNotes}`; */
 		// To use this preset, scroll to the top where the constants are defined and set divider and splitSelect to the following values:
 		// divider = `<br />\n<details>`
 		// splitSelect = 0
+		// new_notes = `${curr_notes}<br />\n${workInfo}`
 
-		/* var newBookmarkNotes = `${bookmarkNotes}
-<br />
-<details><summary>Work Details</summary>
+		/* workInfo = `<details><summary>Work Details</summary>
 \t${title} by ${author}
 \t${status}
 \tWork/Series ID: ${ws_id}
@@ -865,10 +926,9 @@ ${bookmarkNotes}`; */
 		// To use this preset, scroll to the top where the constants are defined and set divider and splitSelect to the following values:
 		// divider = `<br />\n<details>`
 		// splitSelect = 0
+		// new_notes = `${curr_notes}<br />\n${workInfo}`
 
-		/* var newBookmarkNotes = `${bookmarkNotes}
-<br />
-<details><summary>Work Details</summary>
+		/* workInfo = `<details><summary>Work Details</summary>
 \t${title} by ${author}
 \t${status}
 \tWork/Series ID: ${ws_id}
@@ -882,7 +942,8 @@ ${bookmarkNotes}`; */
 
 
 		// Fills the bookmark box with the autogenerated bookmark
-		document.getElementById("bookmark_notes").innerHTML = newBookmarkNotes;
+		new_notes = `${workInfo}\n\n${curr_notes}`;
+		document.getElementById("bookmark_notes").innerHTML = new_notes;
 
 	}
 
