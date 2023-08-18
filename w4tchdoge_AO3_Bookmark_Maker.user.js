@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.1.0-20230727_043030
+// @version        2.1.1-20230818_214053
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -12,6 +12,7 @@
 // @match          *://archiveofourown.org/users/*
 // @icon           https://archiveofourown.org/favicon.ico
 // @license        GNU GPLv3
+// @history        2.1.1 — Adjusted script execution condition to allow for works with no summary
 // @history        2.1.0 — Tweaked the bookmarking process which should hopefully make it easier to configure. Also rewrote *some* of the code to hopefully make it better perfoming
 // @history        2.0.9 — Add functionality to retrieve the ID of the work or series being bookmarked
 // @history        2.0.8 — Make some if statements in the localStorage section more readable
@@ -68,7 +69,7 @@ If false, retrieves the work summary in a way (which I call the fancy way) that 
 
 
 FWS_asBlockquote : If using the fancy work summary method, set whether you want to retrieve the summary as a blockquote.
-For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 779
+For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 783
 
 
 splitSelect           : splitSelect changes which half of bookmarkNotes your initial bookmark is supposed to live in.
@@ -178,7 +179,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 		}
 
 
-		// doing the same thing as the first if else on line 144
+		// doing the same thing as the first if else on line 145
 		switch (Boolean(localStorage.getItem(`w4BM_autoPrivate`))) {
 			case false:
 				console.log(`
@@ -209,7 +210,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 144
+		// doing the same thing as the first if else on line 145
 		switch (Boolean(localStorage.getItem(`w4BM_bottomEntireWork`))) {
 			case false:
 				console.log(`
@@ -240,7 +241,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 144
+		// doing the same thing as the first if else on line 145
 		switch (Boolean(localStorage.getItem(`w4BM_simpleWorkSummary`))) {
 			case false:
 				console.log(`
@@ -271,7 +272,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 144
+		// doing the same thing as the first if else on line 145
 		switch (Boolean(localStorage.getItem(`w4BM_FWS_asBlockquote`))) {
 			case false:
 				console.log(`
@@ -302,7 +303,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 144
+		// doing the same thing as the first if else on line 145
 		switch (Boolean(localStorage.getItem(`w4BM_splitSelect`))) {
 			case false:
 				console.log(`
@@ -674,7 +675,10 @@ All conditions met for "Entire Work" button in the bottom nav bar?: ${BEW_condit
 	// this if statement was the easiest way i could think of (im lazy ok) to solve the problem of it erroring on the user preferences page
 	// oh and it also makes sure that the script only works and replaces your current bookmark with new text when a summary element exists
 	// (yet again, the easiest way i could think of to stop the script from replacing a summary with 'undefined')
-	if ((currPgURL.includes(`works`) || currPgURL.includes(`series`)) && (!!document.getElementsByClassName(`summary`).length || document.evaluate(`.//*[@id="main"]//span[text()="Series"]`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue != undefined)) {
+
+	// removed requirement for summary since some works dont have a summary
+	// old if: if ((currPgURL.includes(`works`) || currPgURL.includes(`series`)) && (!!document.getElementsByClassName(`summary`).length || document.evaluate(`.//*[@id="main"]//span[text()="Series"]`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue != undefined)) {
+	if ((currPgURL.includes(`works`) || currPgURL.includes(`series`))) {
 
 		if (autoPrivate) { // for auto-privating your bookmarks
 			main.querySelector(`#bookmark_private`).checked = true;
@@ -700,7 +704,7 @@ All conditions met for "Entire Work" button in the bottom nav bar?: ${BEW_condit
 			words,
 			status,
 			title,
-			summary,
+			summary = `<em><strong>NO SUMMARY</strong></em>`,
 			lastChapter,
 			latestChapterNumLength,
 			chapNumPadCount,
