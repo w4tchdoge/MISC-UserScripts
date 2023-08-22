@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.2.0-20230822_123303
+// @version        2.2.1-20230822_125715
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -12,6 +12,7 @@
 // @match          *://archiveofourown.org/users/*
 // @icon           https://archiveofourown.org/favicon.ico
 // @license        GNU GPLv3
+// @history        2.2.1 — Fix Relationships subsection for works with no relationship tags by adding a "No Relationships" to the subsection when there are no relationship tags
 // @history        2.2.0 — Add a 'relationships' var that can be used in workInfo to add the work's relationship tags to the bookmark. Default config now set to include said var in workInfo
 // @history        2.1.2 — Replace the bottom entire work button with a summary page button that works better on large works
 // @history        2.1.1 — Adjusted script execution condition to allow for works with no summary
@@ -71,7 +72,7 @@ If false, retrieves the work summary in a way (which I call the fancy way) that 
 
 
 FWS_asBlockquote : If using the fancy work summary method, set whether you want to retrieve the summary as a blockquote.
-For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 800
+For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 809
 
 
 splitSelect           : splitSelect changes which half of bookmarkNotes your initial bookmark is supposed to live in.
@@ -181,7 +182,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 		}
 
 
-		// doing the same thing as the first if else on line 147
+		// doing the same thing as the first if else on line 148
 		switch (Boolean(localStorage.getItem(`w4BM_autoPrivate`))) {
 			case false:
 				console.log(`
@@ -212,7 +213,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 147
+		// doing the same thing as the first if else on line 148
 		switch (Boolean(localStorage.getItem(`w4BM_bottomSummaryPage`))) {
 			case false:
 				console.log(`
@@ -243,7 +244,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 147
+		// doing the same thing as the first if else on line 148
 		switch (Boolean(localStorage.getItem(`w4BM_simpleWorkSummary`))) {
 			case false:
 				console.log(`
@@ -274,7 +275,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 147
+		// doing the same thing as the first if else on line 148
 		switch (Boolean(localStorage.getItem(`w4BM_FWS_asBlockquote`))) {
 			case false:
 				console.log(`
@@ -305,7 +306,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 147
+		// doing the same thing as the first if else on line 148
 		switch (Boolean(localStorage.getItem(`w4BM_splitSelect`))) {
 			case false:
 				console.log(`
@@ -795,7 +796,15 @@ All conditions met for "Summary Page" button in the bottom nav bar?: ${BSP_condi
 				el.removeAttribute(`class`);
 				rels_arr.push(`• ${el.outerHTML}`);
 			});
+
+			// Add Relationship tags to 'relationships' var
 			relationships = `<details><summary>Relationship Tags:</summary>\n${rels_arr.join(`\n`)}</details>`;
+
+			// Check if rels_arr is empty, indicating no relationship tags
+			if (!Array.isArray(rels_arr) || !rels_arr.length) {
+				// Set 'relationships' var to indicate no relationship tags
+				relationships = `<details><summary>Relationship Tags:</summary>\n• <em><strong>No Relationship Tags</strong></em></details>`
+			}	
 
 			// Retrieve work summary
 			if (simpleWorkSummary) { // the original methos to retrieve the work's summary
