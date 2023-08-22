@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.2.0-20230822_120223
+// @version        2.2.0-20230822_123303
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -924,6 +924,7 @@ Date Generated: ${date}`
 \t${title} by ${author}
 \t${status}
 \tWork/Series ID: ${ws_id}
+\t${relationships}
 \t<details><summary>Work Summary:</summary>
 \t${summary}</details>
 </details>`; */
@@ -940,6 +941,7 @@ Date Generated: ${date}`
 \t${title} by ${author}
 \t${status}
 \tWork/Series ID: ${ws_id}
+\t${relationships}
 \t<details><summary>Work Summary:</summary>
 \t${summary}</details>
 (Approximate) Last Read: ${date}</details>`; */
@@ -956,6 +958,7 @@ Date Generated: ${date}`
 \t${title} by ${author}
 \t${status}
 \tWork/Series ID: ${ws_id}
+\t${relationships}
 \t<details><summary>Work Summary:</summary>
 \t${summary}</details>
 (Approximate) Last Read: ${date}</details>`; */
