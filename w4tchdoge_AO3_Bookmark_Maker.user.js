@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.2.1-20230822_125715
+// @version        2.2.2-20230829_144344
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -12,6 +12,7 @@
 // @match          *://archiveofourown.org/users/*
 // @icon           https://archiveofourown.org/favicon.ico
 // @license        GNU GPLv3
+// @history        2.2.2 — Fix a possible styling issue that may occur with the dropdown menu
 // @history        2.2.1 — Fix Relationships subsection for works with no relationship tags by adding a "No Relationships" to the subsection when there are no relationship tags
 // @history        2.2.0 — Add a 'relationships' var that can be used in workInfo to add the work's relationship tags to the bookmark. Default config now set to include said var in workInfo
 // @history        2.1.2 — Replace the bottom entire work button with a summary page button that works better on large works
@@ -448,7 +449,7 @@ splitSelect      : ${splitSelect}`
 		var w4BM_divider_input_area = Object.assign(document.createElement(`li`), {
 			className: `w4BM_divider_input_area`,
 			id: `w4BM_divider_input_area`,
-			style: `margin-top: .75em;`,
+			style: `padding-top: .75em;`,
 			innerHTML: `<p style='padding: .75em .5em .5em;'>Divider text:<br /></p>`
 		});
 
