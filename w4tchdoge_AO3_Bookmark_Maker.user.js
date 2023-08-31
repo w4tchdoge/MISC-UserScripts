@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.2.2-20230829_144344
+// @version        2.3.0-20230831_165350
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -11,7 +11,9 @@
 // @match          *://archiveofourown.org/series/*
 // @match          *://archiveofourown.org/users/*
 // @icon           https://archiveofourown.org/favicon.ico
+// @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @license        GNU GPLv3
+// @history        2.3.0 — Fairly large reworks of series summaries which includes the addition of the series_works_summaries var (which only does anything when bookmarking a series) that can be used in workInfo to add the summaries of the works in the series to the series bookmark; Added moment.js as a library in case anyone wants to use it to set their own date var
 // @history        2.2.2 — Fix a possible styling issue that may occur with the dropdown menu
 // @history        2.2.1 — Fix Relationships subsection for works with no relationship tags by adding a "No Relationships" to the subsection when there are no relationship tags
 // @history        2.2.0 — Add a 'relationships' var that can be used in workInfo to add the work's relationship tags to the bookmark. Default config now set to include said var in workInfo
@@ -73,7 +75,7 @@ If false, retrieves the work summary in a way (which I call the fancy way) that 
 
 
 FWS_asBlockquote : If using the fancy work summary method, set whether you want to retrieve the summary as a blockquote.
-For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 809
+For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 856
 
 
 splitSelect           : splitSelect changes which half of bookmarkNotes your initial bookmark is supposed to live in.
@@ -183,7 +185,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 		}
 
 
-		// doing the same thing as the first if else on line 148
+		// doing the same thing as the first if else on line 151
 		switch (Boolean(localStorage.getItem(`w4BM_autoPrivate`))) {
 			case false:
 				console.log(`
@@ -214,7 +216,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 148
+		// doing the same thing as the first if else on line 151
 		switch (Boolean(localStorage.getItem(`w4BM_bottomSummaryPage`))) {
 			case false:
 				console.log(`
@@ -245,7 +247,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 148
+		// doing the same thing as the first if else on line 151
 		switch (Boolean(localStorage.getItem(`w4BM_simpleWorkSummary`))) {
 			case false:
 				console.log(`
@@ -276,7 +278,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 148
+		// doing the same thing as the first if else on line 151
 		switch (Boolean(localStorage.getItem(`w4BM_FWS_asBlockquote`))) {
 			case false:
 				console.log(`
@@ -307,7 +309,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 148
+		// doing the same thing as the first if else on line 151
 		switch (Boolean(localStorage.getItem(`w4BM_splitSelect`))) {
 			case false:
 				console.log(`
@@ -424,7 +426,7 @@ splitSelect      : ${splitSelect}`
 		// create and append dropdown menu
 		var w4BM_dropMenu = Object.assign(document.createElement(`ul`), {
 			className: `menu dropdown-menu`,
-			style: `width: 23.5em;`
+			style: `width: auto;`
 		});
 		w4BM_settingMenu.append(w4BM_dropMenu);
 
@@ -714,8 +716,11 @@ All conditions met for "Summary Page" button in the bottom nav bar?: ${BSP_condi
 			words,
 			status,
 			title,
-			relationships,
+			relationships = ``,
 			summary = `<em><strong>NO SUMMARY</strong></em>`,
+			series_summary,
+			series_notes,
+			series_works_summaries = ``,
 			lastChapter,
 			latestChapterNumLength,
 			chapNumPadCount,
@@ -737,14 +742,54 @@ All conditions met for "Summary Page" button in the bottom nav bar?: ${BSP_condi
 			// Retrieve series word count
 			words = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
 			// Retrieve series author
-			author = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dt[text()="Creator:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
-			// Check if there actually is a series summary
-			if (main.querySelector(`.series.meta.group .userstuff`) != null) { // If summary exists, retrieve series summary
-				summary = main.querySelector(`.series.meta.group .userstuff`).innerHTML;
+			author = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dt[text()[contains(.,"Creator")]]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
+			// Check if there is a series summary
+			switch (Boolean(main.querySelector(`.series.meta.group .userstuff`))) {
+				case true: // If series summary exists, retrieve summary
+					series_summary = main.querySelector(`.series.meta.group .userstuff`).innerHTML;
+					break;
+
+				case false: // Else fill in var with NO SUMMARY string
+					series_summary = `<em><strong>NO SUMMARY</strong></em>`;
+					break;
+
+				default: // If error, fill var asking for bug report
+					series_summary = `<em>Error in retrieving series summary, please report this bug at</em> https://greasyfork.org/en/scripts/467885`;
+					break;
 			}
-			else if (main.querySelector(`.series.meta.group .userstuff`) == null) { // Else assign a blank string to the summary var
-				summary = '';
+			// Check if there are series notes
+			let series_notes_dt_xp = `.//*[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dt[text()[contains(.,"Notes:")]]`;
+			switch (Boolean(document.evaluate(series_notes_dt_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue)) {
+				case true: // If series notes exists, retrieve notes
+					series_notes = document.evaluate(`${series_notes_dt_xp}/following-sibling::*[1]`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerHTML;
+					series_notes = `<details><summary>Series Notes:</summary>\n${series_notes}\n</details>`;
+					break;
+
+				case false:
+					series_notes = ``;
+					break;
+
+				default:
+					break;
 			}
+
+			// Join series summary and series notes
+			summary = series_summary + series_notes;
+
+			// Get summaries for each work in series
+			let series_children = Array.from(main.querySelector(`.series.work.index.group`).children);
+			var srsWkSum_arr = [];
+			series_children.forEach((child, index) => {
+				var srs_work_sum = `<em><strong>NO SUMMARY</strong></em>`;
+				let workname = child.querySelector(`.heading a[href*="works"]`).innerText;
+				let summary_elem = child.querySelector(`.userstuff.summary`);
+				if (Boolean(summary_elem) == true) {
+					srs_work_sum = summary_elem.outerHTML;
+				}
+				srsWkSum_arr.push(`<details><summary>Work ${index + 1}. ${workname} - Summary</summary>\n${srs_work_sum}</details>`);
+			});
+			series_works_summaries = `\n${srsWkSum_arr.join(`\n`)}`;
+
 			// Retrieve series status
 			let pub_xp = `//dl[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[contains(text(), "Complete")]/following-sibling::*[1]`;
 			let complete = document.evaluate(pub_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
@@ -804,8 +849,8 @@ All conditions met for "Summary Page" button in the bottom nav bar?: ${BSP_condi
 			// Check if rels_arr is empty, indicating no relationship tags
 			if (!Array.isArray(rels_arr) || !rels_arr.length) {
 				// Set 'relationships' var to indicate no relationship tags
-				relationships = `<details><summary>Relationship Tags:</summary>\n• <em><strong>No Relationship Tags</strong></em></details>`
-			}	
+				relationships = `<details><summary>Relationship Tags:</summary>\n• <em><strong>No Relationship Tags</strong></em></details>`;
+			}
 
 			// Retrieve work summary
 			if (simpleWorkSummary) { // the original methos to retrieve the work's summary
@@ -862,20 +907,20 @@ All conditions met for "Summary Page" button in the bottom nav bar?: ${BSP_condi
 		/*
 
 		Variables that can be used when creating the string for newBookmarkNotes:
-		- date             // Current date (and time) – User configurable in the Date configuration sub-section
-		- title            // Title of the work or series
-		- author           // Author of the work or series
-		- status           // Status of the work or series. i.e. Completed: 2020-08-23, Updated: 2022-05-08, Published: 2015-06-29
-		- relationships    // The Relationship tags present in the work. Will be a collapsible element in your bookmark
-		- summary          // Summary of the work or series
-		- words            // Current word count of the work or series
-		- ws_id            // ID of the work/series being bookmarked
+		- date_string               // String to show when the work was last read – User configurable in the Date configuration sub-section
+		- title                     // Title of the work or series
+		- author                    // Author of the work or series
+		- status                    // Status of the work or series. i.e. Completed: 2020-08-23, Updated: 2022-05-08, Published: 2015-06-29
+		- relationships             // The Relationship tags present in the work. Will be a collapsible element in your bookmark
+		- summary                   // Summary of the work or series
+		- words                     // Current word count of the work or series
+		- ws_id                     // ID of the work/series being bookmarked
 
 		Variables specific to series:
-		NONE
+		- series_works_summaries    // Adds all of the summaries of the works in the series to the series bookmark
 
 		Variables specific to works:
-		- lastChapter    // Last published chapter of the work or series
+		- lastChapter               // Last published chapter of the work or series
 
 		*/
 
@@ -887,14 +932,29 @@ All conditions met for "Summary Page" button in the bottom nav bar?: ${BSP_condi
 		*/
 
 		// Setting the date
-		// Feel free to use your own date format, you don't need to stick to the presets here
-		var date = `${yyyy}/${mm}/${dd}`; // Date without time
+		// Feel free to use your own date format, you don't need to stick to the presets here.
+		// If you dont like the predefined vars for date, and your device supports the require field,
+		// I've added the moment.js library which you can use to define your own date var.
+		// e.g.
+		// var date = moment().format("dddd, MMMM Do YYYY, h:mm:ss a");
+		// would give you something like the following string:
+		// "Thursday, August 31st 2023, 4:38:35 pm"
+		// 
+		// format guide available here: https://momentjscom.readthedocs.io/en/latest/moment/04-displaying/01-format/
+
+		var date = `${yyyy}/${mm}/${dd}`, // Date without time
+			date_string = `(Approximate) Last Read: ${date}`;
 		// date = `${yyyy}/${mm}/${dd} ${hh}${mm}hrs`; // Date with time
 		console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
-Date Generated: ${date}`
+Date Generated: ${date}
+Date String Generated: ${date_string}`
 		);
+		// Make the date string an empty string for series because it doesnt make sense there
+		if (Boolean(seriesTrue)) {
+			date_string = ``;
+		}
 
 		/* ///////////// Select from Presets ///////////// */
 
@@ -913,14 +973,14 @@ Date Generated: ${date}`
 		// splitSelect = 1
 		// new_notes = `${workInfo}\n\n${curr_notes}`
 
-		workInfo = `<details><summary>Work Details</summary>
+		workInfo = `<details><summary>Work/Series Details</summary>
 \t${title} by ${author}
 \t${status}
 \tWork/Series ID: ${ws_id}
 \t${relationships}
-\t<details><summary>Work Summary:</summary>
+\t<details><summary>Work/Series Summary:</summary>
 \t${summary}</details>
-(Approximate) Last Read: ${date}</details>`;
+${date_string}</details>`;
 
 		// ------------------------
 
