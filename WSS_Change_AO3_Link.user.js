@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name           Worm Story Search: Link AO3 Stories to 1st CH
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0
-// @description    Changes the link of the story to go to the first chapter on AO3 if story is on AO3
+// @version        1.0.0-20230904_200005
+// @description    Changes the link of the story to go to the work page of the story on AO3 instead of the navigate page
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/WSS_Change_AO3_Link.user.js
