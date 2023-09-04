@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name           Worm Story Search: Link AO3 Stories to 1st CH
+// @name           Worm Story Search: Link AO3 Stories to Work Page
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0-20230904_200005
+// @version        1.0.0-20230904_200345
 // @description    Changes the link of the story to go to the work page of the story on AO3 instead of the navigate page
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
