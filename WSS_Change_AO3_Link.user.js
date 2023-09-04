@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Worm Story Search: Link AO3 Stories to Work Page
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0-20230904_200345
+// @version        1.0.0-20230904_200955
 // @description    Changes the link of the story to go to the work page of the story on AO3 instead of the navigate page
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -9,8 +9,10 @@
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/WSS_Change_AO3_Link.user.js
 // @match          *://wormstorysearch.com/*
 // @match          *://www.wormstorysearch.com/*
-// @license        AGPL-3.0-or-later
+// @icon           http://wormstorysearch.com/favicon.png
 // @run-at         document-idle
+// @license        AGPL-3.0-or-later
+// @history        1.0.0 — Initial Release
 // ==/UserScript==
 
 (function () {
