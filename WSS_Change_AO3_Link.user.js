@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Worm Story Search: Link AO3 Stories to Work Page
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0-20230904_200955
+// @version        1.0.1-20230905_171741
 // @description    Changes the link of the story to go to the work page of the story on AO3 instead of the navigate page
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -12,6 +12,7 @@
 // @icon           http://wormstorysearch.com/favicon.png
 // @run-at         document-idle
 // @license        AGPL-3.0-or-later
+// @history        1.0.1 — Fix script replacing non-AO3 links in the blue tag boxes
 // @history        1.0.0 — Initial Release
 // ==/UserScript==
 
@@ -43,8 +44,13 @@
 
 			// Replace all instances of old AO3 URL with the new one
 			Array.from(storyELM.querySelectorAll('td.title a[data-track]')).forEach((el) => {
-				el.href = AO3_link;
+				if (el.href.includes('archiveofourown')) {
+					el.href = AO3_link;
+				}
 			});
+
+			// Make the title link also go to the AO3 work instead of SB or any other source
+			storyELM.querySelector('td.title a[data-track]').href = AO3_link;
 
 			// Debug line of code, you can ignore it
 			// console.log(`${storyELM.querySelector('td.title a[data-track]').href} - ${storyELM.querySelector('td.title a[data-track]').textContent}`);
