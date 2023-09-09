@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.3.0-20230831_165350
+// @version        2.4.0-20230909_125735
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -13,6 +13,7 @@
 // @icon           https://archiveofourown.org/favicon.ico
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @license        GNU GPLv3
+// @history        2.4.0 — Add an Auto Tag button that automatically adds the completion status and word count to the user tags area
 // @history        2.3.0 — Fairly large reworks of series summaries which includes the addition of the series_works_summaries var (which only does anything when bookmarking a series) that can be used in workInfo to add the summaries of the works in the series to the series bookmark; Added moment.js as a library in case anyone wants to use it to set their own date var
 // @history        2.2.2 — Fix a possible styling issue that may occur with the dropdown menu
 // @history        2.2.1 — Fix Relationships subsection for works with no relationship tags by adding a "No Relationships" to the subsection when there are no relationship tags
@@ -75,7 +76,7 @@ If false, retrieves the work summary in a way (which I call the fancy way) that 
 
 
 FWS_asBlockquote : If using the fancy work summary method, set whether you want to retrieve the summary as a blockquote.
-For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 856
+For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 934
 
 
 splitSelect           : splitSelect changes which half of bookmarkNotes your initial bookmark is supposed to live in.
@@ -185,7 +186,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 		}
 
 
-		// doing the same thing as the first if else on line 151
+		// doing the same thing as the first if else on line 152
 		switch (Boolean(localStorage.getItem(`w4BM_autoPrivate`))) {
 			case false:
 				console.log(`
@@ -216,7 +217,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 151
+		// doing the same thing as the first if else on line 152
 		switch (Boolean(localStorage.getItem(`w4BM_bottomSummaryPage`))) {
 			case false:
 				console.log(`
@@ -247,7 +248,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 151
+		// doing the same thing as the first if else on line 152
 		switch (Boolean(localStorage.getItem(`w4BM_simpleWorkSummary`))) {
 			case false:
 				console.log(`
@@ -278,7 +279,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 151
+		// doing the same thing as the first if else on line 152
 		switch (Boolean(localStorage.getItem(`w4BM_FWS_asBlockquote`))) {
 			case false:
 				console.log(`
@@ -309,7 +310,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 151
+		// doing the same thing as the first if else on line 152
 		switch (Boolean(localStorage.getItem(`w4BM_splitSelect`))) {
 			case false:
 				console.log(`
@@ -724,8 +725,85 @@ All conditions met for "Summary Page" button in the bottom nav bar?: ${BSP_condi
 			lastChapter,
 			latestChapterNumLength,
 			chapNumPadCount,
-			ws_id;
+			ws_id,
+			autotag_status,
+			word_count_tag;
 
+		// Define function used in the Auto Tag feature
+		function statusCheck_for_AutoTag() {
+			// Look for HTML DOM element only present on series pages
+			let seriesTrue = document.evaluate(`.//*[@id="main"]//span[text()="Series"]`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+
+			// Check if current page is a series page
+			if (seriesTrue != undefined) {
+				let
+					statusCheck_XPath = '//dl[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[contains(text(), "Complete")]/following-sibling::*[1]',
+					status_check = document.evaluate(statusCheck_XPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
+
+				switch (status_check) {
+					case 'Yes':
+						autotag_status = 'Complete';
+						break;
+
+					case 'No':
+						autotag_status = 'Work In Progress';
+						break;
+
+					default:
+						break;
+				}
+			}
+			else {
+				let status_check = document.querySelector('.work.meta.group dl.stats dt.status');
+
+				if (Boolean(status_check) == false) { // For single chapter works which are always complete
+					autotag_status = 'Complete';
+				}
+				else { // For multi chapter works
+					switch (status_check.textContent) {
+						case 'Completed:':
+							autotag_status = 'Complete';
+							break;
+
+						case 'Updated:':
+							autotag_status = 'Work in Progress';
+							break;
+
+						default:
+							break;
+					}
+				}
+			}
+		}
+
+		// Make the button used in Auto Tag
+		if (document.querySelector(`#bookmark-form`)) {
+
+			// Get element in bookmark form to append button to
+			var yourTags_xp = `.//div[@id="main"]//div[@id="bookmark-form"]//dt/label[text() = 'Your tags']`,
+				yourTags_elem = document.evaluate(yourTags_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+
+			// Create button element
+			var autoTag_btn_elem = Object.assign(document.createElement(`label`), {
+				id: `w4BM_autoTag_elem`,
+				className: `actions`,
+				style: `font-size: 0.85em`,
+				innerHTML: `<a id='w4BM_autoTag_btn'>Auto Tag</a>`
+			});
+
+			// Append button element
+			yourTags_elem.after(autoTag_btn_elem);
+
+			// Select the parent dt element to which the button will be a child of
+			var yourTags_parent_dt_xp = `.//div[@id="main"]//div[@id="bookmark-form"]//dt[./label[text() = 'Your tags']]`,
+				yourTags_parent_dt_elem = document.evaluate(yourTags_parent_dt_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;;
+
+			// Change the display style of the parent dt of the yourTags_elems to contents
+			yourTags_parent_dt_elem.style.display = `contents`;
+
+			// Add click listener to autoTag_btn_elem
+			autoTag_btn_elem.addEventListener(`click`, AutoTag);
+		}
 
 		// Look for HTML DOM element only present on series pages
 		var seriesTrue = document.evaluate(`.//*[@id="main"]//span[text()="Series"]`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
@@ -1032,6 +1110,35 @@ ${date_string}</details>`;
 \t<details><summary>Work Summary:</summary>
 \t${summary}</details>
 (Approximate) Last Read: ${date}</details>`; */
+
+		// ------------------------
+
+		// Auto Tag Feature
+
+		function AutoTag() {
+			// Call Status Check
+			statusCheck_for_AutoTag();
+
+			// Define vars
+			var words_XPath = './/*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd',
+				words = document.evaluate(words_XPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.toString().replaceAll(/,| |\s/gi, ''),
+				words = parseInt(words),
+				tag_input_box = document.querySelector('.input #bookmark_tag_string_autocomplete');
+
+			// Define Word Count Tag
+			// In case you want to add more tags or change the word count range for each tag,
+			// here are some recourses on how comparators work in JavaScript:
+			// StackOverflow answer that shows you how equalities work: https://stackoverflow.com/a/14718577/11750206
+			// An overview of JavaScript's Comparison and Logical Operators: https://www.w3schools.com/js/js_comparisons.asp
+			if (words < 2500) { word_count_tag = 'Word Count: Less than 2500'; }
+			if (words < 7500 && words >= 2500) { word_count_tag = 'Word Count: 2500 to 7499'; }
+			if (words < 15000 && words >= 7500) { word_count_tag = 'Word Count: 7500 to 14999'; }
+			if (words < 30000 && words >= 15000) { word_count_tag = 'Word Count: 15000 to 29999'; }
+			if (words >= 30000) { word_count_tag = 'Word Count: Greater than 30000'; }
+
+			// Put the Auto Tags into the User Tags field
+			tag_input_box.value = `${autotag_status}, ${word_count_tag}`;
+		}
 
 		// ------------------------
 
