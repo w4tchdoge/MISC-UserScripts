@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3: Get Current Chapter Word Count
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.1-20230629_123742
+// @version        1.1.0-20230909_151247
 // @description    Counts and displays the number of words in the current chapter
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -10,6 +10,7 @@
 // @match          *://archiveofourown.org/*
 // @icon           https://archiveofourown.org/favicon.ico
 // @license        AGPL-3.0-or-later
+// @history        1.1.0 — Implement a counting method that uses an attempted conversion of the Ruby regex code used by AO3 to JavaScript
 // ==/UserScript==
 
 (function () {
@@ -21,24 +22,15 @@
   // Execute script only on multi-chapter works AND only when a single chapter is being viewed
   if (currPG_URL.includes('works') && currPG_URL.includes('chapters')) {
 
-    function Word_Counter(content) {
-      // function adapted from https://github.com/Kirozen/vsce-wordcounter/blob/master/src/wordCounter.ts
+    // Attempted conversion of the Ruby regex code AO3 uses to JavaScript by looking at:
+    // https://github.com/otwcode/otwarchive/blob/943f585818005be8df269d84ca454af478150e75/config/config.yml#L453
+    // https://github.com/otwcode/otwarchive/blob/943f585818005be8df269d84ca454af478150e75/lib/word_counter.rb#L26
+    // https://github.com/otwcode/otwarchive/blob/943f585818005be8df269d84ca454af478150e75/lib/word_counter.rb#L30C9-L31C95
+    // Has not been tested on non-English works, feedback would be appreciated
+    const word_count_regex = /\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}|\p{Script=Thai}|((?!\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}|\p{Script=Thai})\w)+/gu;
 
-      const WORD_RE = /[\S]+/g;
-
-      if (!content) {
-        return 0;
-      }
-
-      const matches = content.match(WORD_RE);
-      if (matches) {
-        return matches.length;
-      }
-      return 0;
-    }
-
+    // function taken from https://stackoverflow.com/a/2901298/11750206
     function numberWithCommas(x) {
-      // function taken from https://stackoverflow.com/a/2901298/11750206
 
       var parts = x.toString().split('.');
       parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -53,10 +45,18 @@
     var text = text_node.innerText.replace(/chapter text\n\n/gmi, '');
 
     // Count the number of words
-    var word_count = numberWithCommas(Word_Counter(text));
+    // Counting method from:
+    // https://stackoverflow.com/a/76673564/11750206
+    // Regex substitutions from:
+    // https://github.com/otwcode/otwarchive/blob/943f585818005be8df269d84ca454af478150e75/lib/word_counter.rb#L30C33-L30C68
+    var word_count = [...text.replaceAll(/--/g, '—').replaceAll(/['’‘-]/g, '').matchAll(word_count_regex)].length;
 
-    // console.log(text);
-    // console.log(word_count);
+    // Format the integer number to a thousands separated string
+    word_count = numberWithCommas(word_count);
+
+    // Code for Debugging
+    // console.log(`Chapter Text:\n${text}\n\n`);
+    console.log(`Word Count: ${word_count} words`);
 
     // Create element with the text "Words in Chapter"
     var chap_word_count_text = Object.assign(document.createElement('dt'), {
