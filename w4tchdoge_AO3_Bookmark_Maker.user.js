@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.4.1-20230910_095040
+// @version        2.4.2-20230910_103515
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -729,26 +729,6 @@ All conditions met for "Summary Page" button in the bottom nav bar?: ${BSP_condi
 All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditonal}`
 	);
 
-	// Creating the "Summary Page" buttons
-	// Make the href for the "Summary Page" button
-	var sum_pg_href = main.querySelector(`li.chapter.entire a`).getAttribute(`href`).replace(/(.*?works\/\d+)\?.*/, `$1`);
-
-	// Create the bottom "Summary Page" button
-	var btm_sum_pg = Object.assign(document.createElement(`li`), {
-		className: `bottomSummaryPage`,
-		id: `bottomSummaryPage`,
-		style: `padding-left: 0.5663em;`,
-		innerHTML: `<a href="${sum_pg_href}">Summary Page</a>`
-	});
-
-	// Create the top "Summary Page" button
-	var top_sum_pg = Object.assign(document.createElement(`li`), {
-		className: `topSummaryPage`,
-		id: `topSummaryPage`,
-		style: `padding-left: 0.31696592em;`,
-		innerHTML: `<a href="${sum_pg_href}">SP</a>`
-	});
-
 	// Get the "↑ Top" button that's in the bottom nav bar
 	let toTop_xp = `.//*[@id="feedback"]//*[@role="navigation"]//li[*[text()[contains(.,"Top")]]]`;
 	let toTop_btn = document.evaluate(toTop_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
@@ -764,10 +744,33 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditon
 
 	if (BSP_conditonal) {
 		// If true, add a "Summary Page" button after the "↑ Top" button in the bottom navbar to take you to a page where the summary exists and can be used by the userscript
+		// Make the href for the "Summary Page" button
+		var sum_pg_href = main.querySelector(`li.chapter.entire a`).getAttribute(`href`).replace(/(.*?works\/\d+)\?.*/, `$1`);
+
+		// Create the bottom "Summary Page" button
+		var btm_sum_pg = Object.assign(document.createElement(`li`), {
+			className: `bottomSummaryPage`,
+			id: `bottomSummaryPage`,
+			style: `padding-left: 0.5663em;`,
+			innerHTML: `<a href="${sum_pg_href}">Summary Page</a>`
+		});
+
 		toTop_btn.after(btm_sum_pg);
 	}
+
 	if (TSP_conditonal) {
 		// If true, adds summary page btn to top navbar
+
+		// Make the href for the "Summary Page" button
+		var sum_pg_href = main.querySelector(`li.chapter.entire a`).getAttribute(`href`).replace(/(.*?works\/\d+)\?.*/, `$1`);
+		// Create the top "Summary Page" button
+		var top_sum_pg = Object.assign(document.createElement(`li`), {
+			className: `topSummaryPage`,
+			id: `topSummaryPage`,
+			style: `padding-left: 0.31696592em;`,
+			innerHTML: `<a href="${sum_pg_href}">SP</a>`
+		});
+
 		entiWork_topnavBTN.after(top_sum_pg);
 	}
 
