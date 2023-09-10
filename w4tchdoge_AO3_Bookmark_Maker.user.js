@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.4.0-20230909_125735
+// @version        2.4.1-20230910_095040
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -13,6 +13,7 @@
 // @icon           https://archiveofourown.org/favicon.ico
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @license        GNU GPLv3
+// @history        2.4.1 — Add an option to have a version of the "Summary Page" button in the top nav buttons. Defaults to false
 // @history        2.4.0 — Add an Auto Tag button that automatically adds the completion status and word count to the user tags area
 // @history        2.3.0 — Fairly large reworks of series summaries which includes the addition of the series_works_summaries var (which only does anything when bookmarking a series) that can be used in workInfo to add the summaries of the works in the series to the series bookmark; Added moment.js as a library in case anyone wants to use it to set their own date var
 // @history        2.2.2 — Fix a possible styling issue that may occur with the dropdown menu
@@ -53,6 +54,7 @@
 		divider: `</details>\n\n`,
 		autoPrivate: false,
 		bottomSummaryPage: true,
+		topSummaryPage: false,
 		simpleWorkSummary: false,
 		FWS_asBlockquote: true,
 		splitSelect: 1
@@ -71,12 +73,15 @@ If the aforementioned checks are passed, Adds a "Summary Page" button to the bot
 This is done due to the fact that the last read date will not update when updating a bookmark from the latest chapter.
 
 
+topSummaryPage        : If true, also adds a Summary Page button to the top nav bar next to the "Entire Work" button
+
+
 simpleWorkSummary     : If true, uses the original method to retrieve the work summary (least hassle, but includes the 'Summary' heading element which some users may find annoying).
 If false, retrieves the work summary in a way (which I call the fancy way) that allows more flexibility when customising newBookmarkNotes
 
 
 FWS_asBlockquote : If using the fancy work summary method, set whether you want to retrieve the summary as a blockquote.
-For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 934
+For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 1019
 
 
 splitSelect           : splitSelect changes which half of bookmarkNotes your initial bookmark is supposed to live in.
@@ -133,6 +138,7 @@ Another way to explain it is that the script works by taking the current content
 		divider,
 		autoPrivate,
 		bottomSummaryPage,
+		topSummaryPage,
 		simpleWorkSummary,
 		FWS_asBlockquote,
 		splitSelect,
@@ -186,7 +192,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 		}
 
 
-		// doing the same thing as the first if else on line 152
+		// doing the same thing as the first if else on line 158
 		switch (Boolean(localStorage.getItem(`w4BM_autoPrivate`))) {
 			case false:
 				console.log(`
@@ -217,7 +223,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 152
+		// doing the same thing as the first if else on line 158
 		switch (Boolean(localStorage.getItem(`w4BM_bottomSummaryPage`))) {
 			case false:
 				console.log(`
@@ -248,7 +254,38 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 152
+		// doing the same thing as the first if else on line 158
+		switch (Boolean(localStorage.getItem(`w4BM_topSummaryPage`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_topSummaryPage' is not set in the localStorage
+Now setting it to '${ini_settings_dict.topSummaryPage}'`
+				);
+
+				topSummaryPage = ini_settings_dict.topSummaryPage;
+				localStorage.setItem(`w4BM_topSummaryPage`, ini_settings_dict.topSummaryPage);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_topSummaryPage' IS SET in the localStorage`
+				);
+
+				topSummaryPage = stringToBoolean(localStorage.getItem(`w4BM_topSummaryPage`));
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_topSummaryPage`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 158
 		switch (Boolean(localStorage.getItem(`w4BM_simpleWorkSummary`))) {
 			case false:
 				console.log(`
@@ -279,7 +316,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 152
+		// doing the same thing as the first if else on line 158
 		switch (Boolean(localStorage.getItem(`w4BM_FWS_asBlockquote`))) {
 			case false:
 				console.log(`
@@ -310,7 +347,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 152
+		// doing the same thing as the first if else on line 158
 		switch (Boolean(localStorage.getItem(`w4BM_splitSelect`))) {
 			case false:
 				console.log(`
@@ -347,6 +384,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 		divider = ini_settings_dict.divider;
 		autoPrivate = ini_settings_dict.autoPrivate;
 		bottomSummaryPage = ini_settings_dict.bottomSummaryPage;
+		topSummaryPage = ini_settings_dict.topSummaryPage;
 		simpleWorkSummary = ini_settings_dict.simpleWorkSummary;
 		FWS_asBlockquote = ini_settings_dict.FWS_asBlockquote;
 		splitSelect = ini_settings_dict.splitSelect;
@@ -360,20 +398,22 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 Logging the current state of vars used by the script
 localStorage vars:
-divider          : ${localStorage.getItem(`w4BM_divider`).replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}
-autoPrivate      : ${localStorage.getItem(`w4BM_autoPrivate`)}
+divider           : ${localStorage.getItem(`w4BM_divider`).replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}
+autoPrivate       : ${localStorage.getItem(`w4BM_autoPrivate`)}
 bottomSummaryPage : ${localStorage.getItem(`w4BM_bottomSummaryPage`)}
-simpleWorkSummary: ${localStorage.getItem(`w4BM_simpleWorkSummary`)}
-FWS_asBlockquote : ${localStorage.getItem(`w4BM_FWS_asBlockquote`)}
-splitSelect      : ${localStorage.getItem(`w4BM_splitSelect`)}
+topSummaryPage    : ${localStorage.getItem(`w4BM_topSummaryPage`)}
+simpleWorkSummary : ${localStorage.getItem(`w4BM_simpleWorkSummary`)}
+FWS_asBlockquote  : ${localStorage.getItem(`w4BM_FWS_asBlockquote`)}
+splitSelect       : ${localStorage.getItem(`w4BM_splitSelect`)}
 
 current script vars:
-divider          : ${divider.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}
-autoPrivate      : ${autoPrivate}
+divider           : ${divider.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}
+autoPrivate       : ${autoPrivate}
 bottomSummaryPage : ${bottomSummaryPage}
-simpleWorkSummary: ${simpleWorkSummary}
-FWS_asBlockquote : ${FWS_asBlockquote}
-splitSelect      : ${splitSelect}`
+topSummaryPage    : ${topSummaryPage}
+simpleWorkSummary : ${simpleWorkSummary}
+FWS_asBlockquote  : ${FWS_asBlockquote}
+splitSelect       : ${splitSelect}`
 	);
 
 
@@ -539,6 +579,28 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 			w4BM_bottomSummaryPage_no.replaceWith(w4BM_bottomSummaryPage_yes);
 		});
 
+		// create button - add "Summary Page" button to top navbar
+		var w4BM_topSummaryPage_yes = Object.assign(document.createElement(`li`), {
+			className: `w4BM_topSummaryPage_yes`,
+			id: `w4BM_topSummaryPage_yes`,
+			innerHTML: `<a>"Summary Page" button in top navbar: YES</a>`
+		});
+		w4BM_topSummaryPage_yes.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_topSummaryPage`, false);
+			w4BM_topSummaryPage_yes.replaceWith(w4BM_topSummaryPage_no);
+		});
+
+		// create button - do not add "Summary Page" button to top navbar
+		var w4BM_topSummaryPage_no = Object.assign(document.createElement(`li`), {
+			className: `w4BM_topSummaryPage_no`,
+			id: `w4BM_topSummaryPage_no`,
+			innerHTML: `<a>"Summary Page" button in top navbar: NO</a>`
+		});
+		w4BM_topSummaryPage_no.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_topSummaryPage`, true);
+			w4BM_topSummaryPage_no.replaceWith(w4BM_topSummaryPage_yes);
+		});
+
 		// create button - use simple summary
 		var w4BM_simpleWorkSummary_yes = Object.assign(document.createElement(`li`), {
 			className: `w4BM_simpleWorkSummary_yes`,
@@ -616,12 +678,20 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 				w4BM_dropMenu.append(w4BM_autoPrivate_no);
 			}
 
-			// adding "Entire Work" to bottom navbar
+			// adding "Summary Page" to bottom navbar
 			if (bottomSummaryPage == true || bottomSummaryPage == `true`) {
 				w4BM_dropMenu.append(w4BM_bottomSummaryPage_yes);
 			}
 			else {
 				w4BM_dropMenu.append(w4BM_bottomSummaryPage_no);
+			}
+
+			// adding "Summary Page" to top navbar
+			if (topSummaryPage == true || topSummaryPage == `true`) {
+				w4BM_dropMenu.append(w4BM_topSummaryPage_yes);
+			}
+			else {
+				w4BM_dropMenu.append(w4BM_topSummaryPage_no);
 			}
 
 			// using a simple work summary
@@ -652,36 +722,53 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 	}
 
 
-	var BSP_conditonal = (currPgURL.includes(`works`) && main.querySelector(`li.chapter.previous`) != null && bottomSummaryPage);
+	var BSP_conditonal = (currPgURL.includes(`works`) && main.querySelector(`li.chapter.previous`) != null && bottomSummaryPage),
+		TSP_conditonal = (currPgURL.includes(`works`) && main.querySelector(`li.chapter.previous`) != null && topSummaryPage);
 	console.log(`
-All conditions met for "Summary Page" button in the bottom nav bar?: ${BSP_conditonal}`
+All conditions met for "Summary Page" button in the bottom nav bar?: ${BSP_conditonal}
+All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditonal}`
 	);
 
-	// Checks if the current page is either the first chapter of a work or the entire work
+	// Creating the "Summary Page" buttons
+	// Make the href for the "Summary Page" button
+	var sum_pg_href = main.querySelector(`li.chapter.entire a`).getAttribute(`href`).replace(/(.*?works\/\d+)\?.*/, `$1`);
+
+	// Create the bottom "Summary Page" button
+	var btm_sum_pg = Object.assign(document.createElement(`li`), {
+		className: `bottomSummaryPage`,
+		id: `bottomSummaryPage`,
+		style: `padding-left: 0.5663em;`,
+		innerHTML: `<a href="${sum_pg_href}">Summary Page</a>`
+	});
+
+	// Create the top "Summary Page" button
+	var top_sum_pg = Object.assign(document.createElement(`li`), {
+		className: `topSummaryPage`,
+		id: `topSummaryPage`,
+		style: `padding-left: 0.31696592em;`,
+		innerHTML: `<a href="${sum_pg_href}">SP</a>`
+	});
+
+	// Get the "↑ Top" button that's in the bottom nav bar
+	let toTop_xp = `.//*[@id="feedback"]//*[@role="navigation"]//li[*[text()[contains(.,"Top")]]]`;
+	let toTop_btn = document.evaluate(toTop_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+
+	// Get the Entire Work button in the top nav bar
+	let entiWork_topnavBTN = document.querySelector('.work.navigation.actions .chapter.entire:has(a[href*="view_full_work=true"])');
+
+	// Debug code
+	// console.log(btm_sum_pg);
+	// console.log(top_sum_pg);
+	// console.log(toTop_btn);
+	// console.log(entiWork_topnavBTN);
+
 	if (BSP_conditonal) {
-		// If all above conditions are true, add a "Summary Page" button at the bottom nav bar to take you to a page where the summary exists and can be used by the userscript
-
-		// Make the href for the "Summary Page" button
-		var sum_pg_href = main.querySelector(`li.chapter.entire a`).getAttribute(`href`).replace(/(.*?works\/\d+)\?.*/, `$1`);
-
-		// Create the "Summary Page" button
-		var sum_pg = Object.assign(document.createElement(`li`), {
-			className: `bottomSummaryPage`,
-			id: `bottomSummaryPage`,
-			style: `padding-left: 0.5663em;`,
-			innerHTML: `<a href="${sum_pg_href}">Summary Page</a>`
-		});
-
-		// console.log(sum_pg);
-
-		// Get the "↑ Top" button that's in the bottom nav bar
-		let toTop_xp = `.//*[@id="feedback"]//*[@role="navigation"]//li[*[text()[contains(.,"Top")]]]`;
-		let toTop_btn = document.evaluate(toTop_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-
-		// console.log(toTop_btn);
-
-		// Add the "Summary Page" button after the "↑ Top" button in the bottom navbar
-		toTop_btn.after(sum_pg);
+		// If true, add a "Summary Page" button after the "↑ Top" button in the bottom navbar to take you to a page where the summary exists and can be used by the userscript
+		toTop_btn.after(btm_sum_pg);
+	}
+	if (TSP_conditonal) {
+		// If true, adds summary page btn to top navbar
+		entiWork_topnavBTN.after(top_sum_pg);
 	}
 
 	// make the bookmarking part of the script work only in places where you can make bookmarks
