@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name           CrW Forum (SB/SV/QQ) Formatted Copy
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0
+// @version        1.0.0-20231119_222210
 // @description    Copy the curretly open CrW Forum work in the folloring MarkDown format '- [work name](work url) – [author name](author url) — '
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
-// @updateURL      
-// @downloadURL    
+// @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/CrW_Forum_Formatted_Copy.user.js
+// @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/CrW_Forum_Formatted_Copy.user.js
 // @match          *://forums.spacebattles.com/threads/*
 // @match          *://forums.sufficientvelocity.com/threads/*
 // @match          *://forum.questionablequesting.com/threads/*
