@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           CrW Forum (SB/SV/QQ) Formatted Copy
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.1-20231119_223253
+// @version        2.0.0-20231122_003416
 // @description    Copy the curretly open CrW Forum work in the folloring MarkDown format '- [work name](work url) – [author name](author url) — '
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -16,6 +16,7 @@
 // @grant          GM.registerMenuCommand
 // @require        https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @license        AGPL-3.0-or-later
+// @history        2.0.0 — Rewrite to use a general formatting function (as in AO3FC)
 // @history        1.0.1 — Add logging to console at specific steps
 // @history        1.0.0 — Initial creation of script w/ basic comments
 // ==/UserScript==
@@ -35,19 +36,10 @@
 		return doc.documentElement.textContent;
 	}
 
-	function CrW_Frmt_Copy() {
-		let s_t = performance.now();	// used for measuring time taken to execute script
+	/* Get the URL of the current webpage */
+	const page_url = window.location.href;
 
-		console.log(`
-Beginning execution of CrW Formatted Copy Shortcut (UserScript)
-------------------------
-Time Elapsed:
-${performance.now() - s_t} ms
-———————————————————————————`
-		);
-
-		/* Get the URL of the current webpage */
-		const page_url = window.location.href;
+	function CrW_genWork_Copy(s_t) {
 
 		/* Define vars used in assembling the  */
 		var wrk_title, wrk_url, auth_name, auth_url;
@@ -98,8 +90,16 @@ Time Elapsed:
 ${performance.now() - s_t} ms
 ———————————————————————————`
 			);
+		}
+		else {  // If the page is not a QQ page
 
-		} else {  // If the page is not a QQ page
+			console.log(`
+Executing Formatting for SB/SV
+------------------------
+Time Elapsed:
+${performance.now() - s_t} ms
+———————————————————————————`
+			);
 
 			/* Get Work Title and Work URL */
 			wrk_title = html_decode(document.querySelector(`.p-body-header .p-title-value`).textContent.trim().replace(re_wt, ``).replace(re_ap, `'`).replace(re_ms, `\\$1`));
@@ -136,14 +136,35 @@ Time Elapsed:
 ${performance.now() - s_t} ms
 ———————————————————————————`
 			);
-
 		}
+
+		return {
+			wrk_title: wrk_title,
+			wrk_url: wrk_url,
+			auth_name: auth_name,
+			auth_url: auth_url
+		};
+	}
+
+	function CrW_Frmt_Copy() {
+		let s_t = performance.now();	// used for measuring time taken to execute script
+
+		console.log(`
+Beginning execution of CrW Formatted Copy Shortcut (UserScript)
+Executing MarkDown Formatting
+------------------------
+Time Elapsed:
+${performance.now() - s_t} ms
+———————————————————————————`
+		);
+
+		var { wrk_title, wrk_url, auth_name, auth_url } = CrW_genWork_Copy(s_t);
 
 		/* Debug Line */
 		// console.log(`\n${wrk_title}\n${wrk_url}\n${auth_name}\n${auth_url}`);
 
 		/* Generate final MD formatted text */
-		let final_out = `[${wrk_title}](${wrk_url}) – [${auth_name}](${auth_url})`;
+		let final_out = `[${wrk_title}](${wrk_url}) – [${auth_name}](${auth_url}) — `.replace(re_mu, `\\$4`);
 		console.log(`
 Final Clipboard:
 ${final_out}
@@ -163,6 +184,55 @@ ${performance.now() - s_t} ms
 ———————————————————————————`
 		);
 
+		console.log(`
+CrW Formatted Copy Shortcut (UserScript) executed successfully
+------------------------
+Time Elapsed: ${performance.now() - s_t}ms
+———————————————————————————`
+		);
+	}
+
+	function CrW_Norm_URL_Copy() {
+		let s_t = performance.now();	// used for measuring time taken to execute script
+
+		console.log(`
+Beginning execution of CrW Formatted Copy Shortcut (UserScript)
+Executing Normalised Thread URL Copy
+------------------------
+Time Elapsed:
+${performance.now() - s_t} ms
+———————————————————————————`
+		);
+
+		var { wrk_url } = CrW_genWork_Copy(s_t);
+
+		/* Generate final MD formatted text */
+		let final_out = wrk_url;
+		console.log(`
+Final Clipboard:
+${final_out}
+------------------------
+Time Elapsed:
+${performance.now() - s_t} ms
+———————————————————————————`
+		);
+
+		/* Paste final MD formatted text to clipboard */
+		GM.setClipboard(final_out);
+		console.log(`
+final_out pasted to clipboard
+------------------------
+Time Elapsed:
+${performance.now() - s_t} ms
+———————————————————————————`
+		);
+
+		console.log(`
+CrW Formatted Copy Shortcut (UserScript) executed successfully
+------------------------
+Time Elapsed: ${performance.now() - s_t}ms
+———————————————————————————`
+		);
 	}
 
 	/* Below taken from https://stackoverflow.com/a/2511474/11750206 */
@@ -181,5 +251,6 @@ ${performance.now() - s_t} ms
 	document.addEventListener(`keyup`, CrWFC_handler, false);
 
 	GM.registerMenuCommand(`Copy Work as formatted`, CrW_Frmt_Copy);
+	GM.registerMenuCommand(`Copy normalised Thread URL`, CrW_Norm_URL_Copy);
 
 })();
