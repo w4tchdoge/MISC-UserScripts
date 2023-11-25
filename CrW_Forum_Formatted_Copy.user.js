@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           CrW Forum (SB/SV/QQ) Formatted Copy
 // @namespace      https://github.com/w4tchdoge
-// @version        2.0.0-20231122_003416
+// @version        2.0.1-20231125_155652
 // @description    Copy the curretly open CrW Forum work in the folloring MarkDown format '- [work name](work url) – [author name](author url) — '
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -16,6 +16,7 @@
 // @grant          GM.registerMenuCommand
 // @require        https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @license        AGPL-3.0-or-later
+// @history        2.0.1 — Use the URL contructor to make page_url so as to get rid any links to a specific post of a thread
 // @history        2.0.0 — Rewrite to use a general formatting function (as in AO3FC)
 // @history        1.0.1 — Add logging to console at specific steps
 // @history        1.0.0 — Initial creation of script w/ basic comments
@@ -37,7 +38,8 @@
 	}
 
 	/* Get the URL of the current webpage */
-	const page_url = window.location.href;
+	const ref_url = new URL(window.location.href);
+	const page_url = `${ref_url.origin}${ref_url.pathname}`;
 
 	function CrW_genWork_Copy(s_t) {
 
@@ -45,7 +47,7 @@
 		var wrk_title, wrk_url, auth_name, auth_url;
 
 		/* Check if the current page is a QQ page, as QQ has a different DOM structure compared to SB/SV */
-		if (page_url.includes(`questionablequesting.com`)) {  // If the page is a QQ page
+		if (ref_url.hostname.includes(`questionablequesting.com`)) {  // If the page is a QQ page
 
 			console.log(`
 Executing Formatting for QQ
