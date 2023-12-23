@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Reddit IMG URL Search
 // @namespace      https://github.com/w4tchdoge
-// @version        2.0.0-20231223_163510
+// @version        2.0.1-20231223_165500
 // @description    Searches Reddit for IMG URLs based on the filename of the current image. Initial support is for Discord attachments
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -15,6 +15,7 @@
 // @grant          GM.registerMenuCommand
 // @require        https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @license        AGPL-3.0-or-later
+// @history        2.0.1 — Remove unnecessary bits of code introduced in v2.0.0
 // @history        2.0.0 — Adds capability to work on i.redd.it and preview.redd.it URLs
 // @history        1.1.0 — Enables the script to work on files that do not consist of just the Reddit-generated-filename
 // @history        1.0.0 — Initial userscript creation
@@ -25,9 +26,6 @@
 
 	// Gets the URL of the current webpage
 	const page_URL = new URL(window.location.href);
-
-	// Define the variable for the filename without extension to be stored
-	var filename_noExt;
 
 	// Function for getting the filename without file extension when the image is on the redd.it domain
 	function reddit_domain_Reddit_IMG_URL_srch() {
@@ -56,22 +54,23 @@
 		return filename_noExt;
 	}
 
-	// Function for deciding what function to use to fill filename_noExt appropriately
-	function filename_noExt_definer() {
+	function Reddit_IMG_URL_srch() {
+
+		// Define the variable for the filename without extension to be stored
+		var filename_noExt;
+
+		// if-else to fill filename_noExt appropriately
 		if (page_URL.hostname.includes(`redd.it`)) {
 			filename_noExt = reddit_domain_Reddit_IMG_URL_srch();
 		} else {
 			filename_noExt = Generic_Reddit_IMG_URL_srch();
 		}
-	}
 
-	function Reddit_IMG_URL_srch() {
+		// Construct the search URL to be used on Reddit – Alt 1
+		var reddit_search_URL = `https://www.reddit.com/search?q=url:redd.it/${filename_noExt}&restrict_sr=&include_over_18=on&sort=new&t=all`;
 
-		// Call search_URL_constructor() to define filename_noExt appropriately
-		filename_noExt_definer();
-
-		// Construct the search URL to be used on Reddit
-		var reddit_search_URL = `https://www.reddit.com/search?q=site:redd.it+url:redd.it/${filename_noExt}&restrict_sr=&include_over_18=on&sort=new&t=all`;
+		// Construct the search URL to be used on Reddit – Alt 2
+		// var reddit_search_URL = `https://www.reddit.com/search?q=site:redd.it+url:redd.it/${filename_noExt}&restrict_sr=&include_over_18=on&sort=new&t=all`;
 
 		// Open the Reddit Search URL in a new tab
 		window.open(reddit_search_URL, `_blank`).focus();
