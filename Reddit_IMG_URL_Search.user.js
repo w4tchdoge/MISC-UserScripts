@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Reddit IMG URL Search
 // @namespace      https://github.com/w4tchdoge
-// @version        2.0.1-20231223_165500
+// @version        2.0.2-20231228_182342
 // @description    Searches Reddit for IMG URLs based on the filename of the current image. Initial support is for Discord attachments
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -14,7 +14,9 @@
 // @grant          GM_registerMenuCommand
 // @grant          GM.registerMenuCommand
 // @require        https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
+// @run-at         document-start
 // @license        AGPL-3.0-or-later
+// @history        2.0.2 — Change script metadata to indicate that it should run as soon as possible, as the script only requires the current page URL to function
 // @history        2.0.1 — Remove unnecessary bits of code introduced in v2.0.0
 // @history        2.0.0 — Adds capability to work on i.redd.it and preview.redd.it URLs
 // @history        1.1.0 — Enables the script to work on files that do not consist of just the Reddit-generated-filename
