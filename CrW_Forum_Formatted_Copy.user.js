@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           CrW Forum (SB/SV/QQ) Formatted Copy
 // @namespace      https://github.com/w4tchdoge
-// @version        2.0.1-20231125_155652
+// @version        2.1.0-20231228_161723
 // @description    Copy the curretly open CrW Forum work in the folloring MarkDown format '- [work name](work url) – [author name](author url) — '
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -16,6 +16,7 @@
 // @grant          GM.registerMenuCommand
 // @require        https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @license        AGPL-3.0-or-later
+// @history        2.1.0 — Split the genWork function into two functions that handle the work information and author information separately
 // @history        2.0.1 — Use the URL contructor to make page_url so as to get rid any links to a specific post of a thread
 // @history        2.0.0 — Rewrite to use a general formatting function (as in AO3FC)
 // @history        1.0.1 — Add logging to console at specific steps
@@ -41,10 +42,10 @@
 	const ref_url = new URL(window.location.href);
 	const page_url = `${ref_url.origin}${ref_url.pathname}`;
 
-	function CrW_genWork_Copy(s_t) {
+	function CrW_gen_Work_Copy(s_t) {
 
 		/* Define vars used in assembling the  */
-		var wrk_title, wrk_url, auth_name, auth_url;
+		var wrk_title, wrk_url;
 
 		/* Check if the current page is a QQ page, as QQ has a different DOM structure compared to SB/SV */
 		if (ref_url.hostname.includes(`questionablequesting.com`)) {  // If the page is a QQ page
@@ -66,27 +67,6 @@ ${wrk_title}
 ------------------------
 Work URL:
 ${wrk_url}
-------------------------
-Time Elapsed:
-${performance.now() - s_t} ms
-———————————————————————————`
-			);
-
-			/* Vars used to locate the Author Name & Author URL */
-			let
-				auth_first_msg_XP = `.//li[contains(concat(" ",normalize-space(@class)," ")," message ")][contains(concat(" ",normalize-space(@class)," ")," hasThreadmark ")][count(.//div[contains(concat(" ",normalize-space(@class)," ")," threadmarker ")]//span[contains(., "Threadmarks")]) > 0]`,
-				auth_first_msg = document.evaluate(auth_first_msg_XP, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue,
-				auth_details = auth_first_msg.querySelector(`div.messageUserInfo > div[class^=messageUserBlock] .userText > a`);
-
-			/* Get Author Name and Author URL */
-			auth_name = auth_details.textContent;
-			auth_url = auth_details.href;
-			console.log(`
-Author Name:
-${auth_name}
-------------------------
-Author URL:
-${auth_url}
 ------------------------
 Time Elapsed:
 ${performance.now() - s_t} ms
@@ -117,6 +97,44 @@ Time Elapsed:
 ${performance.now() - s_t} ms
 ———————————————————————————`
 			);
+		}
+
+		return {
+			wrk_title: wrk_title,
+			wrk_url: wrk_url,
+		};
+	}
+
+	function CrW_gen_Auth_Copy(s_t) {
+
+		/* Define vars used in assembling the  */
+		var auth_name, auth_url;
+
+		/* Check if the current page is a QQ page, as QQ has a different DOM structure compared to SB/SV */
+		if (ref_url.hostname.includes(`questionablequesting.com`)) {  // If the page is a QQ page
+
+			/* Vars used to locate the Author Name & Author URL */
+			let
+				auth_first_msg_XP = `.//li[contains(concat(" ",normalize-space(@class)," ")," message ")][contains(concat(" ",normalize-space(@class)," ")," hasThreadmark ")][count(.//div[contains(concat(" ",normalize-space(@class)," ")," threadmarker ")]//span[contains(., "Threadmarks")]) > 0]`,
+				auth_first_msg = document.evaluate(auth_first_msg_XP, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue,
+				auth_details = auth_first_msg.querySelector(`div.messageUserInfo > div[class^=messageUserBlock] .userText > a`);
+
+			/* Get Author Name and Author URL */
+			auth_name = auth_details.textContent;
+			auth_url = auth_details.href;
+			console.log(`
+Author Name:
+${auth_name}
+------------------------
+Author URL:
+${auth_url}
+------------------------
+Time Elapsed:
+${performance.now() - s_t} ms
+———————————————————————————`
+			);
+		}
+		else {  // If the page is not a QQ page
 
 			/* Vars used to locate the Author Name & Author URL */
 			let
@@ -141,8 +159,6 @@ ${performance.now() - s_t} ms
 		}
 
 		return {
-			wrk_title: wrk_title,
-			wrk_url: wrk_url,
 			auth_name: auth_name,
 			auth_url: auth_url
 		};
@@ -160,7 +176,8 @@ ${performance.now() - s_t} ms
 ———————————————————————————`
 		);
 
-		var { wrk_title, wrk_url, auth_name, auth_url } = CrW_genWork_Copy(s_t);
+		var { wrk_title, wrk_url } = CrW_gen_Work_Copy(s_t);
+		var { auth_name, auth_url } = CrW_gen_Auth_Copy(s_t);
 
 		/* Debug Line */
 		// console.log(`\n${wrk_title}\n${wrk_url}\n${auth_name}\n${auth_url}`);
@@ -206,7 +223,7 @@ ${performance.now() - s_t} ms
 ———————————————————————————`
 		);
 
-		var { wrk_url } = CrW_genWork_Copy(s_t);
+		var { wrk_url } = CrW_gen_Work_Copy(s_t);
 
 		/* Generate final MD formatted text */
 		let final_out = wrk_url;
