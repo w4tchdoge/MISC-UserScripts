@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3 Formatted Copy
 // @namespace      https://github.com/w4tchdoge
-// @version        2.3.4-20231230_054455
+// @version        2.4.0-20231230_164245
 // @description    Copy the curretly open AO3 work in the folloring MarkDown format '- [work name](work url) – [author name](author url) — '
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -15,6 +15,7 @@
 // @grant          GM.registerMenuCommand
 // @require        https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @license        AGPL-3.0-or-later
+// @history        2.4.0 — Add ability to copy work as a generic Note formatting for the Notes section
 // @history        2.3.4 — Fix Re-read Formatting not escaping underscores that are not part of a URL
 // ==/UserScript==
 
@@ -331,7 +332,7 @@ ${performance.now() - s_t} ms
 			);
 		}
 
-		var cr_dt = `${new Date().getFullYear()}/${(new Date().getMonth()+1).toString().padStart(2, `0`)}/${new Date().getDate().toString().padStart(2, `0`)}`;
+		var cr_dt = `${new Date().getFullYear()}/${(new Date().getMonth() + 1).toString().padStart(2, `0`)}/${new Date().getDate().toString().padStart(2, `0`)}`;
 
 		return {
 			word_count: word_count,
@@ -488,8 +489,56 @@ Time Elapsed:
 ${performance.now() - s_t} ms
 ———————————————————————————`
 		);
-
 	}
+}
+
+function NoteSection_Frmt_Copy() {
+
+	let s_t = performance.now();
+
+	console.log(
+		`
+Beginning execution of AO3 Formatted Copy Shortcut (UserScript)
+------------------------
+Time Elapsed:
+${performance.now() - s_t} ms
+———————————————————————————`
+	);
+
+	console.log(
+		`
+Executing Note Formatting for \"Works\"
+------------------------
+Time Elapsed:
+${performance.now() - s_t} ms
+———————————————————————————`
+	);
+
+	var { wrk_title, wrk_url, authors } = AO3_genWork_Copy(s_t);
+
+	/* Generate final MD formatted text */
+	let final_out = `- [${wrk_title}](${wrk_url}) – ${authors.join(`, `)} —— Bookmark Link
+\t- `.replace(re_mu, `\\$4`);
+	console.log(
+		`
+Final Clipboard:
+${final_out}
+------------------------
+Time Elapsed:
+${performance.now() - s_t} ms
+———————————————————————————`
+	);
+
+	/* Paste final MD formatted text to clipboard */
+	GM_setClipboard(final_out);
+	console.log(
+		`
+final_out pasted to clipboard
+------------------------
+Time Elapsed:
+${performance.now() - s_t} ms
+———————————————————————————`
+	);
 
 }
 
@@ -508,6 +557,7 @@ function AO3FC_handler(e) {
 /* Register the AO3FC handler */
 document.addEventListener(`keyup`, AO3FC_handler, false);
 
-
-GM_registerMenuCommand(`Copy Work/Series as formatted`, AO3_Frmt_Copy);
-GM_registerMenuCommand(`Copy Work w/ re-read formatting`, AO3_Reread_Format_Copy);
+/* Add Options to the Tampermonkey Popup Menu to execute each function */
+GM.registerMenuCommand(`Copy Work/Series as formatted`, AO3_Frmt_Copy);
+GM.registerMenuCommand(`Copy Work w/ re-read formatting`, AO3_Reread_Format_Copy);
+GM.registerMenuCommand(`Copy Work w/ Note Formatting`, NoteSection_Frmt_Copy);
