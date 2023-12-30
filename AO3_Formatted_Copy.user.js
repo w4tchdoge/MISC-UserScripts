@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3 Formatted Copy
 // @namespace      https://github.com/w4tchdoge
-// @version        2.3.3-20230630_132515
+// @version        2.3.4-20231230_054455
 // @description    Copy the curretly open AO3 work in the folloring MarkDown format '- [work name](work url) – [author name](author url) — '
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -9,9 +9,13 @@
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Formatted_Copy.user.js
 // @match          *://archiveofourown.org/*
 // @icon           https://archiveofourown.org/favicon.ico
-// @grant          GM_registerMenuCommand
 // @grant          GM_setClipboard
+// @grant          GM.setClipboard
+// @grant          GM_registerMenuCommand
+// @grant          GM.registerMenuCommand
+// @require        https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @license        AGPL-3.0-or-later
+// @history        2.3.4 — Fix Re-read Formatting not escaping underscores that are not part of a URL
 // ==/UserScript==
 
 const re_wu = /(^https?:\/\/)(.*\.)?(archiveofourown\.org)(.*?)(\/works\/\d+)\/?.*$/gmi;     /* Regex for extracting work URL without specific chapter */
@@ -52,6 +56,7 @@ ${performance.now() - s_t} ms
 	);
 
 	/* Get Author(s) of the work */
+	/* Try to add exception for anon authors */
 	let au_list = document.querySelectorAll(`#workskin > .preface .byline a[rel='author']`);
 	let a_nm = [];
 	let a_pg = [];
@@ -394,7 +399,7 @@ ${performance.now() - s_t} ms
 
 		/* Generate final MD formatted text */
 		let final_out = `- [${wrk_title}](${wrk_url}) – ${authors.join(`, `)} —— Bookmark Link
-\t- Re-read Chapter ${rr_start_end.at(-0).toString().padStart(2, `0`)} (${word_count} words) –– ${cr_dt}`;
+\t- Re-read Chapter ${rr_start_end.at(-0).toString().padStart(2, `0`)} (${word_count} words) –– ${cr_dt}`.replace(re_mu, `\\$4`);
 		console.log(
 			`
 Final Clipboard:
@@ -462,7 +467,7 @@ ${performance.now() - s_t} ms
 		/* Generate final MD formatted text */
 		let final_out = `- [${wrk_title}](${wrk_url}) – ${authors.join(`, `)} —— Bookmark Link
 \t- Re-read Chapter ${rr_sta} - Chapter ${rr_end} (${word_count} words) –– ${cr_dt} - ?
-\t\t- ${cr_dt} -- Chapter ${rr_sta}`;
+\t\t- ${cr_dt} -- Chapter ${rr_sta}`.replace(re_mu, `\\$4`);
 		console.log(
 			`
 Final Clipboard:
