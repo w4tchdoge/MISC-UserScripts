@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           MISC Image Utilities
 // @namespace      https://github.com/w4tchdoge
-// @version        3.5.0-20231231_192920
+// @version        3.5.1-20240101_193900
 // @description    Miscellaneous IMG related utilities
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -15,6 +15,7 @@
 // @grant          GM.registerMenuCommand
 // @require        https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @license        AGPL-3.0-or-later
+// @history        3.5.1 — Hard-disable script autorunning on Discord attachments
 // @history        3.5.0 — Overhaul script to use URL() function/method for parsing and making URLs
 // @history        3.4.0 — Added support for Discord banner images
 // ==/UserScript==
@@ -76,10 +77,10 @@ if (currPG_URL.hostname.includes(`discordapp`)) {
 	GM.registerMenuCommand(`Discord – Image → PNG`, DIF_override);
 	GM.registerMenuCommand(`Discord – Lossless Image`, Discord_IMG_Fix);
 
-	if (discord_autofix === true && currPG_URL.pathname.includes(`webp`) && currPG_URL.searchParams.has(`quality`) === false) {
+	if (discord_autofix === true && !currPG_URL.pathname.includes(`/attachments/`) && currPG_URL.pathname.includes(`webp`) && currPG_URL.searchParams.has(`quality`) === false) {
 		Discord_IMG_Fix();
 	}
-	if (discord_autofix === true && (currPG_URL.searchParams.has(`quality`) === false || currPG_URL.searchParams.has(`size`) === false)) {
+	if (discord_autofix === true && !currPG_URL.pathname.includes(`/attachments/`) && (currPG_URL.searchParams.has(`quality`) === false || currPG_URL.searchParams.has(`size`) === false)) {
 		Discord_IMG_Fix();
 	}
 }
