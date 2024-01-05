@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Follow List in Top Nav Bar
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0-20240105_042910
+// @version        1.0.1-20240105_044255
 // @description    Add a button to go to your Follow List next to the notification bell in the top navigation bar
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -9,6 +9,7 @@
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/RR_Follow_List_in_Top_Nav_Bar.user.js
 // @match          *://*.royalroad.com/*
 // @license        AGPL-3.0-or-later
+// @history        1.0.1 — Change padding values to make it more aesthetically pleasing
 // @history        1.0.0 — Initial userscript creation
 // ==/UserScript==
 
@@ -26,9 +27,9 @@
 	// Create function to change padding
 	function PaddingChange(media_query) {
 		if (media_query.matches) {
-			navBar_follow_list_main.querySelector('a').style.padding = '17px 6px 10px';
+			navBar_follow_list_main.querySelector('a').style.padding = '17px 6px 10px 2px';
 		} else {
-			navBar_follow_list_main.querySelector('a').style.padding = '17px 8px 10px';
+			navBar_follow_list_main.querySelector('a').style.padding = '17px 8px 10px 6px';
 		}
 	}
 
