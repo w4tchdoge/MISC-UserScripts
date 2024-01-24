@@ -1,14 +1,15 @@
 // ==UserScript==
 // @name           Scribble Hub: Display Current Chapter Word Count
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0-20240124_033315
-// @description    Adds the word count of the current chapter between the chapter navigation buttons at the top of the chapter
+// @version        1.1.0-20240124_041020
+// @description    Adds the word count of the current chapter underneath the chapter statistics
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/SH_Current_Chapter_Word_Count.user.js
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/SH_Current_Chapter_Word_Count.user.js
 // @match          *://*.scribblehub.com/read/*/chapter/*
 // @license        AGPL-3.0-or-later
+// @history        1.1.0 — Change position of word count element and change wording of word count
 // @history        1.0.0 — Initial release
 // ==/UserScript==
 
@@ -30,8 +31,8 @@
 	// Has not been tested on non-English works, feedback would be appreciated
 	const word_count_regex = /\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}|\p{Script=Thai}|((?!\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}|\p{Script=Thai})\w)+/gu;
 
-	// Get element that contains the top navigation buttons
-	const top_chp_nav_btns = document.querySelector(`.nav_chp_fi`);
+	// Get element that contains the chapter stats
+	const chp_stats = document.querySelector(`#main\\ read\\ chapter .chapter_stats`);
 
 	// Def vars used in word counting
 	var chp_raw_node, auth_note_node, chp_raw_text, auth_note_text, chp_raw_word_count, auth_note_word_count, word_count;
@@ -72,14 +73,11 @@
 	// Create element that will display the current chapter word count
 	var WordCount_elm = Object.assign(document.createElement(`span`), {
 		id: `userscript-word-count-span`,
-		style: `display: inline-block;`,
-		innerHTML: `${word_count} words`
+		style: `display: block; text-align: center; margin: 0.5em 0 0 0`,
+		innerHTML: `Words in Chapter: ${word_count}`
 	});
 
-	// Add additional style to the parent div so that the word count is center-aligned
-	top_chp_nav_btns.querySelector(`.prenext`).style.textAlign = `center`;
-
 	// Add the word count element
-	top_chp_nav_btns.querySelector(`.btn-prev`).after(WordCount_elm);
+	chp_stats.after(WordCount_elm);
 
 })();
