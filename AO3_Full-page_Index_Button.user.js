@@ -1,15 +1,17 @@
 // ==UserScript==
 // @name           AO3: Visible Full-page Index Button
 // @namespace      https://github.com/w4tchdoge
-// @version        1.3.1-20230611_004042
+// @version        1.3.2-20240314_205855
 // @description    Moves or copies (setting is user configurable) the "Full-page index" button to the main work navigation bar for ease of access
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Full-page_Index_Button.user.js
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Full-page_Index_Button.user.js
-// @match          *://archiveofourown.org/*
+// @match          *://archiveofourown.org/*works/*
+// @exclude        *://archiveofourown.org/*works/*/bookmarks
 // @icon           https://archiveofourown.org/favicon.ico
 // @license        AGPL-3.0-or-later
+// @history        1.3.2 — Modify the match rule so that it matches collections/*/works URLs as well; Add an exlude role so it doesn't work on works/*/bookmarks pages as it isn't designed to
 // ==/UserScript==
 
 (function () {
