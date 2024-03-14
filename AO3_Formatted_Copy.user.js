@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name           AO3 Formatted Copy
 // @namespace      https://github.com/w4tchdoge
-// @version        2.4.0-20231230_164245
+// @version        2.4.1-20240314_205650
 // @description    Copy the curretly open AO3 work in the folloring MarkDown format '- [work name](work url) – [author name](author url) — '
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Formatted_Copy.user.js
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Formatted_Copy.user.js
-// @match          *://archiveofourown.org/*
+// @match          *://archiveofourown.org/*works/*
+// @exclude        *://archiveofourown.org/*works/*/bookmarks
 // @icon           https://archiveofourown.org/favicon.ico
 // @grant          GM_setClipboard
 // @grant          GM.setClipboard
@@ -15,6 +16,7 @@
 // @grant          GM.registerMenuCommand
 // @require        https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @license        AGPL-3.0-or-later
+// @history        2.4.1 — Modify the match rule so that it matches collections/*/works URLs as well; Add an exlude role so it doesn't work on works/*/bookmarks pages as it isn't designed to
 // @history        2.4.0 — Add ability to copy work as a generic Note formatting for the Notes section
 // @history        2.3.4 — Fix Re-read Formatting not escaping underscores that are not part of a URL
 // ==/UserScript==
