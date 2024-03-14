@@ -1,18 +1,20 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.4.4-20240115_155424
+// @version        2.4.5-20240314_195710
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/w4tchdoge_AO3_Bookmark_Maker.user.js
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/w4tchdoge_AO3_Bookmark_Maker.user.js
-// @match          *://archiveofourown.org/works/*
+// @match          *://archiveofourown.org/*works/*
+// @exclude        *://archiveofourown.org/*works/*/bookmarks
 // @match          *://archiveofourown.org/series/*
 // @match          *://archiveofourown.org/users/*
 // @icon           https://archiveofourown.org/favicon.ico
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @license        GNU GPLv3
+// @history        2.4.5 — Add exlude rule for pages listing bookmarks as the script isn't designed to run on those pages
 // @history        2.4.4 — Add a fallback for retrieving the "Entire Work" button in case it's been modified but is still somewhat recognisable in the DOM
 // @history        2.4.3 — Fix script not working on Firefox browsers due to a lack of support for the :has() CSS selector and a Firefox specific error caused by not using Optional Chaining
 // @history        2.4.2 — Fix a bug where the script errored on single chapter works
