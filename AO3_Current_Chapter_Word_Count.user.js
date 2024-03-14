@@ -1,15 +1,17 @@
 // ==UserScript==
 // @name           AO3: Get Current Chapter Word Count
 // @namespace      https://github.com/w4tchdoge
-// @version        1.1.0-20230909_151247
+// @version        1.1.1-20240314_210740
 // @description    Counts and displays the number of words in the current chapter
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Current_Chapter_Word_Count.user.js
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Current_Chapter_Word_Count.user.js
-// @match          *://archiveofourown.org/*
+// @match          *://archiveofourown.org/*works/*
+// @exclude        *://archiveofourown.org/*works/*/bookmarks
 // @icon           https://archiveofourown.org/favicon.ico
 // @license        AGPL-3.0-or-later
+// @history        1.1.1 — Modify the match rule so that it matches collections/*/works URLs as well; Add an exlude role so it doesn't work on works/*/bookmarks pages as it isn't designed to
 // @history        1.1.0 — Implement a counting method that uses an attempted conversion of the Ruby regex code used by AO3 to JavaScript
 // ==/UserScript==
 
