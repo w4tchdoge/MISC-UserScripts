@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3: Add button to Show Bookmark
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0-20240314_205205
+// @version        1.0.1-20240318_143529
 // @description    Adds a "Show Bookmark" button before the "Edit Bookmark" button on the page where you view a work's bookmarks
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -9,6 +9,7 @@
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Show_Bookmark_btn.user.js
 // @match          *://archiveofourown.org/*/bookmarks
 // @license        AGPL-3.0-or-later
+// @history        1.0.1 — Fix issue caused by data-remote attribute where bookmark could not be opened in the current tab
 // @history        1.0.0 — Initial commit
 // ==/UserScript==
 
@@ -28,6 +29,9 @@
 		var li_elm = orig.cloneNode(true);
 		// make a var specifically for the a element so i dont have to call a querySelector everytime
 		var a_elm = li_elm.querySelector(`a`);
+
+		// remove the data-remote as it prevents the bookmark from being opened in the current tab
+		a_elm.removeAttribute(`data-remote`)
 
 		// get the original a element id and change it for the new one
 		var
