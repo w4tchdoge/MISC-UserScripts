@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Scribble Hub: Display Current Chapter Word Count
 // @namespace      https://github.com/w4tchdoge
-// @version        1.1.0-20240124_041020
+// @version        1.1.1-20240405_035950
 // @description    Adds the word count of the current chapter underneath the chapter statistics
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -9,20 +9,13 @@
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/SH_Current_Chapter_Word_Count.user.js
 // @match          *://*.scribblehub.com/read/*/chapter/*
 // @license        AGPL-3.0-or-later
+// @history        1.1.1 — Switch to using Intl.NumberFormat for making the word count thousands separated
 // @history        1.1.0 — Change position of word count element and change wording of word count
 // @history        1.0.0 — Initial release
 // ==/UserScript==
 
 (function () {
 	`use strict`;
-
-	// function taken from https://stackoverflow.com/a/2901298/11750206
-	function numberWithCommas(x) {
-
-		var parts = x.toString().split(`.`);
-		parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, `,`);
-		return parts.join(`.`);
-	}
 
 	// Attempted conversion of the Ruby regex code AO3 uses to JavaScript by looking at:
 	// https://github.com/otwcode/otwarchive/blob/943f585818005be8df269d84ca454af478150e75/config/config.yml#L453
@@ -68,7 +61,8 @@
 	// console.log(word_count);
 
 	// Add thousands seperators to the word count
-	word_count = numberWithCommas(word_count);
+	// Reference for Intl.NumberFormat: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat
+	word_count = new Intl.NumberFormat({ style: "decimal" }).format(word_count);
 
 	// Create element that will display the current chapter word count
 	var WordCount_elm = Object.assign(document.createElement(`span`), {
@@ -79,5 +73,4 @@
 
 	// Add the word count element
 	chp_stats.after(WordCount_elm);
-
 })();
