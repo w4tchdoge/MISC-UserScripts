@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3: Get Current Chapter Word Count
 // @namespace      https://github.com/w4tchdoge
-// @version        1.1.1-20240314_210740
+// @version        1.1.2-20240405_035735
 // @description    Counts and displays the number of words in the current chapter
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -11,6 +11,7 @@
 // @exclude        *://archiveofourown.org/*works/*/bookmarks
 // @icon           https://archiveofourown.org/favicon.ico
 // @license        AGPL-3.0-or-later
+// @history        1.1.2 — Switch to using Intl.NumberFormat for making the word count thousands separated
 // @history        1.1.1 — Modify the match rule so that it matches collections/*/works URLs as well; Add an exlude role so it doesn't work on works/*/bookmarks pages as it isn't designed to
 // @history        1.1.0 — Implement a counting method that uses an attempted conversion of the Ruby regex code used by AO3 to JavaScript
 // ==/UserScript==
@@ -31,14 +32,6 @@
     // Has not been tested on non-English works, feedback would be appreciated
     const word_count_regex = /\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}|\p{Script=Thai}|((?!\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}|\p{Script=Thai})\w)+/gu;
 
-    // function taken from https://stackoverflow.com/a/2901298/11750206
-    function numberWithCommas(x) {
-
-      var parts = x.toString().split('.');
-      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-      return parts.join(".");
-    }
-
 
     // Get the HTML element containing the chapter's text content
     var text_node = document.querySelector('[role="article"]');
@@ -54,7 +47,8 @@
     var word_count = [...text.replaceAll(/--/g, '—').replaceAll(/['’‘-]/g, '').matchAll(word_count_regex)].length;
 
     // Format the integer number to a thousands separated string
-    word_count = numberWithCommas(word_count);
+    // Reference for Intl.NumberFormat: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat
+    word_count = new Intl.NumberFormat({ style: "decimal" }).format(word_count);
 
     // Code for Debugging
     // console.log(`Chapter Text:\n${text}\n\n`);
@@ -80,5 +74,4 @@
     // Append the created elements after the element containing the total word count of the fic
     stats_elem.querySelector('dd.words').after(chap_word_count_text, chap_word_count_num);
   }
-
 })();
