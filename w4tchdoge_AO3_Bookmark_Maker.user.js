@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.4.5-20240314_195710
+// @version        2.5.0-20240406_231055
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -14,6 +14,7 @@
 // @icon           https://archiveofourown.org/favicon.ico
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @license        GNU GPLv3
+// @history        2.5.0 — Add toggle in the dropdown present on the user's preferences page for showing/not showing the AutoTag button when making/editing a bookmark
 // @history        2.4.5 — Add exlude rule for pages listing bookmarks as the script isn't designed to run on those pages
 // @history        2.4.4 — Add a fallback for retrieving the "Entire Work" button in case it's been modified but is still somewhat recognisable in the DOM
 // @history        2.4.3 — Fix script not working on Firefox browsers due to a lack of support for the :has() CSS selector and a Firefox specific error caused by not using Optional Chaining
@@ -58,11 +59,12 @@
 	let ini_settings_dict = {
 		divider: `</details>\n\n`,
 		autoPrivate: false,
+		showAutoTagButton: true,
 		bottomSummaryPage: true,
 		topSummaryPage: false,
 		simpleWorkSummary: false,
 		FWS_asBlockquote: true,
-		splitSelect: 1
+		splitSelect: 1,
 	};
 
 	/* EXPLANATION OF THE "CONSTANTS" THAT CAN BE CHANGED BY THE END USER
@@ -71,6 +73,9 @@ divider               : String which is used to indicate where the bookmark shou
 
 
 autoPrivate           : If true, automatically checks the checkbox to private the bookmark
+
+
+showAutoTagButton     : If true, shows the "Auto Tag" button when bookmarking a work
 
 
 bottomSummaryPage     : If true, checks if the current page is an entire work page or a work page that is not on the first chapter.
@@ -86,7 +91,7 @@ If false, retrieves the work summary in a way (which I call the fancy way) that 
 
 
 FWS_asBlockquote : If using the fancy work summary method, set whether you want to retrieve the summary as a blockquote.
-For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 1034
+For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 1111
 
 
 splitSelect           : splitSelect changes which half of bookmarkNotes your initial bookmark is supposed to live in.
@@ -142,6 +147,7 @@ Another way to explain it is that the script works by taking the current content
 	var
 		divider,
 		autoPrivate,
+		showAutoTagButton,
 		bottomSummaryPage,
 		topSummaryPage,
 		simpleWorkSummary,
@@ -196,8 +202,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-
-		// doing the same thing as the first if else on line 161
+		// doing the same thing as the first if else on line 169
 		switch (Boolean(localStorage.getItem(`w4BM_autoPrivate`))) {
 			case false:
 				console.log(`
@@ -228,7 +233,38 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 161
+		// doing the same thing as the first if else on line 169
+		switch (Boolean(localStorage.getItem(`w4BM_showAutoTagButton`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_showAutoTagButton' is not set in the localStorage
+Now setting it to '${ini_settings_dict.showAutoTagButton}'`
+				);
+
+				showAutoTagButton = ini_settings_dict.showAutoTagButton;
+				localStorage.setItem(`w4BM_showAutoTagButton`, ini_settings_dict.showAutoTagButton);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_showAutoTagButton' IS SET in the localStorage`
+				);
+
+				showAutoTagButton = stringToBoolean(localStorage.getItem(`w4BM_showAutoTagButton`));
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_showAutoTagButton`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 169
 		switch (Boolean(localStorage.getItem(`w4BM_bottomSummaryPage`))) {
 			case false:
 				console.log(`
@@ -259,7 +295,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 161
+		// doing the same thing as the first if else on line 169
 		switch (Boolean(localStorage.getItem(`w4BM_topSummaryPage`))) {
 			case false:
 				console.log(`
@@ -290,7 +326,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 161
+		// doing the same thing as the first if else on line 169
 		switch (Boolean(localStorage.getItem(`w4BM_simpleWorkSummary`))) {
 			case false:
 				console.log(`
@@ -321,7 +357,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 161
+		// doing the same thing as the first if else on line 169
 		switch (Boolean(localStorage.getItem(`w4BM_FWS_asBlockquote`))) {
 			case false:
 				console.log(`
@@ -352,7 +388,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 161
+		// doing the same thing as the first if else on line 169
 		switch (Boolean(localStorage.getItem(`w4BM_splitSelect`))) {
 			case false:
 				console.log(`
@@ -388,6 +424,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 
 		divider = ini_settings_dict.divider;
 		autoPrivate = ini_settings_dict.autoPrivate;
+		showAutoTagButton = ini_settings_dict.showAutoTagButton;
 		bottomSummaryPage = ini_settings_dict.bottomSummaryPage;
 		topSummaryPage = ini_settings_dict.topSummaryPage;
 		simpleWorkSummary = ini_settings_dict.simpleWorkSummary;
@@ -398,28 +435,35 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 
 
 	// Log the current value of the vars in localStorage
-	console.log(`
+	var log_string = `
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 Logging the current state of vars used by the script
-localStorage vars:
-divider           : ${localStorage.getItem(`w4BM_divider`).replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}
-autoPrivate       : ${localStorage.getItem(`w4BM_autoPrivate`)}
-bottomSummaryPage : ${localStorage.getItem(`w4BM_bottomSummaryPage`)}
-topSummaryPage    : ${localStorage.getItem(`w4BM_topSummaryPage`)}
-simpleWorkSummary : ${localStorage.getItem(`w4BM_simpleWorkSummary`)}
-FWS_asBlockquote  : ${localStorage.getItem(`w4BM_FWS_asBlockquote`)}
-splitSelect       : ${localStorage.getItem(`w4BM_splitSelect`)}
 
-current script vars:
+localStorage vars:`;
+
+	Object.keys(ini_settings_dict).forEach((key) => {
+		var spacing = 19 - key.toString().length;
+		if (key == `divider`) {
+			log_string += `\n${key.toString()}${" ".repeat(spacing)}: ${localStorage.getItem(`w4BM_${key}`).replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}`;
+		} else {
+			log_string += `\n${key.toString()}${" ".repeat(spacing)}: ${localStorage.getItem(`w4BM_${key}`)}`;
+		}
+	});
+
+	log_string += `
+
+current script vars (list may be incomplete):
 divider           : ${divider.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}
 autoPrivate       : ${autoPrivate}
+showAutoTagButton : ${showAutoTagButton}
 bottomSummaryPage : ${bottomSummaryPage}
 topSummaryPage    : ${topSummaryPage}
 simpleWorkSummary : ${simpleWorkSummary}
 FWS_asBlockquote  : ${FWS_asBlockquote}
-splitSelect       : ${splitSelect}`
-	);
+splitSelect       : ${splitSelect}`;
+
+	console.log(log_string);
 
 
 	// add main element that all querySelector operations will be done on
@@ -562,6 +606,28 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 			w4BM_autoPrivate_no.replaceWith(w4BM_autoPrivate_yes);
 		});
 
+		// create button - show AutoTag button - yes
+		var w4BM_showAutoTagButton_yes = Object.assign(document.createElement(`li`), {
+			className: `w4BM_showAutoTagButton_yes`,
+			id: `w4BM_showAutoTagButton_yes`,
+			innerHTML: `<a>Show AutoTag Button: YES</a>`
+		});
+		w4BM_showAutoTagButton_yes.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_showAutoTagButton`, false);
+			w4BM_showAutoTagButton_yes.replaceWith(w4BM_showAutoTagButton_no);
+		});
+
+		// create button - show AutoTag button - no
+		var w4BM_showAutoTagButton_no = Object.assign(document.createElement(`li`), {
+			className: `w4BM_showAutoTagButton_no`,
+			id: `w4BM_showAutoTagButton_no`,
+			innerHTML: `<a>Show AutoTag Button: NO</a>`
+		});
+		w4BM_showAutoTagButton_no.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_showAutoTagButton`, true);
+			w4BM_showAutoTagButton_no.replaceWith(w4BM_showAutoTagButton_yes);
+		});
+
 		// create button - add "Summary Page" button to bottom navbar
 		var w4BM_bottomSummaryPage_yes = Object.assign(document.createElement(`li`), {
 			className: `w4BM_bottomSummaryPage_yes`,
@@ -683,6 +749,14 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 				w4BM_dropMenu.append(w4BM_autoPrivate_no);
 			}
 
+			// showing AutoTag button
+			if (showAutoTagButton == true || showAutoTagButton == `true`) {
+				w4BM_dropMenu.append(w4BM_showAutoTagButton_yes);
+			}
+			else {
+				w4BM_dropMenu.append(w4BM_showAutoTagButton_no);
+			}
+
 			// adding "Summary Page" to bottom navbar
 			if (bottomSummaryPage == true || bottomSummaryPage == `true`) {
 				w4BM_dropMenu.append(w4BM_bottomSummaryPage_yes);
@@ -726,12 +800,13 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 
 	}
 
+	// ------------------------------------------------------
 
-	var BSP_conditonal = (currPgURL.includes(`works`) && main.querySelector(`li.chapter.previous`) != null && bottomSummaryPage),
-		TSP_conditonal = (currPgURL.includes(`works`) && main.querySelector(`li.chapter.previous`) != null && topSummaryPage);
+	var BSP_conditional = (currPgURL.includes(`works`) && main.querySelector(`li.chapter.previous`) != null && bottomSummaryPage),
+		TSP_conditional = (currPgURL.includes(`works`) && main.querySelector(`li.chapter.previous`) != null && topSummaryPage);
 	console.log(`
-All conditions met for "Summary Page" button in the bottom nav bar?: ${BSP_conditonal}
-All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditonal}`
+All conditions met for "Summary Page" button in the bottom nav bar?: ${BSP_conditional}
+All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditional}`
 	);
 
 	// Creating the "Summary Page" buttons
@@ -778,11 +853,11 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditon
 	// console.log(toTop_btn);
 	// console.log(entiWork_topnavBTN);
 
-	if (BSP_conditonal) {
+	if (BSP_conditional) {
 		// If true, add a "Summary Page" button after the "↑ Top" button in the bottom navbar to take you to a page where the summary exists and can be used by the userscript
 		toTop_btn.after(btm_sum_pg);
 	}
-	if (TSP_conditonal) {
+	if (TSP_conditional) {
 		// If true, adds summary page btn to top navbar
 		entiWork_topnavBTN.after(top_sum_pg);
 	}
@@ -880,7 +955,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditon
 		}
 
 		// Make the button used in Auto Tag
-		if (document.querySelector(`#bookmark-form`)) {
+		if (document.querySelector(`#bookmark-form`) && showAutoTagButton) {
 
 			// Get element in bookmark form to append button to
 			var yourTags_xp = `.//div[@id="main"]//div[@id="bookmark-form"]//dt/label[text() = 'Your tags']`,
