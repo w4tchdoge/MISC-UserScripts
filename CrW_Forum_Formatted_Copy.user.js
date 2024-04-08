@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           CrW Forum (SB/SV/QQ) Formatted Copy
 // @namespace      https://github.com/w4tchdoge
-// @version        2.1.1-20240408_172232
+// @version        2.1.1-20240408_174431
 // @description    Copy the curretly open CrW Forum work in the folloring MarkDown format '- [work name](work url) – [author name](author url) — '
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -181,10 +181,10 @@ ${performance.now() - s_t} ms
 		var { auth_name, auth_url } = CrW_gen_Auth_Copy(s_t);
 
 		/* Debug Line */
-		// console.log(`\n${wrk_title}\n${wrk_url.slice(0, -1)}\n${auth_name}\n${auth_url}`);
+		// console.log(`\n${wrk_title}\n${wrk_url.slice(0, -1)}\n${auth_name}\n${auth_url.slice(0, -1)}`);
 
 		/* Generate final MD formatted text */
-		let final_out = `[${wrk_title}](${wrk_url.slice(0, -1)}) – [${auth_name}](${auth_url}) — `.replace(re_mu, `\\$4`);
+		let final_out = `[${wrk_title}](${wrk_url.slice(0, -1)}) – [${auth_name}](${auth_url.slice(0, -1)}) — `.replace(re_mu, `\\$4`);
 		console.log(`
 Final Clipboard:
 ${final_out}
