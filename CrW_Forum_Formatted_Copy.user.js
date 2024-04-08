@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           CrW Forum (SB/SV/QQ) Formatted Copy
 // @namespace      https://github.com/w4tchdoge
-// @version        2.1.0-20231228_161723
+// @version        2.1.1-20240408_172232
 // @description    Copy the curretly open CrW Forum work in the folloring MarkDown format '- [work name](work url) – [author name](author url) — '
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -16,6 +16,7 @@
 // @grant          GM.registerMenuCommand
 // @require        https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @license        AGPL-3.0-or-later
+// @history        2.1.1 — Remove the trailing forward slash when pasting the MD formatted string into clipboard
 // @history        2.1.0 — Split the genWork function into two functions that handle the work information and author information separately
 // @history        2.0.1 — Use the URL contructor to make page_url so as to get rid any links to a specific post of a thread
 // @history        2.0.0 — Rewrite to use a general formatting function (as in AO3FC)
@@ -180,10 +181,10 @@ ${performance.now() - s_t} ms
 		var { auth_name, auth_url } = CrW_gen_Auth_Copy(s_t);
 
 		/* Debug Line */
-		// console.log(`\n${wrk_title}\n${wrk_url}\n${auth_name}\n${auth_url}`);
+		// console.log(`\n${wrk_title}\n${wrk_url.slice(0, -1)}\n${auth_name}\n${auth_url}`);
 
 		/* Generate final MD formatted text */
-		let final_out = `[${wrk_title}](${wrk_url}) – [${auth_name}](${auth_url}) — `.replace(re_mu, `\\$4`);
+		let final_out = `[${wrk_title}](${wrk_url.slice(0, -1)}) – [${auth_name}](${auth_url}) — `.replace(re_mu, `\\$4`);
 		console.log(`
 Final Clipboard:
 ${final_out}
