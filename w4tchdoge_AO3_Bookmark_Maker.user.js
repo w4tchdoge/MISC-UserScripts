@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.5.0-20240406_231055
+// @version        2.6.0-20240512_182158
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -14,6 +14,7 @@
 // @icon           https://archiveofourown.org/favicon.ico
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @license        GNU GPLv3
+// @history        2.6.0 — Add a new default variable author_HTML that can be used in the workInfo customisation function. for more details about author_HTML please refer to line 1183
 // @history        2.5.0 — Add toggle in the dropdown present on the user's preferences page for showing/not showing the AutoTag button when making/editing a bookmark
 // @history        2.4.5 — Add exlude rule for pages listing bookmarks as the script isn't designed to run on those pages
 // @history        2.4.4 — Add a fallback for retrieving the "Entire Work" button in case it's been modified but is still somewhat recognisable in the DOM
@@ -91,7 +92,7 @@ If false, retrieves the work summary in a way (which I call the fancy way) that 
 
 
 FWS_asBlockquote : If using the fancy work summary method, set whether you want to retrieve the summary as a blockquote.
-For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 1111
+For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 1126
 
 
 splitSelect           : splitSelect changes which half of bookmarkNotes your initial bookmark is supposed to live in.
@@ -892,6 +893,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		var
 			curr_notes = main.querySelector(`#bookmark_notes`).textContent.split(divider).at(`-${splitSelect}`),
 			author,
+			author_HTML,
 			words,
 			status,
 			title,
@@ -998,7 +1000,14 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			// Retrieve series word count
 			words = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
 			// Retrieve series author
-			author = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dt[text()[contains(.,"Creator")]]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
+			let
+				series_author_xpath = `.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dt[text()[contains(.,"Creator")]]/following-sibling::*[1]/self::dd`,
+				series_author_element = document.evaluate(series_author_xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+			author = series_author_element.textContent;
+			// check if series_author_element contains a link
+			// if it does, assign contents of the outerHTML of the <a> tag to author_HTML as a string
+			// if it doesnt, make author_HTML identical to author
+			Boolean(series_author_element.querySelector(`a`)) ? author_HTML = series_author_element.querySelector(`a`).outerHTML.toString().trim() : author_HTML = series_author_element.textContent;
 			// Check if there is a series summary
 			switch (Boolean(main.querySelector(`.series.meta.group .userstuff`))) {
 				case true: // If series summary exists, retrieve summary
@@ -1089,7 +1098,12 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			// Retrieve work work count
 			words = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
 			// Retrieve work author
-			author = main.querySelector(`#workskin > .preface .byline`).textContent.trim(); // fic author
+			let work_author_element = main.querySelector(`#workskin > .preface .byline`);
+			author = work_author_element.textContent.trim(); // fic author
+			// check if work_author_element contains a link
+			// if it does, assign contents of the outerHTML of the <a> tag to author_HTML as a string
+			// if it doesnt, make author_HTML identical to author
+			Boolean(work_author_element.querySelector(`a`)) ? author_HTML = work_author_element.querySelector(`a`).outerHTML.toString().trim() : author_HTML = work_author_element.textContent.trim();
 
 			// Retrieve relationship tags
 			var raw_rels_arr = Array.from(document.querySelectorAll(`.relationship.tags ul a`));
@@ -1166,6 +1180,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		- date_string               // String to show when the work was last read – User configurable in the Date configuration sub-section
 		- title                     // Title of the work or series
 		- author                    // Author of the work or series
+		- author_HTML               // Author of the work or series, as an HTML <a> element (a link). e.g. the author_HTML string for AO3 work 54769867 would be '<a rel="author" href="/users/nescias/pseuds/nescias">nescias</a>'
 		- status                    // Status of the work or series. i.e. Completed: 2020-08-23, Updated: 2022-05-08, Published: 2015-06-29
 		- relationships             // The Relationship tags present in the work. Will be a collapsible element in your bookmark
 		- summary                   // Summary of the work or series
@@ -1230,7 +1245,7 @@ Date String Generated: ${date_string}`
 		// new_notes = `${workInfo}\n\n${curr_notes}`
 
 		workInfo = `<details><summary>Work/Series Details</summary>
-\t${title} by ${author}
+\t${title} by ${author_HTML}
 \t${status}
 \tWork/Series ID: ${ws_id}
 \t${relationships}
