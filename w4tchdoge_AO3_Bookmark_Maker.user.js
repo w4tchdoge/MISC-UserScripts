@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.6.0-20240512_182158
+// @version        2.6.1-20240512_184543
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -14,7 +14,8 @@
 // @icon           https://archiveofourown.org/favicon.ico
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @license        GNU GPLv3
-// @history        2.6.0 — Add a new default variable author_HTML that can be used in the workInfo customisation function. for more details about author_HTML please refer to line 1183
+// @history        2.6.1 — Fixes incompatibilty with users's skins caused by not using cloneNode(true) when retrieving relationship tags and subsequently removing all classes from them. credit to @notdoingthateither on Greasy Fork for the fix
+// @history        2.6.0 — Add a new default variable author_HTML that can be used in the workInfo customisation function. for more details about author_HTML please refer to line 1185
 // @history        2.5.0 — Add toggle in the dropdown present on the user's preferences page for showing/not showing the AutoTag button when making/editing a bookmark
 // @history        2.4.5 — Add exlude rule for pages listing bookmarks as the script isn't designed to run on those pages
 // @history        2.4.4 — Add a fallback for retrieving the "Entire Work" button in case it's been modified but is still somewhat recognisable in the DOM
@@ -92,7 +93,7 @@ If false, retrieves the work summary in a way (which I call the fancy way) that 
 
 
 FWS_asBlockquote : If using the fancy work summary method, set whether you want to retrieve the summary as a blockquote.
-For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 1126
+For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 1128
 
 
 splitSelect           : splitSelect changes which half of bookmarkNotes your initial bookmark is supposed to live in.
@@ -203,7 +204,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 169
+		// doing the same thing as the first if else on line 171
 		switch (Boolean(localStorage.getItem(`w4BM_autoPrivate`))) {
 			case false:
 				console.log(`
@@ -234,7 +235,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 169
+		// doing the same thing as the first if else on line 171
 		switch (Boolean(localStorage.getItem(`w4BM_showAutoTagButton`))) {
 			case false:
 				console.log(`
@@ -265,7 +266,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 169
+		// doing the same thing as the first if else on line 171
 		switch (Boolean(localStorage.getItem(`w4BM_bottomSummaryPage`))) {
 			case false:
 				console.log(`
@@ -296,7 +297,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 169
+		// doing the same thing as the first if else on line 171
 		switch (Boolean(localStorage.getItem(`w4BM_topSummaryPage`))) {
 			case false:
 				console.log(`
@@ -327,7 +328,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 169
+		// doing the same thing as the first if else on line 171
 		switch (Boolean(localStorage.getItem(`w4BM_simpleWorkSummary`))) {
 			case false:
 				console.log(`
@@ -358,7 +359,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 169
+		// doing the same thing as the first if else on line 171
 		switch (Boolean(localStorage.getItem(`w4BM_FWS_asBlockquote`))) {
 			case false:
 				console.log(`
@@ -389,7 +390,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 169
+		// doing the same thing as the first if else on line 171
 		switch (Boolean(localStorage.getItem(`w4BM_splitSelect`))) {
 			case false:
 				console.log(`
@@ -1108,9 +1109,10 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			// Retrieve relationship tags
 			var raw_rels_arr = Array.from(document.querySelectorAll(`.relationship.tags ul a`));
 			var rels_arr = [];
-			raw_rels_arr.forEach((el) => {
-				el.removeAttribute(`class`);
-				rels_arr.push(`• ${el.outerHTML}`);
+			raw_rels_arr.forEach(function (el) {
+				let el_c = el.cloneNode(true)
+				el_c.removeAttribute(`class`);
+				rels_arr.push(`• ${el_c.outerHTML}`);
 			});
 
 			// Add Relationship tags to 'relationships' var
