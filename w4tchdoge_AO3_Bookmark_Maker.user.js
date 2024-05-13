@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.6.2-20240513_220419
+// @version        2.6.3-20240513_221214
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -14,6 +14,7 @@
 // @icon           https://archiveofourown.org/favicon.ico
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @license        GNU GPLv3
+// @history        2.6.3 — Fix some minor messups I made in 2.6.2 before they break something or the other
 // @history        2.6.2 — Fix author_HTML only retrieving the first author in multi-author works/series
 // @history        2.6.1 — Fixes incompatibilty with users's skins caused by not using cloneNode(true) when retrieving relationship tags and subsequently removing all classes from them. credit to @notdoingthateither on Greasy Fork for the fix
 // @history        2.6.0 — Add a new default variable author_HTML that can be used in the workInfo customisation function. for more details about author_HTML please refer to line 1207
@@ -1005,11 +1006,11 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			let
 				series_author_xpath = `.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dt[text()[contains(.,"Creator")]]/following-sibling::*[1]/self::dd`,
 				series_author_element = document.evaluate(series_author_xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-			author = series_author_element.textContent;
+			author = series_author_element.textContent.trim();
 			// check if series_author_element contains a link
 			// if it does, assign contents of the outerHTML of the <a> tag to author_HTML as a string
 			// if it doesnt, make author_HTML identical to author
-			if (Boolean(series_author_element.querySelector(`a`))) {
+			if (Boolean(series_author_element.querySelectorAll(`a`))) {
 				let auth_str_arr = [];
 				Array.from(series_author_element.querySelectorAll(`a`)).forEach(function (el) {
 					let el_c = el.cloneNode(true);
@@ -1017,7 +1018,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 				});
 				author_HTML = auth_str_arr.join(`, `);
 			} else {
-				author_HTML = work_author_element.textContent.trim();
+				author_HTML = author;
 			}
 			// Check if there is a series summary
 			switch (Boolean(main.querySelector(`.series.meta.group .userstuff`))) {
@@ -1122,7 +1123,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 				});
 				author_HTML = auth_str_arr.join(`, `);
 			} else {
-				author_HTML = work_author_element.textContent.trim();
+				author_HTML = author;
 			}
 
 			// Retrieve relationship tags
