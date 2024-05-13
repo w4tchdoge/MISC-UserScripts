@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Scribble Hub: Display Current Chapter Word Count
 // @namespace      https://github.com/w4tchdoge
-// @version        1.1.1-20240405_035950
+// @version        1.1.2-20240513_200521
 // @description    Adds the word count of the current chapter underneath the chapter statistics
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -9,6 +9,7 @@
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/SH_Current_Chapter_Word_Count.user.js
 // @match          *://*.scribblehub.com/read/*/chapter/*
 // @license        AGPL-3.0-or-later
+// @history        1.1.2 — Fix script not working on chapters without an author note
 // @history        1.1.1 — Switch to using Intl.NumberFormat for making the word count thousands separated
 // @history        1.1.0 — Change position of word count element and change wording of word count
 // @history        1.0.0 — Initial release
@@ -28,41 +29,70 @@
 	const chp_stats = document.querySelector(`#main\\ read\\ chapter .chapter_stats`);
 
 	// Def vars used in word counting
+	// var chp_raw_node, auth_note_node, chp_raw_text, auth_note_text, chp_raw_word_count, auth_note_word_count, word_count;
 	var chp_raw_node, auth_note_node, chp_raw_text, auth_note_text, chp_raw_word_count, auth_note_word_count, word_count;
 
-	// Get elems to be word counted
+	// Get 1st elem to be word counted
 	chp_raw_node = document.querySelector(`#chp_raw`).cloneNode(true);
-	auth_note_node = document.querySelector(`#chp_raw div .wi_authornotes_body`).cloneNode(true);
-
-	// Remove auth note from chp_raw_node
-	chp_raw_node.removeChild(chp_raw_node.querySelector(`div.wi_authornotes`));
 
 	// Get the text context of the elements to be counted
-	chp_raw_text = chp_raw_node.textContent;
-	auth_note_text = auth_note_node.textContent;
+	// chp_raw_text = chp_raw_node.textContent;
+	// auth_note_text = auth_note_node.textContent;
 
 	// Count the number of words
 	// Counting method from:
 	// https://stackoverflow.com/a/76673564/11750206
 	// Regex substitutions from:
 	// https://github.com/otwcode/otwarchive/blob/943f585818005be8df269d84ca454af478150e75/lib/word_counter.rb#L30C33-L30C68
-	chp_raw_word_count = [...chp_raw_text.replaceAll(/--/g, `—`).replaceAll(/['’‘-]/g, ``).matchAll(word_count_regex)].length;
-	auth_note_word_count = [...auth_note_text.replaceAll(/--/g, `—`).replaceAll(/['’‘-]/g, ``).matchAll(word_count_regex)].length;
+	// chp_raw_word_count = [...chp_raw_text.replaceAll(/--/g, `—`).replaceAll(/['’‘-]/g, ``).matchAll(word_count_regex)].length;
+	// auth_note_word_count = [...auth_note_text.replaceAll(/--/g, `—`).replaceAll(/['’‘-]/g, ``).matchAll(word_count_regex)].length;
 
-	// Check if chapter word count is very small
-	// If true use auth_note_word_count as word count
-	const chp_raw_frac_total_count = chp_raw_word_count / (chp_raw_word_count + auth_note_word_count);
-	if (chp_raw_frac_total_count < 0.05) {
-		word_count = auth_note_word_count;
-	} else {
-		word_count = chp_raw_word_count;
+	// if-else for the case that the author note does not exist
+	if (Boolean(document.querySelector(`#chp_raw div .wi_authornotes_body`))) { // if author notes exists
+
+		// Remove auth note from chp_raw_node
+		chp_raw_node.removeChild(chp_raw_node.querySelector(`div.wi_authornotes`));
+
+		// Get chp text to be counted
+		chp_raw_text = chp_raw_node.textContent;
+
+		// Get 2nd elem to be word counted
+		auth_note_node = document.querySelector(`#chp_raw div .wi_authornotes_body`).cloneNode(true);
+
+		// Get auth note text to be counted
+		auth_note_text = auth_note_node.textContent;
+
+		// Count the number of words
+		// Counting method from:
+		// https://stackoverflow.com/a/76673564/11750206
+		// Regex substitutions from:
+		// https://github.com/otwcode/otwarchive/blob/943f585818005be8df269d84ca454af478150e75/lib/word_counter.rb#L30C33-L30C68
+		chp_raw_word_count = [...chp_raw_text.replaceAll(/--/g, `—`).replaceAll(/['’‘-]/g, ``).matchAll(word_count_regex)].length;
+		auth_note_word_count = [...auth_note_text.replaceAll(/--/g, `—`).replaceAll(/['’‘-]/g, ``).matchAll(word_count_regex)].length;
+
+		// Check if chapter word count is very small
+		// If true use auth_note_word_count as word count
+		// const chp_raw_frac_total_count = chp_raw_word_count / (chp_raw_word_count + auth_note_word_count);
+		const chp_raw_frac_total_count = chp_raw_word_count / (chp_raw_word_count + auth_note_word_count);
+		if (chp_raw_frac_total_count < 0.05) {
+			word_count = auth_note_word_count;
+		} else {
+			word_count = chp_raw_word_count;
+		}
+
 	}
-
-	// console.log(word_count);
+	else {
+		// Get the text to be counted
+		chp_raw_text = chp_raw_node.textContent;
+		// count the text
+		word_count = [...chp_raw_text.replaceAll(/--/g, `—`).replaceAll(/['’‘-]/g, ``).matchAll(word_count_regex)].length;
+	}
 
 	// Add thousands seperators to the word count
 	// Reference for Intl.NumberFormat: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat
 	word_count = new Intl.NumberFormat({ style: "decimal" }).format(word_count);
+
+	// console.log(`SH Ch Word Counter Output: ${word_count}`);
 
 	// Create element that will display the current chapter word count
 	var WordCount_elm = Object.assign(document.createElement(`span`), {
