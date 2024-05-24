@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.7.0-20240523_200011
+// @version        2.7.1-20240524_215729
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -14,6 +14,7 @@
 // @icon           https://archiveofourown.org/favicon.ico
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @license        GNU GPLv3
+// @history        2.7.1 — Clarify how the 'relationships' variable in workInfo now functions, especially with regards to it's new functionality in series bookmarks
 // @history        2.7.0 — Add all unique relationship tags in all the works on a series page to the series bookmark
 // @history        2.6.3 — Fix some minor messups I made in 2.6.2 before they break something or the other
 // @history        2.6.2 — Fix author_HTML only retrieving the first author in multi-author works/series
@@ -1227,7 +1228,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		- author                    // Author of the work or series
 		- author_HTML               // Author of the work or series, as an HTML <a> element (a link). e.g. the author_HTML string for AO3 work 54769867 would be '<a rel="author" href="/users/nescias/pseuds/nescias">nescias</a>'
 		- AO3_status                // Status of the work or series. i.e. Completed: 2020-08-23, Updated: 2022-05-08, Published: 2015-06-29
-		- relationships             // The Relationship tags present in the work. Will be a collapsible element in your bookmark
+		- relationships             // For work bookmarks, it's the Relationship tags present in the work and it will be a collapsible element in your work bookmark. For series bookmarks, it's all of the unique Relationship tags present in all the works in a series and it will be a collapsible element in your series bookmark
 		- summary                   // Summary of the work or series
 		- words                     // Current word count of the work or series
 		- ws_id                     // ID of the work/series being bookmarked
