@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.6.3-20240513_221214
+// @version        2.7.0-20240523_200011
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -14,10 +14,11 @@
 // @icon           https://archiveofourown.org/favicon.ico
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @license        GNU GPLv3
+// @history        2.7.0 — Add all unique relationship tags in all the works on a series page to the series bookmark
 // @history        2.6.3 — Fix some minor messups I made in 2.6.2 before they break something or the other
 // @history        2.6.2 — Fix author_HTML only retrieving the first author in multi-author works/series
 // @history        2.6.1 — Fixes incompatibilty with users's skins caused by not using cloneNode(true) when retrieving relationship tags and subsequently removing all classes from them. credit to @notdoingthateither on Greasy Fork for the fix
-// @history        2.6.0 — Add a new default variable author_HTML that can be used in the workInfo customisation function. for more details about author_HTML please refer to line 1207
+// @history        2.6.0 — Add a new default variable author_HTML that can be used in the workInfo customisation function. for more details about author_HTML please refer to line 1228
 // @history        2.5.0 — Add toggle in the dropdown present on the user's preferences page for showing/not showing the AutoTag button when making/editing a bookmark
 // @history        2.4.5 — Add exlude rule for pages listing bookmarks as the script isn't designed to run on those pages
 // @history        2.4.4 — Add a fallback for retrieving the "Entire Work" button in case it's been modified but is still somewhat recognisable in the DOM
@@ -95,7 +96,7 @@ If false, retrieves the work summary in a way (which I call the fancy way) that 
 
 
 FWS_asBlockquote : If using the fancy work summary method, set whether you want to retrieve the summary as a blockquote.
-For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 1150
+For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 1171
 
 
 splitSelect           : splitSelect changes which half of bookmarkNotes your initial bookmark is supposed to live in.
@@ -206,7 +207,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 172
+		// doing the same thing as the first if else on line 174
 		switch (Boolean(localStorage.getItem(`w4BM_autoPrivate`))) {
 			case false:
 				console.log(`
@@ -237,7 +238,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 172
+		// doing the same thing as the first if else on line 174
 		switch (Boolean(localStorage.getItem(`w4BM_showAutoTagButton`))) {
 			case false:
 				console.log(`
@@ -268,7 +269,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 172
+		// doing the same thing as the first if else on line 174
 		switch (Boolean(localStorage.getItem(`w4BM_bottomSummaryPage`))) {
 			case false:
 				console.log(`
@@ -299,7 +300,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 172
+		// doing the same thing as the first if else on line 174
 		switch (Boolean(localStorage.getItem(`w4BM_topSummaryPage`))) {
 			case false:
 				console.log(`
@@ -330,7 +331,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 172
+		// doing the same thing as the first if else on line 174
 		switch (Boolean(localStorage.getItem(`w4BM_simpleWorkSummary`))) {
 			case false:
 				console.log(`
@@ -361,7 +362,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 172
+		// doing the same thing as the first if else on line 174
 		switch (Boolean(localStorage.getItem(`w4BM_FWS_asBlockquote`))) {
 			case false:
 				console.log(`
@@ -392,7 +393,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 172
+		// doing the same thing as the first if else on line 174
 		switch (Boolean(localStorage.getItem(`w4BM_splitSelect`))) {
 			case false:
 				console.log(`
@@ -879,11 +880,6 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			main.querySelector(`#bookmark_private`).checked = true;
 		}
 
-
-		// keeps any bookmark notes you've made previously
-		// var bookmarkNotes = main.querySelector(`#bookmark_notes`).textContent.split(divider).at(`-${splitSelect}`);
-
-
 		// Define variables used in date configuration
 		var currdate = new Date(),
 			dd = String(currdate.getDate()).padStart(2, `0`),
@@ -898,7 +894,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			author,
 			author_HTML,
 			words,
-			status,
+			AO3_status,
 			title,
 			relationships = ``,
 			summary = `<em><strong>NO SUMMARY</strong></em>`,
@@ -1067,17 +1063,44 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			});
 			series_works_summaries = `\n${srsWkSum_arr.join(`\n`)}`;
 
+			// Get all relationship tags present in series' works and add them to series bookmark
+			// Retrieve relationship tags
+			var raw_rels_arr = Array.from(document.querySelectorAll(`ul.tags > li.relationships > a.tag`)), rels_arr = [];
+			raw_rels_arr.forEach(function (element, index, array) {
+				let element_clone = element.cloneNode(true);
+				element_clone.removeAttribute(`class`);
+
+				let rel_string = element_clone.outerHTML;
+				// console.log(`Content in array ${array} at index ${index}: ${array[index]}`);
+				// console.log(element_clone.outerHTML);
+
+				rels_arr.push(`• ${rel_string}`);
+			});
+
+			// Remove duplicates in rels_arr
+			rels_arr = [...new Set(rels_arr)];
+
+			// Attempt to add entries from rels_arr to relationships regardless of whether rels_arr is empty or not
+			relationships = `<details><summary>Relationship Tags:</summary>\n${rels_arr.join(`\n`)}</details>`;
+
+			// Check if rels_arr is empty, indicating no relationship tags
+			if (!Array.isArray(rels_arr) || !rels_arr.length) {
+				// If empty, set 'relationships' var to indicate no relationship tags
+				relationships = `<details><summary>Relationship Tags:</summary>\n• <em><strong>No Relationship Tags</strong></em></details>`;
+			}
+
+
 			// Retrieve series status
 			let pub_xp = `//dl[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[contains(text(), "Complete")]/following-sibling::*[1]`;
 			let complete = document.evaluate(pub_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
 			var updated = main.querySelector(`.series.meta.group`).getElementsByTagName(`dd`)[2].textContent;
 			switch (complete) {
 				case `No`:
-					status = `Updated: ${updated}`;
+					AO3_status = `Updated: ${updated}`;
 					break;
 
 				case `Yes`:
-					status = `Completed: ${updated}`;
+					AO3_status = `Completed: ${updated}`;
 					break;
 
 				default:
@@ -1173,11 +1196,11 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			// Retrieve work status
 			if (document.getElementsByClassName(`status`).length != 0) {
 				// Retrieval method for multi-chapter works
-				status = `${main.querySelector(`dt.status`).textContent} ${main.querySelector(`dd.status`).textContent}`;
+				AO3_status = `${main.querySelector(`dt.status`).textContent} ${main.querySelector(`dd.status`).textContent}`;
 			}
 			else {
 				// Retrieval method for single chapter works
-				status = `${main.querySelector(`dt.published`).textContent} ${main.querySelector(`dd.published`).textContent}`;
+				AO3_status = `${main.querySelector(`dt.published`).textContent} ${main.querySelector(`dd.published`).textContent}`;
 			}
 
 			// Retrieve work ID
@@ -1203,7 +1226,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		- title                     // Title of the work or series
 		- author                    // Author of the work or series
 		- author_HTML               // Author of the work or series, as an HTML <a> element (a link). e.g. the author_HTML string for AO3 work 54769867 would be '<a rel="author" href="/users/nescias/pseuds/nescias">nescias</a>'
-		- status                    // Status of the work or series. i.e. Completed: 2020-08-23, Updated: 2022-05-08, Published: 2015-06-29
+		- AO3_status                // Status of the work or series. i.e. Completed: 2020-08-23, Updated: 2022-05-08, Published: 2015-06-29
 		- relationships             // The Relationship tags present in the work. Will be a collapsible element in your bookmark
 		- summary                   // Summary of the work or series
 		- words                     // Current word count of the work or series
@@ -1268,7 +1291,7 @@ Date String Generated: ${date_string}`
 
 		workInfo = `<details><summary>Work/Series Details</summary>
 \t${title} by ${author_HTML}
-\t${status}
+\t${AO3_status}
 \tWork/Series ID: ${ws_id}
 \t${relationships}
 \t<details><summary>Work/Series Summary:</summary>
