@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           MAL → AniList
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.2-20240528_225522
+// @version        1.0.3-20240529_223154
 // @description    Adds a button on MAL and AniDB to go to the AniList version of the page.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -15,6 +15,7 @@
 // @grant          GM_xmlhttpRequest
 // @grant          GM.xmlHttpRequest
 // @require        https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
+// @history        1.0.3 — Get rid of all the checking for strings and using toString() because all of the places I was using it already returned a string. Rewrite the GQ_idMal and GQ_type retrieval bits so I can define GQ_idMal and GQ_type as consts since I don't change them anywhere in this userscript
 // @history        1.0.2 — Fix script not working on AniDB pages with multiple MAL links. If there are multiple MAL links it gets the AL equivalent title for the first MAL link
 // @history        1.0.1 — cleanup the script to remove all instances of var
 // ==/UserScript==
@@ -22,35 +23,33 @@
 (async function () {
 	`use strict`;
 
-	function CheckIfString(input) {
-		if (typeof input != `string`) {
-			// console.log(`${input} is not a string`);
-			return input.toString();
-		} else {
-			// console.log(`${input} is a string`);
-			return input;
-		}
-	}
-
 	const
-		website = CheckIfString(window.location.hostname),
+		current_website = window.location.hostname,
 		request_headers = { "Content-Type": "application/json" };
 
-	let GQ_type, GQ_idMal;
+	const [GQ_idMal, GQ_type] = (function () {
+		if (current_website == `anidb.net`) {
+			// Get URL to the MAL page on the anime/manga
+			const MAL_URL = new URL(document.querySelectorAll(`div.group.thirdparty.english a[href*="myanimelist.net"]`)[0].href);
 
-	if (website == `anidb.net`) {
-		const MAL_URL = new URL(CheckIfString(document.querySelectorAll(`div.group.thirdparty.english a[href*="myanimelist.net"]`)[0].href));
+			// Extract variables needed for the AniList GraphQuery request from MAL_URL
+			const GQ_idMal = MAL_URL.pathname.split(`/`).at(-1);
+			const GQ_type = `ANIME`;
 
-		GQ_type = `ANIME`;
-		GQ_idMal = CheckIfString(MAL_URL.pathname.split(`/`).at(-1));
-	}
+			return [GQ_idMal, GQ_type];
+		}
 
-	if (website == `myanimelist.net`) {
-		const MAL_URL = new URL(window.location);
+		if (current_website == `myanimelist.net`) {
+			// Get URL to the MAL page on the anime/manga
+			const MAL_URL = new URL(window.location);
 
-		GQ_type = CheckIfString(MAL_URL.pathname.split(`/`).at(-2).toUpperCase());
-		GQ_idMal = CheckIfString(MAL_URL.pathname.split(`/`).at(-1));
-	}
+			// Extract variables needed for the AniList GraphQuery request from MAL_URL
+			const GQ_idMal = MAL_URL.pathname.split(`/`).at(-1);
+			const GQ_type = MAL_URL.pathname.split(`/`).at(-2).toUpperCase();
+
+			return [GQ_idMal, GQ_type];
+		}
+	})();
 
 	// console.log(`type: ${GQ_type}\nidMal: ${GQ_idMal}`);
 
@@ -83,7 +82,7 @@ query ($req_idMal: Int, $req_type: MediaType) {
 	// console.log(`request_output: ${AniListGQ_response.responseText}`);
 	// console.log(`anilist url: ${anilist_url}`);
 
-	if (website == `anidb.net`) {
+	if (current_website == `anidb.net`) {
 		const
 			MAL_icon_div_elm = (function () {
 				if (Boolean(document.querySelector(`*:has(>a.i_icon.i_resource_mal.brand)`)) == false) {
@@ -100,7 +99,7 @@ query ($req_idMal: Int, $req_type: MediaType) {
 		MAL_icon_div_elm.after(AL_icon_div_elm);
 	}
 
-	if (website == `myanimelist.net`) {
+	if (current_website == `myanimelist.net`) {
 		const
 			MAL_horiz_navbar = document.querySelector(`#horiznav_nav > ul`),
 			AL_navbar_entry = Object.assign(document.createElement(`li`), {
