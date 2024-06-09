@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           SB/SV/QQ: Threadmark Word Counter
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0-20240609_165445
+// @version        1.0.0-20240609_171455
 // @description    Display the word count of threadmarked forum posts in the header area of the post
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -148,25 +148,21 @@ Time since Start: ${performance.now() - start_time}ms`
 	// Get array of threadmarked posts
 	const threadmarked_posts = Array.from(document.querySelectorAll(`article.hasThreadmark:has(.message-inner .message-cell--main)`));
 
-	// const [wc_borderWidth, wc_borderStyle, wc_borderColor] = (function () {
-	// 	const ph_styles = getComputedStyle(threadmarked_posts[0].querySelector(`.message-cell--main header.message-attribution`));
-	// 	const
-	// 		phb_width = ph_styles.getPropertyValue(`border-bottom-width`),
-	// 		phb_style = ph_styles.getPropertyValue(`border-bottom-style`),
-	// 		phb_color = ph_styles.getPropertyValue(`border-bottom-color`);
-
-	// 	return [phb_width, phb_style, phb_color];
-	// })();
-
+	// Time logging because why not
 	console.log(`
 Starting Word Counting of Threadmarks
 ———————————————–————————————————
 Time since Start: ${performance.now() - start_time}ms`
 	);
 
+	// Iterate on the array of threadmarked posts
 	threadmarked_posts.forEach(function (element, index, array) {
+		// Get the timestamp element which the Word count element will be put after
 		const tmrkd_post_timestamp = element.querySelector(`.message-cell--main .message-attribution-main`);
 
+		// Get the computed styles of the threadmark header element (where the threadmark name,category, and nav buttons are)
+		// This is to mimick the border style when making the word count element
+		// Also getting the threadmark title and category because it's right there why not
 		const [threadmark_title, threadmark_category, ph_styles] = (function () {
 			const tmrk_header = element.querySelector(`div.message-cell--threadmark-header`);
 			const
@@ -177,12 +173,21 @@ Time since Start: ${performance.now() - start_time}ms`
 			return [tmrk_title, tmrk_category, tmrk_header_styles];
 		})();
 
+		// Change how much higher the perceptual lightness of the word count border colour is
 		// const lightness_increase = 10;
 		const lightness_increase = 6.75;
+
+		// Assign/Get/Calculate the border properties for the word count element border
 		const [wc_borderWidth, wc_borderStyle, wc_borderColor] = (function () {
 			const
+				// Manually set to 1px because that's what it's set to in the Threadmark header
+				// But computed style returns 0.740 recurring
 				phb_width = `1px`,
+
+				// Get the border style
 				phb_style = ph_styles.getPropertyValue(`border-bottom-style`),
+
+				// Calculated the border colour based on retrieved border colour and lightness_increase
 				phb_color = (() => {
 					const [initial_red, initial_green, initial_blue, initial_alpha] = CSSRGBintoComponents(ph_styles.getPropertyValue(`border-bottom-color`));
 
@@ -198,21 +203,28 @@ Time since Start: ${performance.now() - start_time}ms`
 						return out_phb_color;
 					}
 				})();
+
 			return [phb_width, phb_style, phb_color];
 		})();
 
+		// Get the actual text of the threadmark to be word counted
 		const threadmark_text = element.querySelector(`.message-inner .message-cell--main .message-content article.message-body .bbWrapper`).cloneNode(true).textContent;
 
+		// Calculate word count using WordCounter() and format it to a thousand-separated string
 		const word_count = new Intl.NumberFormat({ style: `decimal` }).format(WordCounter(threadmark_text));
 
+		// Threadmark info logging + Time logging
 		console.log(
 			`
 Threadmark ${index + 1}
 Threadmark Category: ${threadmark_category}
 Threadmark Title: ${threadmark_title}
-Word Count: ${word_count} words`
+Word Count: ${word_count} words
+———————————————–————————————————
+Time since Start: ${performance.now() - start_time}ms`
 		);
 
+		// Create the word count element
 		const word_count_element = Object.assign(document.createElement(`ul`), {
 			id: `threadmark-word-count`,
 			className: `listInline`,
@@ -227,15 +239,18 @@ Word Count: ${word_count} words`
 			})()
 		});
 
+		// Check if the word count element already exists
 		const wc_elem_check = element.querySelector(`#threadmark-word-count`);
-
 		if (Boolean(wc_elem_check)) {
+			// If yes, replace existing one with new one
 			wc_elem_check.replaceWith(word_count_element);
 		} else {
+			// If no, add a word count element
 			tmrkd_post_timestamp.after(word_count_element);
 		}
 	});
 
+	// More time logging wheeeeeeeeeeeeeeeeeeee
 	console.log(`
 Completed Word Counting of Threadmarks
 UserScript has completed running
