@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3: Add button to Show Bookmark
 // @namespace      https://github.com/w4tchdoge
-// @version        2.0.0-20240611_145813
+// @version        2.0.1-20240611_164542
 // @description    Adds a "Show Bookmark" button before the "Edit Bookmark" button on the page where you view a work's bookmarks
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -11,7 +11,9 @@
 // @match          *://archiveofourown.org/*works/*
 // @match          *://archiveofourown.org/*/bookmarks
 // @match          *://archiveofourown.org/bookmarks*
+// @exclude        *://archiveofourown.org/*works/*/navigate
 // @license        AGPL-3.0-or-later
+// @history        2.0.1 — Add @exclude rule so that userscript doesn't run on /navigate pages
 // @history        2.0.0 — Add a link to view a user's bookmark in the stats area that is present when viewing a chapter (https://i.imgur.com/a5O1lpD.png)
 // @history        1.0.3 — Make sure script works on bookmark searches. Add a check to make sure that the script only executes if the existing_edit_btns array has elements in it
 // @history        1.0.2 — Make sure script only adds a "Show Bookmark" button when there is an "Edit Bookmark" button as opposed to a "Bookmark" button that is used to make new bookmarks
