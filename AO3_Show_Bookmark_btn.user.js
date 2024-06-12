@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3: Add button to Show Bookmark
 // @namespace      https://github.com/w4tchdoge
-// @version        2.0.1-20240611_164542
+// @version        2.0.2-20240612_153032
 // @description    Adds a "Show Bookmark" button before the "Edit Bookmark" button on the page where you view a work's bookmarks
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -13,7 +13,8 @@
 // @match          *://archiveofourown.org/bookmarks*
 // @exclude        *://archiveofourown.org/*works/*/navigate
 // @license        AGPL-3.0-or-later
-// @history        2.0.1 — Add @exclude rule so that userscript doesn't run on /navigate pages
+// @history        2.0.2 — Move the detection of whether the work is bookmarked to the start of the script instead of making it part of what the bookmarks page fetch does. This is to make sure the bookmarks page is only fetched when the user has the work bookmarked
+// @history        2.0.1 — Add exclude rule so that userscript doesn't run on /navigate pages
 // @history        2.0.0 — Add a link to view a user's bookmark in the stats area that is present when viewing a chapter (https://i.imgur.com/a5O1lpD.png)
 // @history        1.0.3 — Make sure script works on bookmark searches. Add a check to make sure that the script only executes if the existing_edit_btns array has elements in it
 // @history        1.0.2 — Make sure script only adds a "Show Bookmark" button when there is an "Edit Bookmark" button as opposed to a "Bookmark" button that is used to make new bookmarks
@@ -25,7 +26,22 @@
 	`use strict`;
 
 	const current_page_url = new URL(window.location);
+	
 	const bkmrk_page_check = current_page_url.pathname.includes(`bookmarks`);
+
+	const is_work_bookmarked = (() => {
+		try {
+
+			const element_iwb = document.querySelector(`a.bookmark_form_placement_open`).textContent.toLowerCase().includes(`edit`);
+			return element_iwb;
+
+		} catch (error) {
+
+			return false;
+
+		}
+	})();
+
 
 	if (bkmrk_page_check && Boolean(document.querySelector(`a[id^="bookmark_form_trigger"]`))) {
 
@@ -82,7 +98,19 @@ No "Edit Bookmark" buttons exist on this page.`
 		}
 	}
 
-	if (!bkmrk_page_check && Boolean(document.querySelector(`dd.bookmarks a`))) {
+	if (!bkmrk_page_check && Boolean(document.querySelector(`dd.bookmarks a`)) && !is_work_bookmarked) {
+
+		// console.log(`branch B`);
+
+		console.log(`
+Add "Show Bookmark" Button userscript:
+User does not have the work bookmarked.`
+		);
+	}
+
+	if (!bkmrk_page_check && Boolean(document.querySelector(`dd.bookmarks a`)) && is_work_bookmarked) {
+
+		// console.log(`branch A`);
 
 		const bookmark_page_href = document.querySelector(`dd.bookmarks a`).getAttribute(`href`);
 
@@ -100,45 +128,48 @@ No "Edit Bookmark" buttons exist on this page.`
 
 		// console.log(edit_bookmark_elem);
 
-		const work_is_already_bookmarked = edit_bookmark_elem.href.includes(`edit`);
-		if (!work_is_already_bookmarked) {
-			console.log(`
-Add "Show Bookmark" Button userscript:
-User does not have the work bookmarked.`
-			);
-		}
-		if (work_is_already_bookmarked) {
-			console.log(`
+		// const work_is_already_bookmarked = edit_bookmark_elem.href.includes(`edit`);
+		// if (!work_is_already_bookmarked) {
+		// console.log(`
+		// Add "Show Bookmark" Button userscript:
+		// User does not have the work bookmarked.`
+		// );
+		// }
+		// if (work_is_already_bookmarked) {
+
+		console.log(`
 Add "Show Bookmark" Button userscript:
 User has the work bookmarked.`
-			);
-			const
-				show_bookmark_href = edit_bookmark_elem.getAttribute(`href`).split(/\/edit/i).at(0),
-				all_public_bkmrks_link = document.querySelector(`.work.meta.group dl.stats dd[class^="bookmark"]:has(>a)`);
+		);
+		const
+			show_bookmark_href = edit_bookmark_elem.getAttribute(`href`).split(/\/edit/i).at(0),
+			all_public_bkmrks_link = document.querySelector(`.work.meta.group dl.stats dd[class^="bookmark"]:has(>a)`);
 
-			// console.log(show_bookmark_href);
+		// console.log(show_bookmark_href);
 
-			const dt_user_bookmark_elem = Object.assign(document.createElement(`dt`), {
-				id: `show_user_bookmark_dt`,
-				className: `user_bookmark`,
-				innerHTML: `User Bookmark:`
-			});
+		const dt_user_bookmark_elem = Object.assign(document.createElement(`dt`), {
+			id: `show_user_bookmark_dt`,
+			className: `user_bookmark`,
+			innerHTML: `User Bookmark:`
+		});
 
-			const dd_user_bookmark_elem = Object.assign(document.createElement(`dd`), {
-				className: `user_bookmark`,
-				id: `show_user_bookmark_dd`,
-				innerHTML: (() => {
-					const element = Object.assign(document.createElement(`a`), {
-						href: `${show_bookmark_href}`,
-						id: `show_user_bookmark_a`,
-						innerHTML: `View`
-					});
-					return element.outerHTML;
-				})()
-			});
+		const dd_user_bookmark_elem = Object.assign(document.createElement(`dd`), {
+			className: `user_bookmark`,
+			id: `show_user_bookmark_dd`,
+			innerHTML: (() => {
+				const element = Object.assign(document.createElement(`a`), {
+					href: `${show_bookmark_href}`,
+					id: `show_user_bookmark_a`,
+					innerHTML: `View`
+				});
+				return element.outerHTML;
+			})()
+		});
 
-			all_public_bkmrks_link.after(dt_user_bookmark_elem, dd_user_bookmark_elem);
-		}
+		all_public_bkmrks_link.after(dt_user_bookmark_elem, dd_user_bookmark_elem);
+
+		// }
+
 	}
 
 })();
