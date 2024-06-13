@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           SB/SV/QQ: Threadmark Word Counter
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0-20240609_171455
+// @version        1.1.0-20240614_034608
 // @description    Display the word count of threadmarked forum posts in the header area of the post
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -12,6 +12,7 @@
 // @match          *://forum.questionablequesting.com/threads/*
 // @run-at         document-idle
 // @license        AGPL-3.0-or-later
+// @history        1.1.0 — Reworked `CSSRGBintoComponents()` to better handle cases where the color is in the format `color(srgb ...)`. Changed how lightness_increase works so that it's a negative value when `color-scheme` is `light` and zero when `color-scheme` is neither `light` nor `dark`. Reworked `phb_color` so that the string it outputs uses the newer space separated `rgb()` parameters (https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/rgb#syntax)
 // @history        1.0.0 — Initial commit
 // ==/UserScript==
 
@@ -52,15 +53,51 @@ Time since Start: ${performance.now() - start_time}ms`
 
 	// Colour Functions for manipulating wc_borderColor
 
-	// Split the initial CSS compliant colour string into components
+	// Split the initial CSS colour string into components
 	function CSSRGBintoComponents(rgb_str) {
-		if (rgb_str.split(`(`).at(0).includes(`rgb`) == false) {
-			throw new Error(`Input is not an rgb(a) colour string that is CSS complianr`);
+		const match_regex = /^(rgb|color\(srgb(?=\s))/i;
+		const split_regex = /[^\d\.%]/i;
+
+		const regex_test = match_regex.test(rgb_str);
+
+		if (regex_test == false) {
+			throw new Error(`The parameter passed to CSSRGBintoComponents() is not an rgb()/rgba()/color(srgb ...) CSS colour string.`);
 		}
 
-		const [comp_red, comp_green, comp_blue, comp_alpha] = rgb_str.split(/[\(,\)]/).filter(item => { return !isNaN(parseFloat(item)) && isFinite(item); });
+		function CommonFilter(input_str, splt_rgx = split_regex) {
+			const [red, green, blue, alpha] = input_str.split(splt_rgx)
+				.filter(elm => {
+					try {
+						return ((!isNaN(parseFloat(elm)) && isFinite(elm)) || elm.includes(`%`));
+					} catch (error) {
+						return false;
+					}
+				});
 
-		return [comp_red, comp_green, comp_blue, comp_alpha];
+			return [red, green, blue, alpha];
+		}
+
+		const color_test = rgb_str.split(/[\s\(]/i).at(0).toLowerCase().includes(`color`);
+
+		if (color_test) {
+
+			const [comp_red, comp_green, comp_blue, comp_alpha] = CommonFilter(rgb_str)
+				.map((element, index) => {
+					if (Boolean(element) && index < 3) {
+						const output_str = parseInt(parseFloat(element) * 255).toString();
+						return output_str;
+					} else { return element.toString(); }
+				});
+
+			return [comp_red, comp_green, comp_blue, comp_alpha];
+
+		} else {
+
+			const [comp_red, comp_green, comp_blue, comp_alpha] = CommonFilter(rgb_str);
+
+			return [comp_red, comp_green, comp_blue, comp_alpha];
+
+		}
 	}
 
 	// Reference XYZ values ; Observer: 2° ; Illuminant: D65
@@ -175,7 +212,30 @@ Time since Start: ${performance.now() - start_time}ms`
 
 		// Change how much higher the perceptual lightness of the word count border colour is
 		// const lightness_increase = 10;
-		const lightness_increase = 6.75;
+		// const lightness_increase = 6.75;
+		const lightness_increase = (() => {
+			const up_value = 6.75;
+			const site_color_scheme = getComputedStyle(document.querySelector(`body`)).getPropertyValue(`color-scheme`);
+
+			// if (site_color_scheme == `light`) {
+			// 	const output_num = -up_value;
+			// 	return output_num;
+			// } else {
+			// 	const output_num = up_value;
+			// 	return output_num;
+			// }
+
+			switch (site_color_scheme) {
+				case `light`:
+					return -up_value;
+
+				case `dark`:
+					return up_value;
+
+				default:
+					return 0;
+			}
+		})();
 
 		// Assign/Get/Calculate the border properties for the word count element border
 		const [wc_borderWidth, wc_borderStyle, wc_borderColor] = (function () {
@@ -196,10 +256,10 @@ Time since Start: ${performance.now() - start_time}ms`
 					const [final_red, final_green, final_blue] = LABtoRGB([final_CIE_L, final_CIE_a, final_CIE_b]);
 
 					if (Boolean(initial_alpha)) {
-						const out_phb_color = `rgba(${final_red}, ${final_green}, ${final_blue}, ${initial_alpha})`;
+						const out_phb_color = `rgb(${final_red} ${final_green} ${final_blue} / ${initial_alpha})`;
 						return out_phb_color;
 					} else {
-						const out_phb_color = `rgb(${final_red}, ${final_green}, ${final_blue})`;
+						const out_phb_color = `rgb(${final_red} ${final_green} ${final_blue})`;
 						return out_phb_color;
 					}
 				})();
@@ -231,11 +291,11 @@ Time since Start: ${performance.now() - start_time}ms`
 			// style: `padding-left: 0.5em; margin-left: 0.5em; border-left: ${wc_borderWidth} ${wc_borderStyle} ${wc_borderColor};`,
 			style: `padding-left: 7.5px; margin-left: 7.5px; border-left: ${wc_borderWidth} ${wc_borderStyle} ${wc_borderColor};`,
 			innerHTML: (function () {
-				const element_u = Object.assign(document.createElement(`li`), {
+				const element = Object.assign(document.createElement(`li`), {
 					className: `u-concealed`,
 					innerHTML: `Word Count: ${word_count} words`
 				});
-				return element_u.outerHTML;
+				return element.outerHTML;
 			})()
 		});
 
