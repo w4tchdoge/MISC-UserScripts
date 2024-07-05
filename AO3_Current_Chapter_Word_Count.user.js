@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3: Get Current Chapter Word Count
 // @namespace      https://github.com/w4tchdoge
-// @version        1.2.0-20240605_215452
+// @version        1.2.1-20240705_232304
 // @description    Counts and displays the number of words in the current chapter
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -13,6 +13,7 @@
 // @exclude        *://archiveofourown.org/*works/*/navigate
 // @icon           https://archiveofourown.org/favicon.ico
 // @license        AGPL-3.0-or-later
+// @history        1.2.1 — Prevent script from running on multi-chapter works which only have 1 chapter published.
 // @history        1.2.0 — Replace \w with [\p{Letter}\p{Mark}\p{Number}\p{Connector_Punctuation}] in the regular expession as that is the proper JavaScript equivalent to Ruby's [[:word:]]. Add support for most Unicode scripts supported in regular expressions. Use Array.from() instead of the spread syntax to convert the RegExpStringIterator into a countable array. Add *://archiveofourown.org/*chapters/* as a @match rule so that the script can work on URLs such as https://archiveofourown.org/chapters/141182779. Add *://archiveofourown.org/*works/*/navigate as an @exclude rule so the script does not run on the index page.
 // @history        1.1.3 — Get rid of the element containing the words "Chapter Text" using removeChild() so I don't have to use RegEx to get rid of it. Also some miscellaneous cleanup
 // @history        1.1.2 — Switch to using Intl.NumberFormat for making the word count thousands separated
@@ -23,8 +24,11 @@
 (function () {
 	`use strict`;
 
-	// Execute script only on multi-chapter works and only when a single chapter is being viewed
-	if (window.location.pathname.toLowerCase().includes(`chapters`)) {
+	// Get the current chapter count as a integer number
+	const curr_chp_cnt = parseInt(document.querySelector(`dd.stats dd.chapters`).textContent.split(`/`).at(0));
+
+	// Execute script only on multi-chapter works which have more than one chapter published and only when a single chapter is being viewed
+	if (window.location.pathname.toLowerCase().includes(`chapters`) && curr_chp_cnt > 1) {
 
 		// Get the Chapter Text
 		const chapter_text = (function () {
@@ -65,10 +69,12 @@
 			// Count the number of words
 			// Counting method from: https://stackoverflow.com/a/76673564/11750206, https://stackoverflow.com/a/69486719/11750206, and https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/matchAll
 			// Regex substitutions from: https://github.com/otwcode/otwarchive/blob/943f585818005be8df269d84ca454af478150e75/lib/word_counter.rb#L30C33-L30C68
-			const word_count_int = Array.from(chapter_text.replaceAll(/--/g, `—`).replaceAll(/['’‘-]/g, ``).matchAll(word_count_regex), (m) => m[0]).length;
+			const word_count_arr = Array.from(chapter_text.replaceAll(/--/g, `—`).replaceAll(/['’‘-]/g, ``).matchAll(word_count_regex), (m) => m[0]);
+			const word_count_int = word_count_arr.length;
 
 			// Format the integer number to a thousands separated string (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat)
 			const word_count_str = new Intl.NumberFormat({ style: `decimal` }).format(word_count_int);
+
 			return word_count_str;
 		})();
 
