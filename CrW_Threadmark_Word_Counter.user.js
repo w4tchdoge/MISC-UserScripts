@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           SB/SV/QQ: Threadmark Word Counter
 // @namespace      https://github.com/w4tchdoge
-// @version        1.1.0-20240614_034608
+// @version        1.1.1-20240618_161840
 // @description    Display the word count of threadmarked forum posts in the header area of the post
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -12,6 +12,7 @@
 // @match          *://forum.questionablequesting.com/threads/*
 // @run-at         document-idle
 // @license        AGPL-3.0-or-later
+// @history        1.1.1 — Log the sum of the word count of all threadmarks currently being displayed to the browser console
 // @history        1.1.0 — Reworked `CSSRGBintoComponents()` to better handle cases where the color is in the format `color(srgb ...)`. Changed how lightness_increase works so that it's a negative value when `color-scheme` is `light` and zero when `color-scheme` is neither `light` nor `dark`. Reworked `phb_color` so that the string it outputs uses the newer space separated `rgb()` parameters (https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/rgb#syntax)
 // @history        1.0.0 — Initial commit
 // ==/UserScript==
@@ -192,6 +193,8 @@ Starting Word Counting of Threadmarks
 Time since Start: ${performance.now() - start_time}ms`
 	);
 
+	let word_count_sum = 0;
+
 	// Iterate on the array of threadmarked posts
 	threadmarked_posts.forEach(function (element, index, array) {
 		// Get the timestamp element which the Word count element will be put after
@@ -271,7 +274,11 @@ Time since Start: ${performance.now() - start_time}ms`
 		const threadmark_text = element.querySelector(`.message-inner .message-cell--main .message-content article.message-body .bbWrapper`).cloneNode(true).textContent;
 
 		// Calculate word count using WordCounter() and format it to a thousand-separated string
-		const word_count = new Intl.NumberFormat({ style: `decimal` }).format(WordCounter(threadmark_text));
+		const word_count_int = parseInt(WordCounter(threadmark_text));
+		const word_count_str = new Intl.NumberFormat({ style: `decimal` }).format(word_count_int);
+
+		// Add to sum
+		word_count_sum += word_count_int;
 
 		// Threadmark info logging + Time logging
 		console.log(
@@ -279,7 +286,7 @@ Time since Start: ${performance.now() - start_time}ms`
 Threadmark ${index + 1}
 Threadmark Category: ${threadmark_category}
 Threadmark Title: ${threadmark_title}
-Word Count: ${word_count} words
+Word Count: ${word_count_str} words
 ———————————————–————————————————
 Time since Start: ${performance.now() - start_time}ms`
 		);
@@ -293,7 +300,7 @@ Time since Start: ${performance.now() - start_time}ms`
 			innerHTML: (function () {
 				const element = Object.assign(document.createElement(`li`), {
 					className: `u-concealed`,
-					innerHTML: `Word Count: ${word_count} words`
+					innerHTML: `Word Count: ${word_count_str} words`
 				});
 				return element.outerHTML;
 			})()
@@ -309,6 +316,19 @@ Time since Start: ${performance.now() - start_time}ms`
 			tmrkd_post_timestamp.after(word_count_element);
 		}
 	});
+
+	const word_count_sum_elm = (() => {
+		const out_elm = Object.assign(document.createElement(`div`), {
+			id: `CrW_Thrdmrk_Wrd_Cnt_Sum_hidden`,
+		});
+		out_elm.setAttribute(`data_word_count_sum`, word_count_sum);
+
+		return out_elm;
+	})();
+	document.querySelector(`body`).appendChild(word_count_sum_elm);
+
+	console.log(`
+Sum of the word counts of the threadmarks on the current page:`, word_count_sum);
 
 	// More time logging wheeeeeeeeeeeeeeeeeeee
 	console.log(`
