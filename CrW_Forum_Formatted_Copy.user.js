@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           CrW Forum (SB/SV/QQ) Formatted Copy
 // @namespace      https://github.com/w4tchdoge
-// @version        2.3.0-20240618_193554
+// @version        2.3.1-20240806_114900
 // @description    Copy the curretly open CrW Forum work in the folloring MarkDown format '- [work name](work url) – [author name](author url) — '
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -16,6 +16,7 @@
 // @grant          GM.registerMenuCommand
 // @require        https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @license        AGPL-3.0-or-later
+// @history        2.3.1 — Fix the already read chapters input in re-read function not being padded correctly
 // @history        2.3.0 — Add re-read functionality
 // @history        2.2.1 — Make sure page num is not captured when getting the normalised thread url. Move regexs and variables into the functions they are used in. Get auth name and url from the thread header area which is on every page of the thread as opposed to the first message of the thread
 // @history        2.2.0 — Remove QQ specific sections as QQ has now migrated to XenForo2
@@ -442,7 +443,7 @@ ${performance.now() - s_t} ms
 			const [f_o_dt_str, f_o_chps_rd_str] = (() => {
 				// Define vars to be used in the switch statement
 				let date_str, chprd_str;
-				const [alr_read_sta, alr_read_end] = alr_read_start_end.map((elm, index, array) => elm.toString().padStart(GetPadAmt(array), `0`));
+				const [alr_read_sta, alr_read_end] = alr_read_start_end.map((elm) => elm.toString().padStart(GetPadAmt(rr_start_end), `0`));
 
 				// Get first elm in the already read input arr for checking
 				const alread_first_elm = alr_read_start_end.at(0);
