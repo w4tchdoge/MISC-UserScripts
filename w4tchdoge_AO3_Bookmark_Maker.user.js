@@ -1,26 +1,37 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.7.2-20240530_013616
+// @version        2.9.0-20240815_201452
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/w4tchdoge_AO3_Bookmark_Maker.user.js
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/w4tchdoge_AO3_Bookmark_Maker.user.js
+// @match          *://archiveofourown.org/*chapters/*
 // @match          *://archiveofourown.org/*works/*
 // @exclude        *://archiveofourown.org/*works/*/bookmarks
+// @exclude        *://archiveofourown.org/*works/*/navigate
 // @match          *://archiveofourown.org/series/*
 // @match          *://archiveofourown.org/users/*
 // @icon           https://archiveofourown.org/favicon.ico
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
+// @run-at         document-end
 // @license        GNU GPLv3
+// @history        2.9.0 — Add functionality to switch between the original AutoTag implementation (https://greasyfork.org/en/scripts/467885/discussions/198028) and the implementation that uses the canonical AO3 `Wordcount: Over *` tags (https://greasyfork.org/en/scripts/467885/discussions/255399)
+// @history        2.8.5 — Rename `series_works_summaries` to `series_works_titles_summaries` to indicate that it's functionality has been changed such that for series with more than 10 works it outputs just the title instead of the title and the summary, as the summaries for more than 10 works are unlikely to fit inside a bookmark
+// @history        2.8.4 — Fix missing authors on Anonymous works
+// @history        2.8.3 — Fix script erroring at series_works_summaries when series contains a work whose title is not a hyperlink (e.g. Mystery Works)
+// @history        2.8.2 — Replace the old AutoTag functionality with a new one (https://greasyfork.org/en/scripts/467885/discussions/255399) with plans to add settings to switch between the two in 2.9.0
+// @history        2.8.1 — Add @exclude rule so that userscript doesn't run on /navigate pages
+// @history        2.8.0 — Refactor/rewrite the portions of the script related to exctracting all the information needed for the bookmark from the current page. Ensure the Summary Page button is added when reading a chapter from a page that does not include "works" in the URL (e.g. https://archiveofourown.org/chapters/141155299)
+// @history        2.7.3 — Make bottom and top summary page appear when reading a chapter from a URL such as https://archiveofourown.org/chapters/142383091
 // @history        2.7.2 — Update all the other presets to reflect changes made to the default preset
 // @history        2.7.1 — Clarify how the 'relationships' variable in workInfo now functions, especially with regards to it's new functionality in series bookmarks
 // @history        2.7.0 — Add all unique relationship tags in all the works on a series page to the series bookmark
 // @history        2.6.3 — Fix some minor messups I made in 2.6.2 before they break something or the other
 // @history        2.6.2 — Fix author_HTML only retrieving the first author in multi-author works/series
 // @history        2.6.1 — Fixes incompatibilty with users's skins caused by not using cloneNode(true) when retrieving relationship tags and subsequently removing all classes from them. credit to @notdoingthateither on Greasy Fork for the fix
-// @history        2.6.0 — Add a new default variable author_HTML that can be used in the workInfo customisation function. for more details about author_HTML please refer to line 1228
+// @history        2.6.0 — Add a new default variable author_HTML that can be used in the workInfo customisation function. for more details about author_HTML please refer to line 1496
 // @history        2.5.0 — Add toggle in the dropdown present on the user's preferences page for showing/not showing the AutoTag button when making/editing a bookmark
 // @history        2.4.5 — Add exlude rule for pages listing bookmarks as the script isn't designed to run on those pages
 // @history        2.4.4 — Add a fallback for retrieving the "Entire Work" button in case it's been modified but is still somewhat recognisable in the DOM
@@ -62,6 +73,10 @@
 
 (function () {
 
+	const s_t = performance.now();
+
+	console.log(`Starting w4BM userscript execution: ${performance.now() - s_t}ms`);
+
 	/* Dictionary of "constants" that can be changed by the end user to affect how the script functions */
 	let ini_settings_dict = {
 		divider: `</details>\n\n`,
@@ -71,6 +86,7 @@
 		topSummaryPage: false,
 		simpleWorkSummary: false,
 		FWS_asBlockquote: true,
+		AutoTag_type: 0,
 		splitSelect: 1,
 	};
 
@@ -97,8 +113,13 @@ simpleWorkSummary     : If true, uses the original method to retrieve the work s
 If false, retrieves the work summary in a way (which I call the fancy way) that allows more flexibility when customising newBookmarkNotes
 
 
-FWS_asBlockquote : If using the fancy work summary method, set whether you want to retrieve the summary as a blockquote.
-For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 1171
+FWS_asBlockquote      : If using the fancy work summary method, set whether you want to retrieve the summary as a blockquote.
+For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 1308
+
+
+AutoTag_type          : Determines how the AutoTag function works.
+0 indicates it is using the original behaviour of the AutoTag function suggested by `oliver t` in https://greasyfork.org/en/scripts/467885/discussions/198028 that was present when AutoTag was first added to the userscript
+1 indicates it is using the behaviour suggested by `prismbox` in https://greasyfork.org/en/scripts/467885/discussions/255399 where canonical AO3 Wordcount tags are used for the word count tagging
 
 
 splitSelect           : splitSelect changes which half of bookmarkNotes your initial bookmark is supposed to live in.
@@ -151,7 +172,7 @@ Another way to explain it is that the script works by taking the current content
 	};
 
 	// Declare user-configurable variables
-	var
+	let
 		divider,
 		autoPrivate,
 		showAutoTagButton,
@@ -159,9 +180,9 @@ Another way to explain it is that the script works by taking the current content
 		topSummaryPage,
 		simpleWorkSummary,
 		FWS_asBlockquote,
+		AutoTag_type,
 		splitSelect,
-		workInfo,
-		new_notes;
+		workInfo;
 
 	// localStorage stuff
 	if (typeof Storage != `undefined`) { // If localStorage exists
@@ -209,7 +230,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 174
+		// doing the same thing as the first if else on line 197
 		switch (Boolean(localStorage.getItem(`w4BM_autoPrivate`))) {
 			case false:
 				console.log(`
@@ -240,7 +261,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 174
+		// doing the same thing as the first if else on line 197
 		switch (Boolean(localStorage.getItem(`w4BM_showAutoTagButton`))) {
 			case false:
 				console.log(`
@@ -271,7 +292,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 174
+		// doing the same thing as the first if else on line 197
 		switch (Boolean(localStorage.getItem(`w4BM_bottomSummaryPage`))) {
 			case false:
 				console.log(`
@@ -302,7 +323,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 174
+		// doing the same thing as the first if else on line 197
 		switch (Boolean(localStorage.getItem(`w4BM_topSummaryPage`))) {
 			case false:
 				console.log(`
@@ -333,7 +354,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 174
+		// doing the same thing as the first if else on line 197
 		switch (Boolean(localStorage.getItem(`w4BM_simpleWorkSummary`))) {
 			case false:
 				console.log(`
@@ -364,7 +385,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 174
+		// doing the same thing as the first if else on line 197
 		switch (Boolean(localStorage.getItem(`w4BM_FWS_asBlockquote`))) {
 			case false:
 				console.log(`
@@ -395,7 +416,38 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 174
+		// doing the same thing as the first if else on line 197
+		switch (Boolean(localStorage.getItem(`w4BM_AutoTag_type`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_AutoTag_type' is not set in the localStorage
+Now setting it to '${ini_settings_dict.AutoTag_type}'`
+				);
+
+				AutoTag_type = ini_settings_dict.AutoTag_type;
+				localStorage.setItem(`w4BM_AutoTag_type`, ini_settings_dict.AutoTag_type);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_AutoTag_type' IS SET in the localStorage`
+				);
+
+				AutoTag_type = parseInt(localStorage.getItem(`w4BM_AutoTag_type`));
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_AutoTag_type`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 197
 		switch (Boolean(localStorage.getItem(`w4BM_splitSelect`))) {
 			case false:
 				console.log(`
@@ -436,13 +488,14 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 		topSummaryPage = ini_settings_dict.topSummaryPage;
 		simpleWorkSummary = ini_settings_dict.simpleWorkSummary;
 		FWS_asBlockquote = ini_settings_dict.FWS_asBlockquote;
+		AutoTag_type = ini_settings_dict.AutoTag_type;
 		splitSelect = ini_settings_dict.splitSelect;
 
 	}
 
 
 	// Log the current value of the vars in localStorage
-	var log_string = `
+	let log_string = `
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 Logging the current state of vars used by the script
@@ -450,7 +503,7 @@ Logging the current state of vars used by the script
 localStorage vars:`;
 
 	Object.keys(ini_settings_dict).forEach((key) => {
-		var spacing = 19 - key.toString().length;
+		let spacing = 19 - key.toString().length;
 		if (key == `divider`) {
 			log_string += `\n${key.toString()}${" ".repeat(spacing)}: ${localStorage.getItem(`w4BM_${key}`).replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}`;
 		} else {
@@ -468,6 +521,7 @@ bottomSummaryPage : ${bottomSummaryPage}
 topSummaryPage    : ${topSummaryPage}
 simpleWorkSummary : ${simpleWorkSummary}
 FWS_asBlockquote  : ${FWS_asBlockquote}
+AutoTag_type      : ${AutoTag_type}
 splitSelect       : ${splitSelect}`;
 
 	console.log(log_string);
@@ -478,9 +532,10 @@ splitSelect       : ${splitSelect}`;
 
 
 	// Get current page URL
-	const currPgURL = window.location.href;
+	// const currPgURL = window.location.href;
+	const currPgURL = new URL(window.location);
 
-	if (currPgURL.includes(`users`) && currPgURL.includes(`preferences`)) {
+	if (currPgURL.pathname.includes(`users`) && currPgURL.pathname.includes(`preferences`)) {
 		addPrefDropdown();
 	}
 
@@ -509,7 +564,7 @@ splitSelect       : ${splitSelect}`;
 		const header_menu = document.querySelector(`ul.primary.navigation.actions`);
 
 		// create and insert the menu button
-		var w4BM_settingMenu = Object.assign(document.createElement(`li`), {
+		const w4BM_settingMenu = Object.assign(document.createElement(`li`), {
 			className: `dropdown`,
 			id: `w4BM_settings_dropdown`,
 			innerHTML: `<a>Bookmark Maker Settings</a>`
@@ -521,14 +576,14 @@ splitSelect       : ${splitSelect}`;
 		}
 
 		// create and append dropdown menu
-		var w4BM_dropMenu = Object.assign(document.createElement(`ul`), {
+		const w4BM_dropMenu = Object.assign(document.createElement(`ul`), {
 			className: `menu dropdown-menu`,
 			style: `width: auto;`
 		});
 		w4BM_settingMenu.append(w4BM_dropMenu);
 
 		// create a more info li element to dropdown
-		var w4BM_moreInfo_liElm = Object.assign(document.createElement(`li`), {
+		const w4BM_moreInfo_liElm = Object.assign(document.createElement(`li`), {
 			style: `padding: 0.5em; text-align: left;`,
 			innerHTML: `<div><em><p>This menu is for changing values of constants.</p><br /><p>Preset selection is still done via editing the userscript.</p><br /><p>For more info on setup check script code.</p><br /><p>If you have any questions, don't hesitate to PM me on Greasy Fork</p></em></div>`
 		});
@@ -537,7 +592,7 @@ splitSelect       : ${splitSelect}`;
 		w4BM_dropMenu.append(w4BM_moreInfo_liElm);
 
 		// create the "— Settings —" li element to dropdown
-		var w4BM_settings_liElm = Object.assign(document.createElement(`li`), {
+		const w4BM_settings_liElm = Object.assign(document.createElement(`li`), {
 			innerHTML: `<a style="padding: 0.5em 0.5em 0.25em; text-align: center; font-weight: bold;">&mdash; Settings &mdash;</a>`
 		});
 
@@ -545,7 +600,7 @@ splitSelect       : ${splitSelect}`;
 		w4BM_dropMenu.append(w4BM_settings_liElm);
 
 		// create the general area where the divider input will go
-		var w4BM_divider_input_area = Object.assign(document.createElement(`li`), {
+		const w4BM_divider_input_area = Object.assign(document.createElement(`li`), {
 			className: `w4BM_divider_input_area`,
 			id: `w4BM_divider_input_area`,
 			style: `padding-top: .75em;`,
@@ -553,17 +608,24 @@ splitSelect       : ${splitSelect}`;
 		});
 
 		// create the text input box for the divider value
-		var w4BM_divider_input_box = Object.assign(document.createElement(`input`), {
-			type: `text`,
-			id: `w4BM_divider_input_box`,
-			name: `w4BM_divider_input_box`,
-			style: `width: 16em; margin-left: 0.2em;`
-		});
-		w4BM_divider_input_box.setAttribute(`value`, localStorage.getItem(`w4BM_divider`).replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`) || `divider\\n\\n`);
+		const w4BM_divider_input_box = (function () {
+			let div_in_box = Object.assign(document.createElement(`input`), {
+				type: `text`,
+				id: `w4BM_divider_input_box`,
+				name: `w4BM_divider_input_box`,
+				style: `width: 16em; margin-left: 0.2em;`
+			});
+
+			div_in_box.setAttribute(`value`, localStorage.getItem(`w4BM_divider`).replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`) || `divider\\n\\n`);
+
+			return div_in_box;
+		})();
+
+		// Add the text input box inside the input area
 		w4BM_divider_input_area.append(w4BM_divider_input_box);
 
 		// create divider input submit button
-		var w4BM_divider_input_btn = Object.assign(document.createElement(`button`), {
+		const w4BM_divider_input_btn = Object.assign(document.createElement(`button`), {
 			id: `w4BM_divider_input_btn`,
 			style: `margin-left: 0.3em;`,
 			innerHTML: `Enter`
@@ -574,7 +636,7 @@ splitSelect       : ${splitSelect}`;
 
 		// make the divider input submit button actually do what it's supposed to
 		w4BM_divider_input_btn.addEventListener(`click`, function () {
-			var input_value = unescapeSlashes(document.querySelector(`#w4BM_divider_input_box`).value);
+			const input_value = unescapeSlashes(document.querySelector(`#w4BM_divider_input_box`).value);
 			localStorage.setItem(`w4BM_divider`, input_value);
 			console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
@@ -592,7 +654,7 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 		w4BM_settings_liElm.after(w4BM_divider_input_area);
 
 		// create button - auto private bookmarks - yes
-		var w4BM_autoPrivate_yes = Object.assign(document.createElement(`li`), {
+		const w4BM_autoPrivate_yes = Object.assign(document.createElement(`li`), {
 			className: `w4BM_autoPrivate_yes`,
 			id: `w4BM_autoPrivate_yes`,
 			innerHTML: `<a>Auto Private Bookmarks: YES</a>`
@@ -603,7 +665,7 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 		});
 
 		// create button - auto private bookmarks - no
-		var w4BM_autoPrivate_no = Object.assign(document.createElement(`li`), {
+		const w4BM_autoPrivate_no = Object.assign(document.createElement(`li`), {
 			className: `w4BM_autoPrivate_no`,
 			id: `w4BM_autoPrivate_no`,
 			innerHTML: `<a>Auto Private Bookmarks: NO</a>`
@@ -614,7 +676,7 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 		});
 
 		// create button - show AutoTag button - yes
-		var w4BM_showAutoTagButton_yes = Object.assign(document.createElement(`li`), {
+		const w4BM_showAutoTagButton_yes = Object.assign(document.createElement(`li`), {
 			className: `w4BM_showAutoTagButton_yes`,
 			id: `w4BM_showAutoTagButton_yes`,
 			innerHTML: `<a>Show AutoTag Button: YES</a>`
@@ -625,7 +687,7 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 		});
 
 		// create button - show AutoTag button - no
-		var w4BM_showAutoTagButton_no = Object.assign(document.createElement(`li`), {
+		const w4BM_showAutoTagButton_no = Object.assign(document.createElement(`li`), {
 			className: `w4BM_showAutoTagButton_no`,
 			id: `w4BM_showAutoTagButton_no`,
 			innerHTML: `<a>Show AutoTag Button: NO</a>`
@@ -635,8 +697,30 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 			w4BM_showAutoTagButton_no.replaceWith(w4BM_showAutoTagButton_yes);
 		});
 
+		// create button - AutoTag type 0
+		const w4BM_AutoTagType_0 = Object.assign(document.createElement(`li`), {
+			className: `w4BM_AutoTagType_0`,
+			id: `w4BM_AutoTagType_0`,
+			innerHTML: `<a>AutoTag Type: Original</a>`
+		});
+		w4BM_AutoTagType_0.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_AutoTag_type`, 1);
+			w4BM_AutoTagType_0.replaceWith(w4BM_AutoTagType_1);
+		});
+
+		// create button - AutoTag type 1
+		const w4BM_AutoTagType_1 = Object.assign(document.createElement(`li`), {
+			className: `w4BM_AutoTagType_1`,
+			id: `w4BM_AutoTagType_1`,
+			innerHTML: `<a>AutoTag Type: Canon AO3 Wordcount tags</a>`
+		});
+		w4BM_AutoTagType_1.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_AutoTag_type`, 0);
+			w4BM_AutoTagType_1.replaceWith(w4BM_AutoTagType_0);
+		});
+
 		// create button - add "Summary Page" button to bottom navbar
-		var w4BM_bottomSummaryPage_yes = Object.assign(document.createElement(`li`), {
+		const w4BM_bottomSummaryPage_yes = Object.assign(document.createElement(`li`), {
 			className: `w4BM_bottomSummaryPage_yes`,
 			id: `w4BM_bottomSummaryPage_yes`,
 			innerHTML: `<a>"Summary Page" button in bottom navbar: YES</a>`
@@ -647,7 +731,7 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 		});
 
 		// create button - do not add "Summary Page" button to bottom navbar
-		var w4BM_bottomSummaryPage_no = Object.assign(document.createElement(`li`), {
+		const w4BM_bottomSummaryPage_no = Object.assign(document.createElement(`li`), {
 			className: `w4BM_bottomSummaryPage_no`,
 			id: `w4BM_bottomSummaryPage_no`,
 			innerHTML: `<a>"Summary Page" button in bottom navbar: NO</a>`
@@ -658,7 +742,7 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 		});
 
 		// create button - add "Summary Page" button to top navbar
-		var w4BM_topSummaryPage_yes = Object.assign(document.createElement(`li`), {
+		const w4BM_topSummaryPage_yes = Object.assign(document.createElement(`li`), {
 			className: `w4BM_topSummaryPage_yes`,
 			id: `w4BM_topSummaryPage_yes`,
 			innerHTML: `<a>"Summary Page" button in top navbar: YES</a>`
@@ -669,7 +753,7 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 		});
 
 		// create button - do not add "Summary Page" button to top navbar
-		var w4BM_topSummaryPage_no = Object.assign(document.createElement(`li`), {
+		const w4BM_topSummaryPage_no = Object.assign(document.createElement(`li`), {
 			className: `w4BM_topSummaryPage_no`,
 			id: `w4BM_topSummaryPage_no`,
 			innerHTML: `<a>"Summary Page" button in top navbar: NO</a>`
@@ -680,7 +764,7 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 		});
 
 		// create button - use simple summary
-		var w4BM_simpleWorkSummary_yes = Object.assign(document.createElement(`li`), {
+		const w4BM_simpleWorkSummary_yes = Object.assign(document.createElement(`li`), {
 			className: `w4BM_simpleWorkSummary_yes`,
 			id: `w4BM_simpleWorkSummary_yes`,
 			innerHTML: `<a>Use a simpler work summary: YES</a>`
@@ -691,7 +775,7 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 		});
 
 		// create button - don't use simple summary
-		var w4BM_simpleWorkSummary_no = Object.assign(document.createElement(`li`), {
+		const w4BM_simpleWorkSummary_no = Object.assign(document.createElement(`li`), {
 			className: `w4BM_simpleWorkSummary_no`,
 			id: `w4BM_simpleWorkSummary_no`,
 			innerHTML: `<a>Use a simpler work summary: NO</a>`
@@ -702,7 +786,7 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 		});
 
 		// create button - use blockquotes when using fancy work summary
-		var w4BM_FWS_asBlockquote_yes = Object.assign(document.createElement(`li`), {
+		const w4BM_FWS_asBlockquote_yes = Object.assign(document.createElement(`li`), {
 			className: `w4BM_FWS_asBlockquote_yes`,
 			id: `w4BM_FWS_asBlockquote_yes`,
 			innerHTML: `<a>Use blockquote w/ fancy work summary: YES</a>`
@@ -713,7 +797,7 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 		});
 
 		// create button - dont use blockquotes when using fancy work summary
-		var w4BM_FWS_asBlockquote_no = Object.assign(document.createElement(`li`), {
+		const w4BM_FWS_asBlockquote_no = Object.assign(document.createElement(`li`), {
 			className: `w4BM_FWS_asBlockquote_no`,
 			id: `w4BM_FWS_asBlockquote_no`,
 			innerHTML: `<a>Use blockquote w/ fancy work summary: NO</a>`
@@ -724,7 +808,7 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 		});
 
 		// create button - set splitSelect to 1
-		var w4BM_splitSelect_1 = Object.assign(document.createElement(`li`), {
+		const w4BM_splitSelect_1 = Object.assign(document.createElement(`li`), {
 			className: `w4BM_splitSelect_1`,
 			id: `w4BM_splitSelect_1`,
 			innerHTML: `<a>splitSelect: 1</a>`
@@ -735,7 +819,7 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 		});
 
 		// create button - set splitSelect to 0
-		var w4BM_splitSelect_0 = Object.assign(document.createElement(`li`), {
+		const w4BM_splitSelect_0 = Object.assign(document.createElement(`li`), {
 			className: `w4BM_splitSelect_0`,
 			id: `w4BM_splitSelect_0`,
 			innerHTML: `<a>splitSelect: 0</a>`
@@ -762,6 +846,13 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 			}
 			else {
 				w4BM_dropMenu.append(w4BM_showAutoTagButton_no);
+			}
+
+			// choosing AutoTag type button
+			if (AutoTag_type === 0 || AutoTag_type == 0 || AutoTag_type == `0`) {
+				w4BM_dropMenu.append(w4BM_AutoTagType_0);
+			} else {
+				w4BM_dropMenu.append(w4BM_AutoTagType_1);
 			}
 
 			// adding "Summary Page" to bottom navbar
@@ -809,63 +900,78 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 
 	// ------------------------------------------------------
 
-	var BSP_conditional = (currPgURL.includes(`works`) && main.querySelector(`li.chapter.previous`) != null && bottomSummaryPage),
-		TSP_conditional = (currPgURL.includes(`works`) && main.querySelector(`li.chapter.previous`) != null && topSummaryPage);
+	const
+		BSP_conditional = (currPgURL.pathname.includes(`chapters`) && main.querySelector(`li.chapter.previous`) != null && bottomSummaryPage),
+		TSP_conditional = (currPgURL.pathname.includes(`chapters`) && main.querySelector(`li.chapter.previous`) != null && topSummaryPage);
+
 	console.log(`
 All conditions met for "Summary Page" button in the bottom nav bar?: ${BSP_conditional}
 All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditional}`
 	);
 
-	// Creating the "Summary Page" buttons
-	// Make the href for the "Summary Page" button
-	var sum_pg_href = main.querySelector(`li.chapter.entire a`)?.getAttribute(`href`).replace(/(.*?works\/\d+)\?.*/, `$1`);
+	function CreateSummaryPageButton() {
+		// Creating the "Summary Page" buttons
+		// Make the href for the "Summary Page" button
+		const sum_pg_href = (new URL(main.querySelector(`li.chapter.entire a`)?.href)).pathname;
 
-	// Create the bottom "Summary Page" button
-	var btm_sum_pg = Object.assign(document.createElement(`li`), {
-		className: `bottomSummaryPage`,
-		id: `bottomSummaryPage`,
-		style: `padding-left: 0.5663em;`,
-		innerHTML: `<a href="${sum_pg_href}">Summary Page</a>`
-	});
+		// Create the bottom "Summary Page" button
+		const btm_sum_pg = Object.assign(document.createElement(`li`), {
+			className: `bottomSummaryPage`,
+			id: `bottomSummaryPage`,
+			style: `padding-left: 0.5663em;`,
+			innerHTML: `<a href="${sum_pg_href}">Summary Page</a>`
+		});
 
-	// Create the top "Summary Page" button
-	var top_sum_pg = Object.assign(document.createElement(`li`), {
-		className: `topSummaryPage`,
-		id: `topSummaryPage`,
-		style: `padding-left: 0.31696592em;`,
-		innerHTML: `<a href="${sum_pg_href}">SP</a>`
-	});
+		// Create the top "Summary Page" button
+		const top_sum_pg = Object.assign(document.createElement(`li`), {
+			className: `topSummaryPage`,
+			id: `topSummaryPage`,
+			style: `padding-left: 0.31696592em;`,
+			innerHTML: `<a href="${sum_pg_href}">SP</a>`
+		});
 
-	// Get the "↑ Top" button that's in the bottom nav bar
-	let toTop_xp = `.//*[@id="feedback"]//*[@role="navigation"]//li[*[text()[contains(.,"Top")]]]`;
-	let toTop_btn = document.evaluate(toTop_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+		// Get the "↑ Top" button that's in the bottom nav bar
+		const toTop_xp = `.//*[@id="feedback"]//*[@role="navigation"]//li[*[text()[contains(.,"Top")]]]`;
+		const toTop_btn = document.evaluate(toTop_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
 
-	// Get the Entire Work button in the top nav bar
-	// Define the var which the Entire Work button will be stored in
-	var entiWork_topnavBTN;
+		// Get the Entire Work button in the top nav bar
+		// Define the var which the Entire Work button will be stored in
+		const entiWork_topnavBTN = (function () {
+			// At least one script modifies the top navigation bar to the extent that the original XPath doesn't work, so this is me adding a fallback
+			// Original XPath
+			const entiWork_topnavBTN_xPath = `.//*[contains(concat(" ",normalize-space(@class)," ")," work ")][contains(concat(" ",normalize-space(@class)," ")," navigation ")][contains(concat(" ",normalize-space(@class)," ")," actions ")]//*[contains(concat(" ",normalize-space(@class)," ")," chapter ")][contains(concat(" ",normalize-space(@class)," ")," entire ")][count(.//a[contains(@href,"view_full_work=true")]) > 0]`;
+			let entiWork_topnavBTN = document.evaluate(entiWork_topnavBTN_xPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+			if (Boolean(entiWork_topnavBTN) == false) {
+				// Fallback XPath
+				const entiWork_topnavBTN_xPath = `.//li[contains(concat(" ",normalize-space(@class)," ")," entire ")][count(.//a[contains(@href,"view_full_work=true")]) > 0]`;
+				entiWork_topnavBTN = document.evaluate(entiWork_topnavBTN_xPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+				return entiWork_topnavBTN;
+			} else {
+				return entiWork_topnavBTN;
+			}
+		})();
 
-	// At least one script modifies the top navigation bar to the extent that the original XPath doesn't work, so this is me adding a fallback
-	// Original XPath
-	var entiWork_topnavBTN_xPath = `.//*[contains(concat(" ",normalize-space(@class)," ")," work ")][contains(concat(" ",normalize-space(@class)," ")," navigation ")][contains(concat(" ",normalize-space(@class)," ")," actions ")]//*[contains(concat(" ",normalize-space(@class)," ")," chapter ")][contains(concat(" ",normalize-space(@class)," ")," entire ")][count(.//a[contains(@href,"view_full_work=true")]) > 0]`;
-	entiWork_topnavBTN = document.evaluate(entiWork_topnavBTN_xPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-	if (Boolean(entiWork_topnavBTN) == false) {
-		// Fallback XPath
-		var entiWork_topnavBTN_xPath = `.//li[contains(concat(" ",normalize-space(@class)," ")," entire ")][count(.//a[contains(@href,"view_full_work=true")]) > 0]`;
-		entiWork_topnavBTN = document.evaluate(entiWork_topnavBTN_xPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+		// Debug code
+		// console.log(btm_sum_pg);
+		// console.log(top_sum_pg);
+		// console.log(toTop_btn);
+		// console.log(entiWork_topnavBTN);
+
+		return [toTop_btn, entiWork_topnavBTN, top_sum_pg, btm_sum_pg];
 	}
-
-	// Debug code
-	// console.log(btm_sum_pg);
-	// console.log(top_sum_pg);
-	// console.log(toTop_btn);
-	// console.log(entiWork_topnavBTN);
 
 	if (BSP_conditional) {
 		// If true, add a "Summary Page" button after the "↑ Top" button in the bottom navbar to take you to a page where the summary exists and can be used by the userscript
+		const [toTop_btn, , , btm_sum_pg] = CreateSummaryPageButton();
+
+		// console.log(`\ntoTop_btn:\n${toTop_btn.outerHTML}\n\nbtm_sum_pg:\n${btm_sum_pg.outerHTML}`);
 		toTop_btn.after(btm_sum_pg);
 	}
 	if (TSP_conditional) {
 		// If true, adds summary page btn to top navbar
+		const [, entiWork_topnavBTN, top_sum_pg,] = CreateSummaryPageButton();
+
+		// console.log(`\nentiWork_topnavBTN:\n${entiWork_topnavBTN.outerHTML}\n\ntop_sum_pg:\n${top_sum_pg.outerHTML}`);
 		entiWork_topnavBTN.after(top_sum_pg);
 	}
 
@@ -876,79 +982,59 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 
 	// removed requirement for summary since some works dont have a summary
 	// old if: if ((currPgURL.includes(`works`) || currPgURL.includes(`series`)) && (!!document.getElementsByClassName(`summary`).length || document.evaluate(`.//*[@id="main"]//span[text()="Series"]`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue != undefined)) {
-	if ((currPgURL.includes(`works`) || currPgURL.includes(`series`))) {
+	if ((currPgURL.pathname.includes(`works`) || currPgURL.pathname.includes(`series`))) {
 
 		if (autoPrivate) { // for auto-privating your bookmarks
 			main.querySelector(`#bookmark_private`).checked = true;
 		}
 
 		// Define variables used in date configuration
-		var currdate = new Date(),
+		const
+			currdate = new Date(),
 			dd = String(currdate.getDate()).padStart(2, `0`),
 			mm = String(currdate.getMonth() + 1).padStart(2, `0`), //January is 0
 			yyyy = currdate.getFullYear(),
 			hh = String(currdate.getHours()).padStart(2, `0`),
 			mins = String(currdate.getMinutes()).padStart(2, `0`);
 
-		// Define variables used in bookmark configuration
-		var
-			curr_notes = main.querySelector(`#bookmark_notes`).textContent.split(divider).at(`-${splitSelect}`),
-			author,
-			author_HTML,
-			words,
-			AO3_status,
-			title,
-			relationships = ``,
-			summary = `<em><strong>NO SUMMARY</strong></em>`,
-			series_summary,
-			series_notes,
-			series_works_summaries = ``,
-			lastChapter,
-			latestChapterNumLength,
-			chapNumPadCount,
-			ws_id,
-			autotag_status,
-			word_count_tag;
+		// Get already existing bookmark notes
+		const curr_notes = main.querySelector(`#bookmark_notes`).textContent.split(divider).at(`-${splitSelect}`);
 
 		// Define function used in the Auto Tag feature
-		function statusCheck_for_AutoTag() {
+		function StatusForAutoTag() {
 			// Look for HTML DOM element only present on series pages
-			let seriesTrue = document.evaluate(`.//*[@id="main"]//span[text()="Series"]`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+			const seriesTrue = document.evaluate(`.//*[@id="main"]//span[text()="Series"]`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
 
 			// Check if current page is a series page
 			if (seriesTrue != undefined) {
-				let
-					statusCheck_XPath = '//dl[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[contains(text(), "Complete")]/following-sibling::*[1]',
+				const
+					statusCheck_XPath = `//dl[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[contains(text(), "Complete")]/following-sibling::*[1]`,
 					status_check = document.evaluate(statusCheck_XPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
 
 				switch (status_check) {
-					case 'Yes':
-						autotag_status = 'Complete';
-						break;
+					case `Yes`:
+						return `Complete`;
 
-					case 'No':
-						autotag_status = 'Work In Progress';
-						break;
+					case `No`:
+						return `Work In Progress`;
 
 					default:
 						break;
 				}
 			}
 			else {
-				let status_check = document.querySelector('.work.meta.group dl.stats dt.status');
+				const status_check = document.querySelector(`.work.meta.group dl.stats dt.status`);
 
 				if (Boolean(status_check) == false) { // For single chapter works which are always complete
-					autotag_status = 'Complete';
+					return `Complete`;
 				}
 				else { // For multi chapter works
 					switch (status_check.textContent) {
-						case 'Completed:':
-							autotag_status = 'Complete';
-							break;
+						case `Completed:`:
+							return `Complete`;
 
-						case 'Updated:':
-							autotag_status = 'Work in Progress';
-							break;
+						case `Updated:`:
+							return `Work in Progress`;
 
 						default:
 							break;
@@ -961,11 +1047,12 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		if (document.querySelector(`#bookmark-form`) && showAutoTagButton) {
 
 			// Get element in bookmark form to append button to
-			var yourTags_xp = `.//div[@id="main"]//div[@id="bookmark-form"]//dt/label[text() = 'Your tags']`,
+			const
+				yourTags_xp = `.//div[@id="main"]//div[@id="bookmark-form"]//dt/label[text() = 'Your tags']`,
 				yourTags_elem = document.evaluate(yourTags_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
 
 			// Create button element
-			var autoTag_btn_elem = Object.assign(document.createElement(`label`), {
+			const autoTag_btn_elem = Object.assign(document.createElement(`label`), {
 				id: `w4BM_autoTag_elem`,
 				className: `actions`,
 				style: `font-size: 0.85em`,
@@ -976,8 +1063,11 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			yourTags_elem.after(autoTag_btn_elem);
 
 			// Select the parent dt element to which the button will be a child of
-			var yourTags_parent_dt_xp = `.//div[@id="main"]//div[@id="bookmark-form"]//dt[./label[text() = 'Your tags']]`,
-				yourTags_parent_dt_elem = document.evaluate(yourTags_parent_dt_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;;
+			let yourTags_parent_dt_elem = (function () {
+				const yourTags_parent_dt_xp = `.//div[@id="main"]//div[@id="bookmark-form"]//dt[./label[text() = 'Your tags']]`;
+				const parent_elm = document.evaluate(yourTags_parent_dt_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;;
+				return parent_elm;
+			})();
 
 			// Change the display style of the parent dt of the yourTags_elems to contents
 			yourTags_parent_dt_elem.style.display = `contents`;
@@ -986,230 +1076,406 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			autoTag_btn_elem.addEventListener(`click`, AutoTag);
 		}
 
+
 		// Look for HTML DOM element only present on series pages
-		var seriesTrue = document.evaluate(`.//*[@id="main"]//span[text()="Series"]`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+		const seriesTrue = document.evaluate(`.//*[@id="main"]//span[text()="Series"]`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
 
-		// Check if current page is a series page
-		if (seriesTrue != undefined) {
-			// Retrieve series information
+		// Extract all details used in bookmark configuration and assign them to variables
 
-			// Define RegEx for extracing series ID from URL
-			const re_su = /(^https?:\/\/)(.*\.)?(archiveofourown\.org)(.*?)(\/series\/)(\d+)\/?.*$/i;
-
-			// Retrieve series title
-			title = main.querySelector(`:scope > h2.heading`).textContent.trim();
-			// Retrieve series word count
-			words = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
-			// Retrieve series author
-			let
-				series_author_xpath = `.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dt[text()[contains(.,"Creator")]]/following-sibling::*[1]/self::dd`,
-				series_author_element = document.evaluate(series_author_xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-			author = series_author_element.textContent.trim();
-			// check if series_author_element contains a link
-			// if it does, assign contents of the outerHTML of the <a> tag to author_HTML as a string
-			// if it doesnt, make author_HTML identical to author
-			if (Boolean(series_author_element.querySelectorAll(`a`))) {
-				let auth_str_arr = [];
-				Array.from(series_author_element.querySelectorAll(`a`)).forEach(function (el) {
-					let el_c = el.cloneNode(true);
-					auth_str_arr.push(el_c.outerHTML);
-				});
-				author_HTML = auth_str_arr.join(`, `);
-			} else {
-				author_HTML = author;
+		const title = (function () {
+			if (seriesTrue != undefined) {
+				// Retrieve series title
+				const srs_title = main.querySelector(`:scope > h2.heading`).textContent.trim();
+				return srs_title;
 			}
-			// Check if there is a series summary
-			switch (Boolean(main.querySelector(`.series.meta.group .userstuff`))) {
-				case true: // If series summary exists, retrieve summary
-					series_summary = main.querySelector(`.series.meta.group .userstuff`).innerHTML;
-					break;
-
-				case false: // Else fill in var with NO SUMMARY string
-					series_summary = `<em><strong>NO SUMMARY</strong></em>`;
-					break;
-
-				default: // If error, fill var asking for bug report
-					series_summary = `<em>Error in retrieving series summary, please report this bug at</em> https://greasyfork.org/en/scripts/467885`;
-					break;
+			else {
+				// Retrieve work title
+				const wrk_title = main.querySelector(`#workskin .title.heading`).textContent.trim();
+				return wrk_title;
 			}
-			// Check if there are series notes
-			let series_notes_dt_xp = `.//*[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dt[text()[contains(.,"Notes:")]]`;
-			switch (Boolean(document.evaluate(series_notes_dt_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue)) {
-				case true: // If series notes exists, retrieve notes
-					series_notes = document.evaluate(`${series_notes_dt_xp}/following-sibling::*[1]`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerHTML;
-					series_notes = `<details><summary>Series Notes:</summary>\n${series_notes}\n</details>`;
-					break;
+		})();
 
-				case false:
-					series_notes = ``;
-					break;
-
-				default:
-					break;
+		const [author, author_HTML] = (function () {
+			function AnonCheck(input) {
+				const array = Array.from(input.querySelectorAll(`a`));
+				return (!Array.isArray(array) || !array.length);
 			}
 
-			// Join series summary and series notes
-			summary = series_summary + series_notes;
+			if (seriesTrue != undefined) {
+				// Retrieve series author
+				const
+					series_author_xpath = `.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dt[text()[contains(.,"Creator")]]/following-sibling::*[1]/self::dd`,
+					series_author_element = document.evaluate(series_author_xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+				const srs_authors = series_author_element.textContent.trim();
 
-			// Get summaries for each work in series
-			let series_children = Array.from(main.querySelector(`.series.work.index.group`).children);
-			var srsWkSum_arr = [];
-			series_children.forEach((child, index) => {
-				var srs_work_sum = `<em><strong>NO SUMMARY</strong></em>`;
-				let workname = child.querySelector(`.heading a[href*="works"]`).innerText;
-				let summary_elem = child.querySelector(`.userstuff.summary`);
-				if (Boolean(summary_elem) == true) {
-					srs_work_sum = summary_elem.outerHTML;
+				// check if series_author_element contains a link
+				// if it does, assign contents of the outerHTML of the <a> tag to author_HTML as a string
+				// if it doesnt, make author_HTML identical to author
+				if (AnonCheck(series_author_element)) {
+					const srs_authors_HTML = srs_authors;
+					return [srs_authors, srs_authors_HTML];
+				} else {
+					let auth_str_arr = [];
+					Array.from(series_author_element.querySelectorAll(`a`)).forEach(function (el) {
+						const el_c = el.cloneNode(true);
+						el_c.removeAttribute(`rel`);
+						auth_str_arr.push(el_c.outerHTML);
+					});
+					const srs_authors_HTML = auth_str_arr.join(`, `);
+					return [srs_authors, srs_authors_HTML];
 				}
-				srsWkSum_arr.push(`<details><summary>Work ${index + 1}. ${workname} - Summary</summary>\n${srs_work_sum}</details>`);
-			});
-			series_works_summaries = `\n${srsWkSum_arr.join(`\n`)}`;
-
-			// Get all relationship tags present in series' works and add them to series bookmark
-			// Retrieve relationship tags
-			var raw_rels_arr = Array.from(document.querySelectorAll(`ul.tags > li.relationships > a.tag`)), rels_arr = [];
-			raw_rels_arr.forEach(function (element, index, array) {
-				let element_clone = element.cloneNode(true);
-				element_clone.removeAttribute(`class`);
-
-				let rel_string = element_clone.outerHTML;
-				// console.log(`Content in array ${array} at index ${index}: ${array[index]}`);
-				// console.log(element_clone.outerHTML);
-
-				rels_arr.push(`• ${rel_string}`);
-			});
-
-			// Remove duplicates in rels_arr
-			rels_arr = [...new Set(rels_arr)];
-
-			// Attempt to add entries from rels_arr to relationships regardless of whether rels_arr is empty or not
-			relationships = `<details><summary>Relationship Tags:</summary>\n${rels_arr.join(`\n`)}</details>`;
-
-			// Check if rels_arr is empty, indicating no relationship tags
-			if (!Array.isArray(rels_arr) || !rels_arr.length) {
-				// If empty, set 'relationships' var to indicate no relationship tags
-				relationships = `<details><summary>Relationship Tags:</summary>\n• <em><strong>No Relationship Tags</strong></em></details>`;
-			}
-
-
-			// Retrieve series status
-			let pub_xp = `//dl[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[contains(text(), "Complete")]/following-sibling::*[1]`;
-			let complete = document.evaluate(pub_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
-			var updated = main.querySelector(`.series.meta.group`).getElementsByTagName(`dd`)[2].textContent;
-			switch (complete) {
-				case `No`:
-					AO3_status = `Updated: ${updated}`;
-					break;
-
-				case `Yes`:
-					AO3_status = `Completed: ${updated}`;
-					break;
-
-				default:
-					break;
-			}
-			// Retrieve series ID
-			ws_id = currPgURL.replace(re_su, `$6`);
-
-
-		}
-		else {
-			// Retrieve work information
-
-			// Define RegEx for extracting work ID from URL
-			const re_wu = /(^https?:\/\/)(.*\.)?(archiveofourown\.org)(.*?)(\/works\/)(\d+)\/?.*$/i;
-
-			// Calculate appropriate padding count for lastChapter
-			latestChapterNumLength = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Chapters:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.split(`/`).at(0).length;
-			if (latestChapterNumLength >= 3) {
-				chapNumPadCount = 3;
 			}
 			else {
-				chapNumPadCount = 2;
-			}
+				// Retrieve work author
+				const work_author_element = main.querySelector(`#workskin > .preface .byline`);
+				const wrk_authors = work_author_element.textContent.trim(); // fic author
 
-			// Retrieve last chapter of work
-			lastChapter = `Chapter ${document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Chapters:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.split(`/`).at(0).padStart(chapNumPadCount, `0`)}`;
-			// Retrieve work title
-			title = main.querySelector(`#workskin .title.heading`).textContent.trim();
-			// Retrieve work work count
-			words = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
-			// Retrieve work author
-			let work_author_element = main.querySelector(`#workskin > .preface .byline`);
-			author = work_author_element.textContent.trim(); // fic author
-			// check if work_author_element contains a link
-			// if it does, assign contents of the outerHTML of the <a> tag to author_HTML as a string
-			// if it doesnt, make author_HTML identical to author
-			if (Boolean(work_author_element.querySelectorAll(`a`))) {
-				let auth_str_arr = [];
-				Array.from(work_author_element.querySelectorAll(`a`)).forEach(function (el) {
-					let el_c = el.cloneNode(true);
-					auth_str_arr.push(el_c.outerHTML);
+				// check if work_author_element contains a link
+				// if it does, assign contents of the outerHTML of the <a> tag to author_HTML as a string
+				// if it doesnt, make author_HTML identical to author
+				if (AnonCheck(work_author_element)) {
+					const wrk_authors_HTML = wrk_authors;
+					return [wrk_authors, wrk_authors_HTML];
+				} else {
+					let auth_str_arr = [];
+					Array.from(work_author_element.querySelectorAll(`a`)).forEach(function (el) {
+						const el_c = el.cloneNode(true);
+						el_c.removeAttribute(`rel`);
+						auth_str_arr.push(el_c.outerHTML);
+					});
+					const wrk_authors_HTML = auth_str_arr.join(`, `);
+					return [wrk_authors, wrk_authors_HTML];
+				}
+			}
+		})();
+
+		const AO3_status = (function () {
+			if (seriesTrue != undefined) {
+				// Get the last updated date of the series
+				const updated = main.querySelectorAll(`.series.meta.group dd`)[2].textContent;
+
+				// Retrieve series completion status
+				const pub_xp = `//dl[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[contains(text(), "Complete")]/following-sibling::*[1]`;
+				const complete = document.evaluate(pub_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.toLowerCase();
+
+				if (complete == `no`) {
+					const srs_AO3_status = `Updated: ${updated}`;
+					return srs_AO3_status;
+				}
+				if (complete == `yes`) {
+					const srs_AO3_status = `Completed: ${updated}`;
+					return srs_AO3_status;
+				}
+
+			}
+			else {
+				// Retrieve work status
+				if (Boolean(main.querySelector(`.status`))) {
+					// Retrieval method for multi-chapter works
+					const wrk_AO3_status = `${main.querySelector(`dt.status`).textContent} ${main.querySelector(`dd.status`).textContent}`;
+					return wrk_AO3_status;
+				}
+				else {
+					// Retrieval method for single chapter works
+					const wrk_AO3_status = `${main.querySelector(`dt.published`).textContent} ${main.querySelector(`dd.published`).textContent}`;
+					return wrk_AO3_status;
+				}
+
+			}
+		})();
+
+		const relationships = (function () {
+			if (seriesTrue != undefined) {
+				// Get all relationship tags present in series' works and add them to series bookmark
+				// Retrieve relationship tags
+				const raw_rels_arr = Array.from(document.querySelectorAll(`ul.tags > li.relationships > a.tag`));
+				let rels_arr = [];
+
+				raw_rels_arr.forEach(function (element, index, array) {
+					const element_clone = element.cloneNode(true);
+					element_clone.removeAttribute(`class`);
+
+					const rel_string = element_clone.outerHTML;
+					// console.log(`Content in array ${array} at index ${index}: ${array[index]}`);
+					// console.log(element_clone.outerHTML);
+
+					rels_arr.push(`• ${rel_string}`);
 				});
-				author_HTML = auth_str_arr.join(`, `);
-			} else {
-				author_HTML = author;
-			}
 
-			// Retrieve relationship tags
-			var raw_rels_arr = Array.from(document.querySelectorAll(`.relationship.tags ul a`));
-			var rels_arr = [];
-			raw_rels_arr.forEach(function (el) {
-				let el_c = el.cloneNode(true);
-				el_c.removeAttribute(`class`);
-				rels_arr.push(`• ${el_c.outerHTML}`);
-			});
+				// Remove duplicates in rels_arr
+				rels_arr = [...new Set(rels_arr)];
 
-			// Add Relationship tags to 'relationships' var
-			relationships = `<details><summary>Relationship Tags:</summary>\n${rels_arr.join(`\n`)}</details>`;
+				// const srs_relationships = (function () {
+				// 	// Attempt to add entries from rels_arr to relationships regardless of whether rels_arr is empty or not
+				// 	let srs_rels = `<details><summary>Relationship Tags:</summary>\n${rels_arr.join(`\n`)}</details>`;
 
-			// Check if rels_arr is empty, indicating no relationship tags
-			if (!Array.isArray(rels_arr) || !rels_arr.length) {
-				// Set 'relationships' var to indicate no relationship tags
-				relationships = `<details><summary>Relationship Tags:</summary>\n• <em><strong>No Relationship Tags</strong></em></details>`;
-			}
+				// 	// Check if rels_arr is empty, indicating no relationship tags
+				// 	if (!Array.isArray(rels_arr) || !rels_arr.length) {
+				// 		// If empty, set 'relationships' var to indicate no relationship tags
+				// 		srs_rels = `<details><summary>Relationship Tags:</summary>\n• <em><strong>No Relationship Tags</strong></em></details>`;
+				// 	}
 
-			// Retrieve work summary
-			if (simpleWorkSummary) { // the original methos to retrieve the work's summary
-				summary = document.getElementsByClassName(`summary`)[0].innerHTML;
+				// 	return srs_rels;
+				// })();
 
-				// Example output of the above method:
-				// summary will be a var equal to the following string
-				// '\n          <h3 class="heading">Summary:</h3>\n            <blockquote class="userstuff">\n              <p>Lorem ipsum dolor...</p>\n            </blockquote>\n        '
+				// return srs_relationships
 
-			}
-			else if (!simpleWorkSummary && FWS_asBlockquote && main.querySelector(`.summary blockquote`) != null) { // new method #1
-				summary = main.querySelector(`.summary blockquote`).outerHTML;
-
-				// Example output of the above method:
-				// summary will be a var equal to the following string
-				// '<blockquote class="userstuff">\n              <p>Lorem ipsum dolor...</p>\n            </blockquote>'
-
-			}
-			else if (!simpleWorkSummary && !FWS_asBlockquote && main.querySelector(`.summary blockquote`) != null) { // new method #2
-				summary = main.querySelector(`.summary blockquote`).innerHTML.trim();
-
-				// Example output of the above method:
-				// summary will be a var equal to the following string
-				// '<p>Lorem ipsum dolor...</p>'
-
-			}
-
-			// Retrieve work status
-			if (document.getElementsByClassName(`status`).length != 0) {
-				// Retrieval method for multi-chapter works
-				AO3_status = `${main.querySelector(`dt.status`).textContent} ${main.querySelector(`dd.status`).textContent}`;
+				// Check if rels_arr is empty, indicating no relationship tags
+				if (!Array.isArray(rels_arr) || !rels_arr.length) {
+					// If empty, set 'relationships' var to indicate no relationship tags
+					const srs_rels = `<details><summary>Relationship Tags:</summary>\n• <em><strong>No Relationship Tags</strong></em></details>`;
+					return srs_rels;
+				} else {
+					// If not empty, use values in rels_arr to set 'relationships'
+					const srs_rels = `<details><summary>Relationship Tags:</summary>\n${rels_arr.join(`\n`)}</details>`;
+					return srs_rels;
+				}
 			}
 			else {
-				// Retrieval method for single chapter works
-				AO3_status = `${main.querySelector(`dt.published`).textContent} ${main.querySelector(`dd.published`).textContent}`;
+				// Retrieve relationship tags
+				const raw_rels_arr = Array.from(document.querySelectorAll(`.relationship.tags ul a`));
+				let rels_arr = [];
+				raw_rels_arr.forEach(function (el) {
+					const el_c = el.cloneNode(true);
+					el_c.removeAttribute(`class`);
+
+					const rel_string = `• ${el_c.outerHTML}`;
+
+					rels_arr.push(rel_string);
+				});
+
+				// Add Relationship tags to 'relationships' var
+
+				// Check if rels_arr is empty, indicating no relationship tags
+				if (!Array.isArray(rels_arr) || !rels_arr.length) {
+					// If empty, set 'relationships' var to indicate no relationship tags
+					const wrk_rels = `<details><summary>Relationship Tags:</summary>\n• <em><strong>No Relationship Tags</strong></em></details>`;
+					return wrk_rels;
+				} else {
+					// If not empty, fill 'relationships' var using rels_arr
+					const wrk_rels = `<details><summary>Relationship Tags:</summary>\n${rels_arr.join(`\n`)}</details>`;
+					return wrk_rels;
+				}
+			}
+		})();
+
+		const summary_default_value = `<em><strong>NO SUMMARY</strong></em>`;
+
+		const summary = ((function () {
+			if (seriesTrue != undefined) {
+				// Check if there is a series summary
+				let series_summary;
+				switch (Boolean(main.querySelector(`.series.meta.group .userstuff`))) {
+					case true: // If series summary exists, retrieve summary
+						series_summary = main.querySelector(`.series.meta.group .userstuff`).innerHTML;
+						break;
+
+					case false: // Else fill in var with NO SUMMARY string
+						series_summary = summary_default_value;
+						break;
+
+					default: // If error, fill var asking for bug report
+						series_summary = `<em>Error in retrieving series summary, please report this bug at</em> https://greasyfork.org/en/scripts/467885`;
+						break;
+				}
+
+				// Check if there are series notes
+				const series_notes_dt_xp = `.//*[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dt[text()[contains(.,"Notes:")]]`;
+				let series_notes;
+				switch (Boolean(document.evaluate(series_notes_dt_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue)) {
+					case true: // If series notes exists, retrieve notes
+						series_notes = document.evaluate(`${series_notes_dt_xp}/following-sibling::*[1]`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerHTML;
+						series_notes = `<details><summary>Series Notes:</summary>\n${series_notes}\n</details>`;
+						break;
+
+					case false:
+						series_notes = ``;
+						break;
+
+					default:
+						series_notes = ``;
+						break;
+				}
+
+				// Join series summary and series notes
+				const srs_summary = series_summary + series_notes;
+
+				return srs_summary;
+
+			}
+			else {
+				// Retrieve work summary
+				if (simpleWorkSummary) { // the original methos to retrieve the work's summary
+					const wrk_summary = main.querySelector(`.summary`).innerHTML;
+					return wrk_summary;
+
+					// Example output of the above method:
+					// summary will be a var equal to the following string
+					// '\n          <h3 class="heading">Summary:</h3>\n            <blockquote class="userstuff">\n              <p>Lorem ipsum dolor...</p>\n            </blockquote>\n        '
+
+				}
+				else if (!simpleWorkSummary && FWS_asBlockquote && main.querySelector(`.summary blockquote`) != null) { // new method #1
+					const wrk_summary = main.querySelector(`.summary blockquote`).outerHTML;
+					return wrk_summary;
+
+					// Example output of the above method:
+					// summary will be a var equal to the following string
+					// '<blockquote class="userstuff">\n              <p>Lorem ipsum dolor...</p>\n            </blockquote>'
+
+				}
+				else if (!simpleWorkSummary && !FWS_asBlockquote && main.querySelector(`.summary blockquote`) != null) { // new method #2
+					const wrk_summary = main.querySelector(`.summary blockquote`).innerHTML.trim();
+					return wrk_summary;
+
+					// Example output of the above method:
+					// summary will be a var equal to the following string
+					// '<p>Lorem ipsum dolor...</p>'
+
+				}
+			}
+		})() || summary_default_value);
+
+		const series_works_titles_summaries = (function () {
+			function GetPadAmount(input_array) {
+				const pad_amt = input_array.length.toString().length;
+				if (pad_amt < 2) {
+					return 2;
+				} else {
+					return pad_amt;
+				}
 			}
 
-			// Retrieve work ID
-			ws_id = currPgURL.replace(re_wu, `$6`);
+			if (seriesTrue != undefined) {
+				// Get summaries for each work in series
+				const series_children = Array.from(main.querySelector(`.series.work.index.group`).children);
+				let srsWkSum_arr = [];
+				series_children.forEach((child, index) => {
+					let srs_work_sum = summary_default_value;
+					const workname = (() => {
+						try {
+							let work_title = child.querySelector(`.heading a[href*="works"]`).innerText;
+							return work_title;
+						} catch (error) {
+							let work_title = child.querySelector(`.header > h4.heading`).innerText;
+							return work_title;
+						}
+					})();
+					const summary_elem = child.querySelector(`.userstuff.summary`);
+					if (Boolean(summary_elem) == true) {
+						srs_work_sum = summary_elem.outerHTML;
+					}
 
-		}
+					const series_pagination_mult = (() => {
+						const pagination_nav = main.querySelector(`ol.pagination:has(+ .series.work.index.group)`);
+						try {
+							if (Object.is(pagination_nav, null) || Object.is(pagination_nav, undefined)) {
+								throw new Error("Series is not Paginated");
+							} else {
+								return ((parseInt(pagination_nav.querySelector(`.current`).textContent.trim())) - 1);
+							}
+						} catch (error) {
+							return 0;
+						}
+					})();
 
+					const wrk_num = (index + (20 * series_pagination_mult) + 1).toString().padStart(GetPadAmount(series_children), `0`);
+
+					if (series_children.length > 10) {
+						srsWkSum_arr.push(`• Work ${wrk_num}. ${workname}<br />`);
+					} else {
+						srsWkSum_arr.push(`<details><summary>Work ${wrk_num}. ${workname} - Summary</summary>\n${srs_work_sum}</details>`);
+					}
+				});
+
+				const ser_wor_sum = `\n${srsWkSum_arr.join(`\n`)}\n`;
+				return ser_wor_sum;
+			}
+			else {
+				const ser_wor_sum = ``;
+				return ser_wor_sum;
+			}
+		})();
+
+		const words = (function () {
+			if (seriesTrue != undefined) {
+				// Retrieve series word count
+				const srs_words = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
+				return srs_words;
+			}
+			else {
+				// Retrieve work work count
+				const wrk_words = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
+				return wrk_words;
+			}
+		})();
+
+		const ws_id = (function () {
+			function FindID(search_term) {
+				const currPg_pathname_arr = currPgURL.pathname.split(`/`);
+				// let results = [];
+				let pathname_idx = currPg_pathname_arr.indexOf(`${search_term}`);
+
+				// while (pathname_idx !== -1) {
+				// 	results.push(pathname_idx);
+				// 	pathname_idx = currPg_pathname_arr.indexOf(`${search_term}`, pathname_idx + 1);
+				// }
+
+				// const AO3_id = currPg_pathname_arr.at(parseInt(results[0] + 1)).toString();
+				const AO3_id = currPg_pathname_arr.at(parseInt(pathname_idx + 1)).toString();
+				return AO3_id;
+			}
+
+			if (seriesTrue != undefined) {
+				const srs_AO3_id = FindID(`series`);
+				return srs_AO3_id;
+			}
+			else {
+				const wrk_AO3_id = FindID(`works`);
+				return wrk_AO3_id;
+			}
+		})();
+
+		const lastChapter = (function () {
+			if (seriesTrue != undefined) {
+				// Have lastChapter be an empty string for series
+				const srs_lastChapter = ``;
+				return srs_lastChapter;
+			}
+			else {
+
+				const latest_chapter_number = (function () {
+					// XPath for the chapter count element
+					const chapter_count_elem_XPath = `.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Chapters:"]/following-sibling::*[1]/self::dd`;
+
+					const chapter_count_elem_Text = document.evaluate(chapter_count_elem_XPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.trim();
+
+					const latest_chapter_num = chapter_count_elem_Text.split(`/`).at(0);
+
+					return latest_chapter_num;
+				})();
+
+
+				// Calculate appropriate padding count for lastChapter
+				const chapNumPadCount = (function () {
+					if (latest_chapter_number.length >= 3) {
+						return 3;
+					} else {
+						return 2;
+					}
+				})();
+
+
+				// Retrieve last chapter of work
+				const wrk_lastChapter = `Chapter ${latest_chapter_number.padStart(chapNumPadCount, `0`)}`;
+
+				return wrk_lastChapter;
+
+			}
+		})();
+
+
+		// define autotag_status for use in AutoTag()
+		const autotag_status = StatusForAutoTag();
 
 
 		/* ///////////////// USER CONFIGURABLE SETTINGS ///////////////// */
@@ -1235,7 +1501,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		- ws_id                     // ID of the work/series being bookmarked
 
 		Variables specific to series:
-		- series_works_summaries    // Adds all of the summaries of the works in the series to the series bookmark
+		- series_works_titles_summaries    // Adds all of the summaries of the works in the series to the series bookmark
 
 		Variables specific to works:
 		- lastChapter               // Last published chapter of the work or series
@@ -1254,14 +1520,22 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		// If you dont like the predefined vars for date, and your device supports the require field,
 		// I've added the moment.js library which you can use to define your own date var.
 		// e.g.
-		// var date = moment().format("dddd, MMMM Do YYYY, h:mm:ss a");
+		// const date = moment().format("dddd, MMMM Do YYYY, h:mm:ss a");
 		// would give you something like the following string:
 		// "Thursday, August 31st 2023, 4:38:35 pm"
-		// 
+		//
 		// format guide available here: https://momentjscom.readthedocs.io/en/latest/moment/04-displaying/01-format/
 
-		var date = `${yyyy}/${mm}/${dd}`, // Date without time
-			date_string = `(Approximate) Last Read: ${date}`;
+		const
+			date = `${yyyy}/${mm}/${dd}`, // Date without time
+			date_string = (function () {
+				// Make the date string an empty string for series because it doesnt make sense there
+				if (Boolean(seriesTrue)) {
+					return ``;
+				} else {
+					return `(Approximate) Last Read: ${date}`;
+				}
+			})();
 		// date = `${yyyy}/${mm}/${dd} ${hh}${mm}hrs`; // Date with time
 		console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
@@ -1269,10 +1543,6 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 Date Generated: ${date}
 Date String Generated: ${date_string}`
 		);
-		// Make the date string an empty string for series because it doesnt make sense there
-		if (Boolean(seriesTrue)) {
-			date_string = ``;
-		}
 
 		/* ///////////// Select from Presets ///////////// */
 
@@ -1356,39 +1626,84 @@ ${date_string}</details>`; */
 		// Auto Tag Feature
 
 		function AutoTag() {
-			// Call Status Check
-			statusCheck_for_AutoTag();
+			function inRange(input, minimum, maximum) {
+				return input >= minimum && input <= maximum;
+			}
+			let tag_input_box = document.querySelector('.input #bookmark_tag_string_autocomplete');
 
-			// Define vars
-			var words_XPath = './/*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd',
-				words = document.evaluate(words_XPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.toString().replaceAll(/,| |\s/gi, ''),
-				words = parseInt(words),
-				tag_input_box = document.querySelector('.input #bookmark_tag_string_autocomplete');
+			// Original AutoTag Behaviour
+			// As suggested by `oliver t` @ https://greasyfork.org/en/scripts/467885/discussions/198028
+			if (inRange(AutoTag_type, 0, 1) && AutoTag_type == 0) {
+				let word_count_tag = ``;
 
-			// Define Word Count Tag
-			// In case you want to add more tags or change the word count range for each tag,
-			// here are some recourses on how comparators work in JavaScript:
-			// StackOverflow answer that shows you how equalities work: https://stackoverflow.com/a/14718577/11750206
-			// An overview of JavaScript's Comparison and Logical Operators: https://www.w3schools.com/js/js_comparisons.asp
-			if (words < 2500) { word_count_tag = 'Word Count: Less than 2500'; }
-			if (words < 7500 && words >= 2500) { word_count_tag = 'Word Count: 2500 to 7499'; }
-			if (words < 15000 && words >= 7500) { word_count_tag = 'Word Count: 7500 to 14999'; }
-			if (words < 30000 && words >= 15000) { word_count_tag = 'Word Count: 15000 to 29999'; }
-			if (words >= 30000) { word_count_tag = 'Word Count: Greater than 30000'; }
+				const AT_words = (function () {
+					let
+						AT_words_XPath = './/*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd',
+						AT_words = document.evaluate(AT_words_XPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.toString().replaceAll(/[, \s]/gi, '');
 
-			// Put the Auto Tags into the User Tags field
-			tag_input_box.value = `${autotag_status}, ${word_count_tag}`;
+					AT_words = parseInt(AT_words);
+					return AT_words;
+				})();
+
+				// Define Word Count Tag
+				// In case you want to add more tags or change the word count range for each tag,
+				// here are some recourses on how comparators work in JavaScript:
+				// StackOverflow answer that shows you how equalities work: https://stackoverflow.com/a/14718577/11750206
+				// An overview of JavaScript's Comparison and Logical Operators: https://www.w3schools.com/js/js_comparisons.asp
+				if (AT_words < 2500) { word_count_tag = 'Word Count: Less than 2500'; }
+				if (AT_words < 7500 && AT_words >= 2500) { word_count_tag = 'Word Count: 2500 to 7499'; }
+				if (AT_words < 15000 && AT_words >= 7500) { word_count_tag = 'Word Count: 7500 to 14999'; }
+				if (AT_words < 30000 && AT_words >= 15000) { word_count_tag = 'Word Count: 15000 to 29999'; }
+				if (AT_words >= 30000) { word_count_tag = 'Word Count: Greater than 30000'; }
+
+				// Put the Auto Tags into the User Tags field
+				tag_input_box.value = `${autotag_status}, ${word_count_tag}`;
+			}
+
+			// AutoTag using canonical AO3 "Wordcount Over *" tags for the word count
+			// As suggested by `prismbox` @ https://greasyfork.org/en/scripts/467885/discussions/255399
+			if (inRange(AutoTag_type, 0, 1) && AutoTag_type == 1) {
+				let word_count_tag_arr = [];
+
+				const AT_words = (function () {
+					let
+						AT_words_XPath = './/*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd',
+						AT_words = document.evaluate(AT_words_XPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.toString().replaceAll(/[, \s]/gi, '');
+
+					AT_words = parseInt(AT_words);
+					return AT_words;
+				})();
+
+				const canon_AO3_wc_lims = [1, 10, 20, 30, 50, 100, 150, 200, 500].map(x => x * 1000);
+
+				// Define Word Count Tag
+				// In case you want to add more tags or change the word count range for each tag,
+				// here are some recourses on how comparators work in JavaScript:
+				// StackOverflow answer that shows you how equalities work: https://stackoverflow.com/a/14718577/11750206
+				// An overview of JavaScript's Comparison and Logical Operators: https://www.w3schools.com/js/js_comparisons.asp
+				canon_AO3_wc_lims.forEach(element => {
+					if (AT_words > element) {
+						word_count_tag_arr.push(`Wordcount: Over ${(new Intl.NumberFormat({ style: `decimal` }).format(element)).replaceAll(`,`, `.`)}`);
+					}
+				});
+
+				// Put the Auto Tags into the User Tags field
+				tag_input_box.value = `${autotag_status}, ${word_count_tag_arr.join(`, `)}`;
+			}
+
+			if (!inRange(AutoTag_type, 0, 1)) { console.log(`AutoTag_type is not between 0 and 1. Please contact me (the script author) on GreasyFork for troubleshooting`); }
 		}
 
 		// ------------------------
 
-		// You are free to define your own string for the newBookmarkNotes variable as you see fit
-
+		// You are free to define your own string for the new_notes variable as you see fit
 
 		// Fills the bookmark box with the autogenerated bookmark
-		new_notes = `${workInfo}\n\n${curr_notes}`;
+		const new_notes = `${workInfo}\n\n${curr_notes}`;
 		document.getElementById("bookmark_notes").innerHTML = new_notes;
 
 	}
+
+	console.log(`Ending w4BM userscript execution: ${performance.now() - s_t}ms`);
 
 })();
