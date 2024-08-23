@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Worm Story Search: Link AO3 Stories to Work Page
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.1-20230905_171741
+// @version        1.0.2-20240823_161521
 // @description    Changes the link of the story to go to the work page of the story on AO3 instead of the navigate page
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -12,6 +12,7 @@
 // @icon           http://wormstorysearch.com/favicon.png
 // @run-at         document-idle
 // @license        AGPL-3.0-or-later
+// @history        1.0.2 — Remove the `if (el.href.includes('archiveofourown'))` in favour of moving the check to the selector of `storyELM.querySelectorAll`
 // @history        1.0.1 — Fix script replacing non-AO3 links in the blue tag boxes
 // @history        1.0.0 — Initial Release
 // ==/UserScript==
@@ -19,34 +20,32 @@
 (function () {
 	`use strict`;
 
-	// Regex for extracting work URL without specific chapter
-	const re_wu = /(^https?:\/\/)(.*\.)?(archiveofourown\.org)(.*?)(\/works\/\d+)\/?.*$/gmi;
-
 	// Get Table Rows
-	var table_rows = document.querySelector('#stories-searchable-table tbody.rows');
+	const table_rows = document.querySelector('#stories-searchable-table tbody.rows');
 
 	// Get Array of Stories
-	var stories_arr = Array.from(table_rows.children);
+	const stories_arr = Array.from(table_rows.children);
 
 	// Iterate on the array of Stories
 	stories_arr.forEach((storyELM) => {
 
 		// Try to get the blue box next to the title that says AO3
-		var AO3_xp = `.//td[contains(concat(" ",normalize-space(@class)," ")," title ")]//a[contains(@href,"archiveofourown.org")]`;
-		var AO3_tag = document.evaluate(AO3_xp, storyELM, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+		const AO3_tag = (() => {
+			const xpath = `.//td[contains(concat(" ",normalize-space(@class)," ")," title ")]//a[contains(@href,"archiveofourown.org")]`;
+			const out_elm = document.evaluate(xpath, storyELM, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+			return out_elm;
+		})();
 
 		if (Boolean(AO3_tag)) { // Run only if said blue box exists
-			// Get the AO3 link
-			var AO3_link = AO3_tag.getAttribute('href');
+			// Regex for extracting work URL without specific chapter
+			const re_wu = /(^https?:\/\/)(.*\.)?(archiveofourown\.org)(.*?)(\/works\/\d+)\/?.*$/gmi;
 
-			// Remove all extraneous parts of the URL, leaving you with a URL in the format https://archiveofourown.org/works/{WORK_ID}
-			AO3_link = AO3_link.replace(re_wu, '$1$3$5');
+			// Get the AO3 link and all extraneous parts of the URL, leaving you with a URL in the format https://archiveofourown.org/works/{WORK_ID}
+			const AO3_link = AO3_tag.getAttribute('href').replace(re_wu, '$1$3$5');
 
 			// Replace all instances of old AO3 URL with the new one
-			Array.from(storyELM.querySelectorAll('td.title a[data-track]')).forEach((el) => {
-				if (el.href.includes('archiveofourown')) {
-					el.href = AO3_link;
-				}
+			Array.from(storyELM.querySelectorAll('td.title a[data-track][href*="archiveofourown.org"]')).forEach((el) => {
+				el.href = AO3_link;
 			});
 
 			// Make the title link also go to the AO3 work instead of SB or any other source
