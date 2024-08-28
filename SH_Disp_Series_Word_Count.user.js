@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name           Scribble Hub: Display Word Count on Series Page
+// @name           Scribble Hub: Display Series Word Count on Series Page
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0-20240829_000722
+// @version        1.0.0-20240829_004816
 // @description    Displays the word count of the current series next to the chapter count
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
