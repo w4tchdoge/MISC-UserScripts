@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Copy Wardle Result and Guesses LITE
 // @namespace      https://github.com/w4tchdoge
-// @version        0.0.2-20240907_155017
+// @version        0.0.3-20240907_160541
 // @description    Copies list of your Wardle guesses (spoilered for Discord) to your clipboard
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -14,6 +14,7 @@
 // @grant          GM.registerMenuCommand
 // @require        https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @license        AGPL-3.0-or-later
+// @history        0.0.3 — cleanup/redo guesses_arr and guesses_spoilers
 // @history        0.0.2 — Initial git commit
 // ==/UserScript==
 
@@ -104,23 +105,38 @@
 
 		// console.log(`Names arr length: ${names_txt_arr.length}\nNations arr length: ${nations_txt_arr.length}`);
 
-		const guesses_arr = [];
-		names_txt_arr.forEach((elm, index, arr) => {
+		const guesses_arr = (() => {
 
-			const input_obj = { guess_no: (index + 1), name: elm, nation: nations_txt_arr.at(index) };
-			guesses_arr.push(input_obj);
+			let output_arr = [];
 
-		});
+			[...Array(names_txt_arr.length)].forEach((_, index) => {
 
-		const guesses_spoilers = [];
-		guesses_arr.forEach((elm, index, arr) => {
+				const input_obj = { guess_no: (index + 1), name: names_txt_arr.at(index), nation: nations_txt_arr.at(index) };
+				output_arr.push(input_obj);
 
-			const spoiler_text = `${elm.guess_no}. ||${elm.name} **(${elm.nation})**||`;
-			guesses_spoilers.push(spoiler_text);
+			});
 
-		});
+			return output_arr;
+
+		})();
+
+		const guesses_spoilers = (() => {
+
+			let output_arr = [];
+
+			guesses_arr.forEach((elm, index, arr) => {
+
+				const spoiler_text = `${elm.guess_no}. ||${elm.name} **(${elm.nation})**||`;
+				output_arr.push(spoiler_text);
+
+			});
+
+			return output_arr;
+
+		})();
 
 		return guesses_spoilers;
+
 	}
 
 	function SpoilerGuessesToClipboard() {
