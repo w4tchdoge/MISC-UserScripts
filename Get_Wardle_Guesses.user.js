@@ -1,25 +1,48 @@
 // ==UserScript==
-// @name           Copy Wardle Result and Guesses LITE
+// @name           Copy Wardle Guesses
 // @namespace      https://github.com/w4tchdoge
-// @version        0.0.3-20240907_160541
-// @description    Copies list of your Wardle guesses (spoilered for Discord) to your clipboard
+// @version        1.0.0-20240924_214547
+// @description    Copies a list of your Wardle guesses (spoilered for Discord) to your clipboard
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
-// @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/Get_Wardle_Guesses_LITE.user.js
-// @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/Get_Wardle_Guesses_LITE.user.js
-// @match          *://wardlegame.com/classic-*
+// @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/Get_Wardle_Guesses.user.js
+// @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/Get_Wardle_Guesses.user.js
+// @match          *://wardlegame.com/*
 // @grant          GM_setClipboard
 // @grant          GM.setClipboard
 // @grant          GM_registerMenuCommand
 // @grant          GM.registerMenuCommand
 // @require        https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @license        AGPL-3.0-or-later
+// @history        1.0.0 — Add button to the share widget that lets you copy your guesses spoilered for discord. Attempt to make the script more compatible with the Single Page Application-ness of Wardle
 // @history        0.0.3 — cleanup/redo guesses_arr and guesses_spoilers
 // @history        0.0.2 — Initial git commit
 // ==/UserScript==
 
-(function () {
+(async function () {
 	`use strict`;
+
+	// modified from https://stackoverflow.com/a/61511955/11750206
+	function waitForElmXPATH(xpathstr) {
+		return new Promise(resolve => {
+			if (document.evaluate(xpathstr, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue) {
+				return resolve(document.evaluate(xpathstr, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue);
+			}
+
+			const observer = new MutationObserver(mutations => {
+				if (document.evaluate(xpathstr, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue) {
+					observer.disconnect();
+					resolve(document.evaluate(xpathstr, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue);
+				}
+			});
+
+			// If you get "parameter 1 is not of type 'Node'" error, see https://stackoverflow.com/a/77855838/492336
+			observer.observe(document.documentElement, {
+				childList: true,
+				subtree: true
+			});
+		});
+	}
 
 	function MAINfunk() {
 		const guess_table = (() => {
@@ -120,6 +143,13 @@
 
 		})();
 
+		return guesses_arr;
+
+	}
+
+	function DiscordSpoilerGuessesToClipboard() {
+
+		const guesses_arr = MAINfunk();
 		const guesses_spoilers = (() => {
 
 			let output_arr = [];
@@ -134,23 +164,26 @@
 			return output_arr;
 
 		})();
-
-		return guesses_spoilers;
-
-	}
-
-	function SpoilerGuessesToClipboard() {
-
-		const guesses_spoilers = MAINfunk();
 		const cliptext = `My guesses:\n${guesses_spoilers.join(`\n`)}`;
 		GM.setClipboard(cliptext);
 		console.log(`
-Wardle Guesses have been copied to clipboard! Clipboard should now be:
+Wardle Guesses have been copied to clipboard!
+Guesses were copied in the Discord Spoilers format.
+Clipboard should now be:
 
 ${cliptext}`);
 
 	}
 
-	GM.registerMenuCommand(`Copy Guesses to Clipboard`, SpoilerGuessesToClipboard);
+	const share_row = await waitForElmXPATH(`.//div[contains(concat(" ",normalize-space(@class)," ")," shareWidget ")]/div[contains(concat(" ",normalize-space(@class)," ")," flex-row ")][count(.//button[count(.//p[contains(concat(" ",normalize-space(@class)," ")," font-bold ")]) > 0][count(preceding-sibling::a) > 0 or count(following-sibling::a) > 0]) > 0]`);
+
+	const userscript_share_row = Object.assign(share_row.cloneNode(false), {
+		innerHTML: `<button class="flex flex-row items-center justify-center rounded-2xl bg-secondary-background p-3 text-text-color transition delay-100 duration-300 ease-in-out hover:scale-110 hover:bg-blue-600 md:p-4"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" class="mr-3 h-6 w-6 md:h-9 md:w-9 iconify iconify--mdi" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2m-7 0a1 1 0 0 1 1 1a1 1 0 0 1-1 1a1 1 0 0 1-1-1a1 1 0 0 1 1-1M7 7h10V5h2v14H5V5h2z"></path></svg><p class="font-bold tracking-wider md:text-lg">COPY GUESSES\n(DISCORD)</p></button>`
+	});
+	userscript_share_row.addEventListener(`click`, DiscordSpoilerGuessesToClipboard);
+
+	share_row.after(userscript_share_row);
+
+	GM.registerMenuCommand(`Copy Guesses to Clipboard`, DiscordSpoilerGuessesToClipboard);
 
 })();
