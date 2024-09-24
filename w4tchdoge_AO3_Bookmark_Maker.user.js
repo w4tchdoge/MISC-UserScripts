@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.9.0-20240815_201452
+// @version        2.10.0-20240924_225511
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -17,6 +17,7 @@
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @run-at         document-end
 // @license        GNU GPLv3
+// @history        2.10.0 — Add four new variables to be used in `workInfo`: fform_tags_list_HTML, fform_tags_list_TXT, fform_tags_comma_HTML, and fform_tags_comma_TXT. These variables add the freeform/additional tags of a work into the bookmark in a collapsible <details> element. Additional details are provided in the Bookmark content configuration section
 // @history        2.9.0 — Add functionality to switch between the original AutoTag implementation (https://greasyfork.org/en/scripts/467885/discussions/198028) and the implementation that uses the canonical AO3 `Wordcount: Over *` tags (https://greasyfork.org/en/scripts/467885/discussions/255399)
 // @history        2.8.5 — Rename `series_works_summaries` to `series_works_titles_summaries` to indicate that it's functionality has been changed such that for series with more than 10 works it outputs just the title instead of the title and the summary, as the summaries for more than 10 works are unlikely to fit inside a bookmark
 // @history        2.8.4 — Fix missing authors on Anonymous works
@@ -1259,6 +1260,53 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			}
 		})();
 
+		const [fform_tags_list_HTML, fform_tags_list_TXT, fform_tags_comma_HTML, fform_tags_comma_TXT] = (function () {
+			if (seriesTrue != undefined) { return [``, ``, ``, ``]; }
+			else {
+				// Retrieve relationship tags
+				const raw_freeform_arr = Array.from(document.querySelectorAll(`.freeform.tags > ul a`));
+
+				let
+					freeform_arr_ls_HTML = [],
+					freeform_arr_ls_TXT = [],
+					freeform_arr_comma_HTML = [],
+					freeform_arr_comma_TXT = [];
+
+				raw_freeform_arr.forEach(function (el) {
+					const el_c = el.cloneNode(true);
+					el_c.removeAttribute(`class`);
+
+					const fform_lh_str = `• ${el_c.outerHTML}`;
+					const fform_lt_str = `• ${el_c.textContent.trim()}`;
+					const fform_ch_str = `${el_c.outerHTML}`;
+					const fform_ct_str = `${el_c.textContent.trim()}`;
+
+					freeform_arr_ls_HTML.push(fform_lh_str);
+					freeform_arr_ls_TXT.push(fform_lt_str);
+					freeform_arr_comma_HTML.push(fform_ch_str);
+					freeform_arr_comma_TXT.push(fform_ct_str);
+				});
+
+				// Add Relationship tags to 'relationships' var
+
+				// Check if rels_arr is empty, indicating no relationship tags
+				if (!Array.isArray(raw_freeform_arr) || !raw_freeform_arr.length) {
+					// If empty, set 'relationships' var to indicate no relationship tags
+					const wrk_fforms = `<details><summary>Additional Tags:</summary>\n• <em><strong>No Additional Tags</strong></em></details>`;
+					return [wrk_fforms, wrk_fforms, wrk_fforms, wrk_fforms];
+				} else {
+					// If not empty, fill 'relationships' var using rels_arr
+					const wrk_fforms_lh = `<details><summary>Additional Tags:</summary>\n${freeform_arr_ls_HTML.join(`\n`)}</details>`;
+					const wrk_fforms_lt = `<details><summary>Additional Tags:</summary>\n${freeform_arr_ls_TXT.join(`\n`)}</details>`;
+					const wrk_fforms_ch = `<details><summary>Additional Tags:</summary>\n${freeform_arr_comma_HTML.join(`, `)}</details>`;
+					const wrk_fforms_ct = `<details><summary>Additional Tags:</summary>\n${freeform_arr_comma_TXT.join(`, `)}</details>`;
+					return [wrk_fforms_lh, wrk_fforms_lt, wrk_fforms_ch, wrk_fforms_ct];
+				}
+			}
+		})();
+
+		// console.log([fform_tags_list_HTML, fform_tags_list_TXT, fform_tags_comma_HTML, fform_tags_comma_TXT]);
+
 		const summary_default_value = `<em><strong>NO SUMMARY</strong></em>`;
 
 		const summary = ((function () {
@@ -1505,6 +1553,10 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 
 		Variables specific to works:
 		- lastChapter               // Last published chapter of the work or series
+		- fform_tags_list_HTML      // The freeform tags of a work as links in a list similar to that in the relationships variable
+		- fform_tags_list_TXT       // The freeform tags of a work as plaintext (so you don't run into the character limit) in a list similar to that in the relationships variable
+		- fform_tags_comma_HTML     // The freeform tags of a work as comma separated links
+		- fform_tags_comma_TXT      // The freeform tags of a work as comma separated plaintext (so you don't run into the character limit)
 
 		*/
 
@@ -1626,9 +1678,11 @@ ${date_string}</details>`; */
 		// Auto Tag Feature
 
 		function AutoTag() {
+
 			function inRange(input, minimum, maximum) {
 				return input >= minimum && input <= maximum;
 			}
+
 			let tag_input_box = document.querySelector('.input #bookmark_tag_string_autocomplete');
 
 			// Original AutoTag Behaviour
@@ -1692,6 +1746,7 @@ ${date_string}</details>`; */
 			}
 
 			if (!inRange(AutoTag_type, 0, 1)) { console.log(`AutoTag_type is not between 0 and 1. Please contact me (the script author) on GreasyFork for troubleshooting`); }
+
 		}
 
 		// ------------------------
