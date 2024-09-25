@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.10.0-20240924_225511
+// @version        2.10.1-20240925_081026
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -12,11 +12,12 @@
 // @exclude        *://archiveofourown.org/*works/*/bookmarks
 // @exclude        *://archiveofourown.org/*works/*/navigate
 // @match          *://archiveofourown.org/series/*
-// @match          *://archiveofourown.org/users/*
+// @match          *://archiveofourown.org/users/*/preferences*
 // @icon           https://archiveofourown.org/favicon.ico
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @run-at         document-end
 // @license        GNU GPLv3
+// @history        2.10.1 — Restrict the userscript to `/users/*/preferences` pages instead of all `/users/*` pages
 // @history        2.10.0 — Add four new variables to be used in `workInfo`: fform_tags_list_HTML, fform_tags_list_TXT, fform_tags_comma_HTML, and fform_tags_comma_TXT. These variables add the freeform/additional tags of a work into the bookmark in a collapsible <details> element. Additional details are provided in the Bookmark content configuration section
 // @history        2.9.0 — Add functionality to switch between the original AutoTag implementation (https://greasyfork.org/en/scripts/467885/discussions/198028) and the implementation that uses the canonical AO3 `Wordcount: Over *` tags (https://greasyfork.org/en/scripts/467885/discussions/255399)
 // @history        2.8.5 — Rename `series_works_summaries` to `series_works_titles_summaries` to indicate that it's functionality has been changed such that for series with more than 10 works it outputs just the title instead of the title and the summary, as the summaries for more than 10 works are unlikely to fit inside a bookmark
