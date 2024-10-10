@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.10.1-20240925_081026
+// @version        2.10.2-20241010_220159
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -17,6 +17,7 @@
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @run-at         document-end
 // @license        GNU GPLv3
+// @history        2.10.2 — Have the canon AO3 word count autotag method fetch the tags from the tag search page instead of hardcoding them. Fallback to the hardcoded values when something in the fetch fails
 // @history        2.10.1 — Restrict the userscript to `/users/*/preferences` pages instead of all `/users/*` pages
 // @history        2.10.0 — Add four new variables to be used in `workInfo`: fform_tags_list_HTML, fform_tags_list_TXT, fform_tags_comma_HTML, and fform_tags_comma_TXT. These variables add the freeform/additional tags of a work into the bookmark in a collapsible <details> element. Additional details are provided in the Bookmark content configuration section
 // @history        2.9.0 — Add functionality to switch between the original AutoTag implementation (https://greasyfork.org/en/scripts/467885/discussions/198028) and the implementation that uses the canonical AO3 `Wordcount: Over *` tags (https://greasyfork.org/en/scripts/467885/discussions/255399)
@@ -1678,7 +1679,7 @@ ${date_string}</details>`; */
 
 		// Auto Tag Feature
 
-		function AutoTag() {
+		async function AutoTag() {
 
 			function inRange(input, minimum, maximum) {
 				return input >= minimum && input <= maximum;
@@ -1729,7 +1730,36 @@ ${date_string}</details>`; */
 					return AT_words;
 				})();
 
-				const canon_AO3_wc_lims = [1, 10, 20, 30, 50, 100, 150, 200, 500].map(x => x * 1000);
+				const canon_AO3_wc_lims = await (async () => {
+					// Try to fetch the "Canon AO3 Wordcount Over *" tag page to get the canon wordcounts
+					try {
+						// Fetch word count page
+						const canon_wc_over_pg_resp_text = await (async () => {
+							const fetch_url = `https://archiveofourown.org/tags/search?tag_search[name]=wordcount+over&tag_search[fandoms]=&tag_search[type]=&tag_search[canonical]=T&tag_search[sort_column]=name&tag_search[sort_direction]=asc&commit=Search+Tags`;
+							const fetch_resp = await fetch(fetch_url);
+							const resp_text = await fetch_resp.text();
+							return resp_text;
+						})();
+
+						// Parse fetched page to get word counts as an array of ints
+						const html_parser = new DOMParser();
+						const cwco_pg_HTML = html_parser.parseFromString(canon_wc_over_pg_resp_text, `text/html`);
+						const cwco_tags_int_arr = Array.from(cwco_pg_HTML.querySelectorAll(`#main .tag.index.group li`))
+							.map(elm => parseInt(elm.firstChild.textContent.trim().replace(/^Freeform: Wordcount: Over | \u200e\(\d+\)$/g, ``).replace(`.`, ``)))
+							.sort((a, b) => a.toString().localeCompare(b, undefined, { numeric: true }));
+
+						// Throw error if array is empty
+						if (!Array.isArray(cwco_tags_int_arr) || !cwco_tags_int_arr.length) {
+							throw new Error(`Fetching of "Canon AO3 Wordcount Over *" tags failed! Switching to hardcoded fallback.`);
+						}
+
+						return cwco_tags_int_arr;
+
+					}
+					// Catch any thrown error and fallback to hardcoded wordcounts when the above fails
+					catch (arrempty_error) { console.log(arrempty_error); return [1, 10, 20, 30, 50, 100, 150, 200, 500].map(x => x * 1000); }
+
+				})();
 
 				// Define Word Count Tag
 				// In case you want to add more tags or change the word count range for each tag,
