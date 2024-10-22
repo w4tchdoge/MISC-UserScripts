@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.10.2-20241010_220159
+// @version        2.11.0-20241022_232620
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -17,6 +17,7 @@
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @run-at         document-end
 // @license        GNU GPLv3
+// @history        2.11.0 — Add settings for automatically marking a bookmark as a rec, running autotag, and adding bookmark to collection(s)
 // @history        2.10.2 — Have the canon AO3 word count autotag method fetch the tags from the tag search page instead of hardcoding them. Fallback to the hardcoded values when something in the fetch fails
 // @history        2.10.1 — Restrict the userscript to `/users/*/preferences` pages instead of all `/users/*` pages
 // @history        2.10.0 — Add four new variables to be used in `workInfo`: fform_tags_list_HTML, fform_tags_list_TXT, fform_tags_comma_HTML, and fform_tags_comma_TXT. These variables add the freeform/additional tags of a work into the bookmark in a collapsible <details> element. Additional details are provided in the Bookmark content configuration section
@@ -84,6 +85,9 @@
 	let ini_settings_dict = {
 		divider: `</details>\n\n`,
 		autoPrivate: false,
+		autoRecommend: false,
+		autoAutoTag: false,
+		autoCollections: ``,
 		showAutoTagButton: true,
 		bottomSummaryPage: true,
 		topSummaryPage: false,
@@ -178,6 +182,9 @@ Another way to explain it is that the script works by taking the current content
 	let
 		divider,
 		autoPrivate,
+		autoRecommend,
+		autoAutoTag,
+		autoCollections,
 		showAutoTagButton,
 		bottomSummaryPage,
 		topSummaryPage,
@@ -261,6 +268,99 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 
 			default:
 				console.log(`Error in retrieving localStorage variable w4BM_autoPrivate`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 197
+		switch (Boolean(localStorage.getItem(`w4BM_autoRecommend`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_autoRecommend' is not set in the localStorage
+Now setting it to '${ini_settings_dict.autoRecommend}'`
+				);
+
+				autoRecommend = ini_settings_dict.autoRecommend;
+				localStorage.setItem(`w4BM_autoRecommend`, ini_settings_dict.autoRecommend);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_autoRecommend' IS SET in the localStorage`
+				);
+
+				autoRecommend = stringToBoolean(localStorage.getItem(`w4BM_autoRecommend`));
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_autoRecommend`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 197
+		switch (Boolean(localStorage.getItem(`w4BM_autoAutoTag`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_autoAutoTag' is not set in the localStorage
+Now setting it to '${ini_settings_dict.autoAutoTag}'`
+				);
+
+				autoAutoTag = ini_settings_dict.autoAutoTag;
+				localStorage.setItem(`w4BM_autoAutoTag`, ini_settings_dict.autoAutoTag);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_autoAutoTag' IS SET in the localStorage`
+				);
+
+				autoAutoTag = stringToBoolean(localStorage.getItem(`w4BM_autoAutoTag`));
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_autoAutoTag`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 197
+		switch (Boolean(localStorage.getItem(`w4BM_autoCollections`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_autoCollections' is not set in the localStorage
+Now setting it to '${ini_settings_dict.autoCollections}'`
+				);
+
+				autoCollections = ini_settings_dict.autoCollections;
+				localStorage.setItem(`w4BM_autoCollections`, ini_settings_dict.autoCollections);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_autoCollections' IS SET in the localStorage`
+				);
+
+				autoCollections = localStorage.getItem(`w4BM_autoCollections`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_autoCollections`);
 				break;
 		}
 
@@ -486,6 +586,9 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 
 		divider = ini_settings_dict.divider;
 		autoPrivate = ini_settings_dict.autoPrivate;
+		autoRecommend = ini_settings_dict.autoRecommend;
+		autoAutoTag = ini_settings_dict.autoAutoTag;
+		autoCollections = ini_settings_dict.autoCollections;
 		showAutoTagButton = ini_settings_dict.showAutoTagButton;
 		bottomSummaryPage = ini_settings_dict.bottomSummaryPage;
 		topSummaryPage = ini_settings_dict.topSummaryPage;
@@ -653,8 +756,66 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 			);
 		});
 
-		// append input area to dropdown
+		// append divider input area to dropdown
 		w4BM_settings_liElm.after(w4BM_divider_input_area);
+
+
+		// create the general area where the collections input will go
+		const w4BM_autoCollections_input_area = Object.assign(document.createElement(`li`), {
+			className: `w4BM_autoCollections_input_area`,
+			id: `w4BM_autoCollections_input_area`,
+			style: `padding-top: .75em;`,
+			innerHTML: `<p style='padding: .75em .5em .5em;'>List of collections (comma separated):<br /></p>`
+		});
+
+		// create the text input box for the comma separated list of collections
+		const w4BM_autoCollections_input_box = (function () {
+			let div_in_box = Object.assign(document.createElement(`input`), {
+				type: `text`,
+				id: `w4BM_autoCollections_input_box`,
+				name: `w4BM_autoCollections_input_box`,
+				style: `width: 16em; margin-left: 0.2em;`
+			});
+
+			div_in_box.setAttribute(`value`, localStorage.getItem(`w4BM_autoCollections`));
+
+			return div_in_box;
+		})();
+
+		// Add the text input box inside the input area
+		w4BM_autoCollections_input_area.append(w4BM_autoCollections_input_box);
+
+		// create divider input submit button
+		const w4BM_autoCollections_input_btn = Object.assign(document.createElement(`button`), {
+			id: `w4BM_autoCollections_input_btn`,
+			style: `margin-left: 0.3em;`,
+			innerHTML: `Enter`
+		});
+
+		// append divider input submit button
+		w4BM_autoCollections_input_box.after(w4BM_autoCollections_input_btn);
+
+		// make the divider input submit button actually do what it's supposed to
+		w4BM_autoCollections_input_btn.addEventListener(`click`, function () {
+			const input_value = document.querySelector(`#w4BM_autoCollections_input_box`).value.split(`,`).filter(elm => elm.length !== 0).map(elm => elm.trim()).join(`, `);
+			localStorage.setItem(`w4BM_autoCollections`, input_value);
+			console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+New value set for the 'autoCollections' variable in localStorage.
+New value:
+${input_value}`
+			);
+			alert(`w4tchdoge's AO3 Bookmark Maker
+New value set for the 'autoCollections' variable in localStorage.
+New value:
+${input_value}`
+			);
+		});
+
+		// append autocollections input area to dropdown
+		w4BM_divider_input_area.after(w4BM_autoCollections_input_area);
+
 
 		// create button - auto private bookmarks - yes
 		const w4BM_autoPrivate_yes = Object.assign(document.createElement(`li`), {
@@ -676,6 +837,50 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 		w4BM_autoPrivate_no.addEventListener(`click`, function (event) {
 			localStorage.setItem(`w4BM_autoPrivate`, true);
 			w4BM_autoPrivate_no.replaceWith(w4BM_autoPrivate_yes);
+		});
+
+		// create button - auto recommend bookmarks - yes
+		const w4BM_autoRecommend_yes = Object.assign(document.createElement(`li`), {
+			className: `w4BM_autoRecommend_yes`,
+			id: `w4BM_autoRecommend_yes`,
+			innerHTML: `<a>Auto Recommend Bookmarks: YES</a>`
+		});
+		w4BM_autoRecommend_yes.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_autoRecommend`, false);
+			w4BM_autoRecommend_yes.replaceWith(w4BM_autoRecommend_no);
+		});
+
+		// create button - auto recommend bookmarks - no
+		const w4BM_autoRecommend_no = Object.assign(document.createElement(`li`), {
+			className: `w4BM_autoRecommend_no`,
+			id: `w4BM_autoRecommend_no`,
+			innerHTML: `<a>Auto Recommend Bookmarks: NO</a>`
+		});
+		w4BM_autoRecommend_no.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_autoRecommend`, true);
+			w4BM_autoRecommend_no.replaceWith(w4BM_autoRecommend_yes);
+		});
+
+		// create button - auto autotag bookmarks - yes
+		const w4BM_autoAutoTag_yes = Object.assign(document.createElement(`li`), {
+			className: `w4BM_autoAutoTag_yes`,
+			id: `w4BM_autoAutoTag_yes`,
+			innerHTML: `<a>Auto-run AutoTag: YES</a>`
+		});
+		w4BM_autoAutoTag_yes.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_autoAutoTag`, false);
+			w4BM_autoAutoTag_yes.replaceWith(w4BM_autoAutoTag_no);
+		});
+
+		// create button - auto autotag bookmarks - no
+		const w4BM_autoAutoTag_no = Object.assign(document.createElement(`li`), {
+			className: `w4BM_autoAutoTag_no`,
+			id: `w4BM_autoAutoTag_no`,
+			innerHTML: `<a>Auto-run AutoTag: NO</a>`
+		});
+		w4BM_autoAutoTag_no.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_autoAutoTag`, true);
+			w4BM_autoAutoTag_no.replaceWith(w4BM_autoAutoTag_yes);
 		});
 
 		// create button - show AutoTag button - yes
@@ -843,6 +1048,22 @@ New value: '${input_value.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(
 				w4BM_dropMenu.append(w4BM_autoPrivate_no);
 			}
 
+			// auto recommending bookmarks
+			if (autoRecommend == true || autoRecommend == `true`) {
+				w4BM_dropMenu.append(w4BM_autoRecommend_yes);
+			}
+			else {
+				w4BM_dropMenu.append(w4BM_autoRecommend_no);
+			}
+
+			// auto autotagging bookmarks
+			if (autoAutoTag == true || autoAutoTag == `true`) {
+				w4BM_dropMenu.append(w4BM_autoAutoTag_yes);
+			}
+			else {
+				w4BM_dropMenu.append(w4BM_autoAutoTag_no);
+			}
+
 			// showing AutoTag button
 			if (showAutoTagButton == true || showAutoTagButton == `true`) {
 				w4BM_dropMenu.append(w4BM_showAutoTagButton_yes);
@@ -990,6 +1211,18 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		if (autoPrivate) { // for auto-privating your bookmarks
 			main.querySelector(`#bookmark_private`).checked = true;
 		}
+		if (autoRecommend) { // for auto-recommending your bookmarks
+			main.querySelector(`#bookmark_rec`).checked = true;
+		}
+
+		if (Boolean(autoCollections) == true) {
+			console.log(`AUTOCOLLECTIONS ARE DEFINED`);
+			const coll_lstor = localStorage.getItem(`w4BM_autoCollections`);
+			let coll_input = document.evaluate(`.//dd[count(preceding-sibling::dt[count(.//label[starts-with(@for,"bookmark_collection")]) > 0]) > 0]/ul/li/input`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+			coll_input.value = coll_lstor;
+		} else {
+			console.log(`AUTOCOLLECTIONS ARE NOT DEFINED`);
+		}
 
 		// Define variables used in date configuration
 		const
@@ -1077,6 +1310,11 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 
 			// Add click listener to autoTag_btn_elem
 			autoTag_btn_elem.addEventListener(`click`, AutoTag);
+
+			// for automatically triggering the autotag function
+			if (autoAutoTag) {
+				autoTag_btn_elem.click();
+			}
 		}
 
 
@@ -1757,7 +1995,10 @@ ${date_string}</details>`; */
 
 					}
 					// Catch any thrown error and fallback to hardcoded wordcounts when the above fails
-					catch (arrempty_error) { console.log(arrempty_error); return [1, 10, 20, 30, 50, 100, 150, 200, 500].map(x => x * 1000); }
+					catch (arrempty_error) {
+						console.error(arrempty_error);
+						return [1, 10, 20, 30, 50, 100, 150, 200, 500].map(x => x * 1000);
+					}
 
 				})();
 
