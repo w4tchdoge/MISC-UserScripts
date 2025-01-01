@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.11.1-20241029_214557
+// @version        2.12.0-20250101_203131
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -18,6 +18,7 @@
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @run-at         document-end
 // @license        GNU GPLv3
+// @history        2.12.0 — Add setting to toggle whether script always runs on any work page or only runs on the summary page of work
 // @history        2.11.1 — Add an exclude rule for compatibility with my go to latest chapter userscript
 // @history        2.11.0 — Add settings for automatically marking a bookmark as a rec, running autotag, and adding bookmark to collection(s)
 // @history        2.10.2 — Have the canon AO3 word count autotag method fetch the tags from the tag search page instead of hardcoding them. Fallback to the hardcoded values when something in the fetch fails
@@ -95,6 +96,7 @@
 		topSummaryPage: false,
 		simpleWorkSummary: false,
 		FWS_asBlockquote: true,
+		alwaysInjectBookmark: true,
 		AutoTag_type: 0,
 		splitSelect: 1,
 	};
@@ -192,6 +194,7 @@ Another way to explain it is that the script works by taking the current content
 		topSummaryPage,
 		simpleWorkSummary,
 		FWS_asBlockquote,
+		alwaysInjectBookmark,
 		AutoTag_type,
 		splitSelect,
 		workInfo;
@@ -522,6 +525,37 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 		}
 
 		// doing the same thing as the first if else on line 197
+		switch (Boolean(localStorage.getItem(`w4BM_alwaysInjectBookmark`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_alwaysInjectBookmark' is not set in the localStorage
+Now setting it to '${ini_settings_dict.alwaysInjectBookmark}'`
+				);
+
+				alwaysInjectBookmark = ini_settings_dict.alwaysInjectBookmark;
+				localStorage.setItem(`w4BM_alwaysInjectBookmark`, ini_settings_dict.alwaysInjectBookmark);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_alwaysInjectBookmark' IS SET in the localStorage`
+				);
+
+				alwaysInjectBookmark = stringToBoolean(localStorage.getItem(`w4BM_alwaysInjectBookmark`));
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_alwaysInjectBookmark`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 197
 		switch (Boolean(localStorage.getItem(`w4BM_AutoTag_type`))) {
 			case false:
 				console.log(`
@@ -610,8 +644,10 @@ Logging the current state of vars used by the script
 
 localStorage vars:`;
 
+	const log_string_localStorage_maxSpacing = Object.keys(ini_settings_dict).reduce((a, b) => a.length <= b.length ? b : a).length + 1
+
 	Object.keys(ini_settings_dict).forEach((key) => {
-		let spacing = 19 - key.toString().length;
+		let spacing = log_string_localStorage_maxSpacing - key.toString().length;
 		if (key == `divider`) {
 			log_string += `\n${key.toString()}${" ".repeat(spacing)}: ${localStorage.getItem(`w4BM_${key}`).replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}`;
 		} else {
@@ -622,15 +658,16 @@ localStorage vars:`;
 	log_string += `
 
 current script vars (list may be incomplete):
-divider           : ${divider.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}
-autoPrivate       : ${autoPrivate}
-showAutoTagButton : ${showAutoTagButton}
-bottomSummaryPage : ${bottomSummaryPage}
-topSummaryPage    : ${topSummaryPage}
-simpleWorkSummary : ${simpleWorkSummary}
-FWS_asBlockquote  : ${FWS_asBlockquote}
-AutoTag_type      : ${AutoTag_type}
-splitSelect       : ${splitSelect}`;
+divider              : ${divider.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}
+autoPrivate          : ${autoPrivate}
+showAutoTagButton    : ${showAutoTagButton}
+bottomSummaryPage    : ${bottomSummaryPage}
+topSummaryPage       : ${topSummaryPage}
+simpleWorkSummary    : ${simpleWorkSummary}
+FWS_asBlockquote     : ${FWS_asBlockquote}
+alwaysInjectBookmark : ${alwaysInjectBookmark}
+AutoTag_type         : ${AutoTag_type}
+splitSelect          : ${splitSelect}`;
 
 	console.log(log_string);
 
@@ -995,6 +1032,28 @@ ${input_value}`
 			w4BM_simpleWorkSummary_no.replaceWith(w4BM_simpleWorkSummary_yes);
 		});
 
+		// create button - always overwrite bookmark notes
+		const w4BM_alwaysInjectBookmark_no = Object.assign(document.createElement(`li`), {
+			className: `w4BM_alwaysInjectBookmark_no`,
+			id: `w4BM_alwaysInjectBookmark_no`,
+			innerHTML: `<a>Always run script on valid pages: NO</a>`
+		});
+		w4BM_alwaysInjectBookmark_no.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_alwaysInjectBookmark`, true);
+			w4BM_alwaysInjectBookmark_no.replaceWith(w4BM_alwaysInjectBookmark_yes);
+		});
+
+		// create button - don't always overwrite bookmark notes
+		const w4BM_alwaysInjectBookmark_yes = Object.assign(document.createElement(`li`), {
+			className: `w4BM_alwaysInjectBookmark_yes`,
+			id: `w4BM_alwaysInjectBookmark_yes`,
+			innerHTML: `<a>Always run script on valid pages: YES</a>`
+		});
+		w4BM_alwaysInjectBookmark_yes.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_alwaysInjectBookmark`, false);
+			w4BM_alwaysInjectBookmark_yes.replaceWith(w4BM_alwaysInjectBookmark_no);
+		});
+
 		// create button - use blockquotes when using fancy work summary
 		const w4BM_FWS_asBlockquote_yes = Object.assign(document.createElement(`li`), {
 			className: `w4BM_FWS_asBlockquote_yes`,
@@ -1113,6 +1172,13 @@ ${input_value}`
 				w4BM_dropMenu.append(w4BM_FWS_asBlockquote_no);
 			}
 
+			// always injecting into bookmark
+			if (alwaysInjectBookmark == true || alwaysInjectBookmark == `true`) {
+				w4BM_dropMenu.append(w4BM_alwaysInjectBookmark_yes);
+			} else {
+				w4BM_dropMenu.append(w4BM_alwaysInjectBookmark_no);
+			}
+
 			// setting the splitSelect
 			if (splitSelect == 1) {
 				w4BM_dropMenu.append(w4BM_splitSelect_1);
@@ -1126,9 +1192,12 @@ ${input_value}`
 
 	// ------------------------------------------------------
 
+	// move the summary page check into its own boolean variable because it's going to be used for more than just BSP_conditional and TSP_conditional
+	const on_summary_page = !Boolean(main.querySelector(`li.chapter.previous`));
+
 	const
-		BSP_conditional = (currPgURL.pathname.includes(`chapters`) && main.querySelector(`li.chapter.previous`) != null && bottomSummaryPage),
-		TSP_conditional = (currPgURL.pathname.includes(`chapters`) && main.querySelector(`li.chapter.previous`) != null && topSummaryPage);
+		BSP_conditional = (currPgURL.pathname.includes(`chapters`) && on_summary_page != null && bottomSummaryPage),
+		TSP_conditional = (currPgURL.pathname.includes(`chapters`) && on_summary_page != null && topSummaryPage);
 
 	console.log(`
 All conditions met for "Summary Page" button in the bottom nav bar?: ${BSP_conditional}
@@ -1201,14 +1270,27 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		entiWork_topnavBTN.after(top_sum_pg);
 	}
 
-	// make the bookmarking part of the script work only in places where you can make bookmarks
-	// this if statement was the easiest way i could think of (im lazy ok) to solve the problem of it erroring on the user preferences page
-	// oh and it also makes sure that the script only works and replaces your current bookmark with new text when a summary element exists
-	// (yet again, the easiest way i could think of to stop the script from replacing a summary with 'undefined')
 
-	// removed requirement for summary since some works dont have a summary
-	// old if: if ((currPgURL.includes(`works`) || currPgURL.includes(`series`)) && (!!document.getElementsByClassName(`summary`).length || document.evaluate(`.//*[@id="main"]//span[text()="Series"]`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue != undefined)) {
-	if ((currPgURL.pathname.includes(`works`) || currPgURL.pathname.includes(`series`))) {
+	// determine whether the current page is one where the bookmark script can run
+	// adds onto the old method of just checking whether the URL has works or series by also taking into account whether the user always wants the script to run
+	const script_execute_conditional = (() => {
+		const worksInURL = currPgURL.pathname.includes(`works`), seriesInURL = currPgURL.pathname.includes(`series`);
+		let output = Boolean(worksInURL || seriesInURL);
+
+		if (alwaysInjectBookmark == true) {
+			// output = Boolean(worksInURL || seriesInURL);
+			return output;
+		}
+		if (alwaysInjectBookmark == false) {
+			output = Boolean((worksInURL && on_summary_page) || seriesInURL);
+			return output;
+		}
+
+		// Fallback to the normal boolean expression in case the if statements dont run
+		return output;
+	})();
+
+	if (script_execute_conditional) {
 
 		if (autoPrivate) { // for auto-privating your bookmarks
 			main.querySelector(`#bookmark_private`).checked = true;
