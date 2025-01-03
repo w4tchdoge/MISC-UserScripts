@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.12.0-20250101_203131
+// @version        2.12.1-20250103_123810
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -18,6 +18,7 @@
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @run-at         document-end
 // @license        GNU GPLv3
+// @history        2.12.1 — Fix BSP_conditional and TSP_conditional always being true because it was checking for `on_summary_page != null` instead of `on_summary_page == false`
 // @history        2.12.0 — Add setting to toggle whether script always runs on any work page or only runs on the summary page of work
 // @history        2.11.1 — Add an exclude rule for compatibility with my go to latest chapter userscript
 // @history        2.11.0 — Add settings for automatically marking a bookmark as a rec, running autotag, and adding bookmark to collection(s)
@@ -644,7 +645,7 @@ Logging the current state of vars used by the script
 
 localStorage vars:`;
 
-	const log_string_localStorage_maxSpacing = Object.keys(ini_settings_dict).reduce((a, b) => a.length <= b.length ? b : a).length + 1
+	const log_string_localStorage_maxSpacing = Object.keys(ini_settings_dict).reduce((a, b) => a.length <= b.length ? b : a).length + 1;
 
 	Object.keys(ini_settings_dict).forEach((key) => {
 		let spacing = log_string_localStorage_maxSpacing - key.toString().length;
@@ -1196,8 +1197,8 @@ ${input_value}`
 	const on_summary_page = !Boolean(main.querySelector(`li.chapter.previous`));
 
 	const
-		BSP_conditional = (currPgURL.pathname.includes(`chapters`) && on_summary_page != null && bottomSummaryPage),
-		TSP_conditional = (currPgURL.pathname.includes(`chapters`) && on_summary_page != null && topSummaryPage);
+		BSP_conditional = (currPgURL.pathname.includes(`chapters`) && on_summary_page == false && bottomSummaryPage),
+		TSP_conditional = (currPgURL.pathname.includes(`chapters`) && on_summary_page == false && topSummaryPage);
 
 	console.log(`
 All conditions met for "Summary Page" button in the bottom nav bar?: ${BSP_conditional}
