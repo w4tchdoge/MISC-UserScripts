@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           MISC Image Utilities
 // @namespace      https://github.com/w4tchdoge
-// @version        3.5.1-20240101_193900
+// @version        3.5.2-20250111_180859
 // @description    Miscellaneous IMG related utilities
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -15,6 +15,7 @@
 // @grant          GM.registerMenuCommand
 // @require        https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @license        AGPL-3.0-or-later
+// @history        3.5.2 — Fix issue when encountering preview.redd.it image URLs with the post title in the URL pathname
 // @history        3.5.1 — Hard-disable script autorunning on Discord attachments
 // @history        3.5.0 — Overhaul script to use URL() function/method for parsing and making URLs
 // @history        3.4.0 — Added support for Discord banner images
@@ -115,13 +116,22 @@ if (currPG_URL.hostname.includes(`twimg`)) {
 
 if (currPG_URL.hostname == `preview.redd.it`) {
 	function i_redd_it_FixPreview() {
-		var init_url = new URL(window.location.href);
+		const init_url = window.location;
 
-		var new_url = new URL(`https://i.redd.it`);
+		if (ireddit_autofix == true) {
+			window.stop();
+		}
 
-		new_url.pathname = init_url.pathname;
+		// Extract just the filename from the path of a URL like https://preview.redd.it/gen-z-deciding-who-serves-and-who-protects-v0-117e4bxr7bce1.jpeg
+		const new_path = init_url.pathname.split(`/`).slice(-1).toString().split(/[\(\)_-]/).at(-1);
 
-		window.location.href = new_url;
+		const new_url = new URL(new_path, `https://i.redd.it`);
+
+		if (ireddit_autofix == true) {
+			window.location.replace(new_url);
+		} else {
+			window.location.href = new_url;
+		}
 	}
 
 	GM.registerMenuCommand(`Reddit – preview.redd.it → i.redd.it`, i_redd_it_FixPreview);
