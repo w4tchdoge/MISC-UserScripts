@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Old Reddit: Download IMG post with title
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0-20250127_232735
+// @version        1.1.0-20250128_142504
 // @description    Add a button next to the IMG domain to download the IMG with the post title, old reddit shortlink ID, and IMG name in the output filename
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -9,8 +9,13 @@
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/refs/heads/main/Old_RDT_DL_IMG_w_info.user.js
 // @match          *://www.reddit.com/r/*/comments/*
 // @match          *://old.reddit.com/r/*/comments/*
-// @license        AGPL-3.0-or-later
+// @grant          GM_xmlhttpRequest
+// @grant          GM.xmlhttpRequest
+// @connect        redd.it
+// @connect        i.imgur.com
 // @run-at         document-start
+// @license        AGPL-3.0-or-later
+// @history        1.1.0 — Switch to using xmlhttpRequest function from the userscript extension instead of fetch in order to bypass CORS
 // @history        1.0.0 — Initial script release
 // ==/UserScript==
 
@@ -43,11 +48,22 @@
 	// https://bobbyhadz.com/blog/javascript-download-image#how-to-download-images-using-javascript
 	// and
 	// https://stackoverflow.com/a/68722398/11750206
-	async function downloadImage(img_src, dl_name) {
+	async function downloadImage(img_src, dl_name, curl_ver = LATEST_CURL_VER) {
 
-		// Get image from source link as a blob
-		const resp = await fetch(img_src);
-		const img_blob = await resp.blob();
+		// get image from source link as a blob via xmlHttpRequest
+		// and create an object url from the blob so the script can download it
+		const resp = await GM.xmlHttpRequest(
+			{
+				method: `GET`,
+				url: img_src,
+				responseType: `blob`,
+				headers: {
+					"Accept": `image/avif, image/webp, image/apng, */*;q=0.8`,
+					"User-Agent": `curl/${curl_ver}`
+				}
+			}
+		);
+		const img_blob = await resp.response;
 		const img_href = URL.createObjectURL(img_blob);
 
 		// make an anchor elm with the blob image and a filename to be downloaded with
@@ -73,6 +89,17 @@
 	})();
 
 	if (OLD_REDDIT == true) {
+
+		// get the latest curl version to be used as a header in the xmlHttpRequest
+		const LATEST_CURL_VER = await (async () => {
+			const gh_api_resp = await fetch(`https://api.github.com/repos/curl/curl/releases/latest`,
+				{ headers: { 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } }
+			);
+			const gh_api_resp_json = await gh_api_resp.json();
+			const curl_ver = gh_api_resp_json.name;
+			return curl_ver;
+		})();
+
 		const input_elm = await waitForElm(`div[role="main"] a.title`);
 
 		const [img_url, post_title_safe, filename] = ((input_elm) => {
@@ -98,7 +125,7 @@
 			innerHTML: ` (<a>DL IMG</a>)`
 		});
 		img_dl_btn.addEventListener(`click`, function (event) {
-			downloadImage(img_url, dl_filename_str)
+			downloadImage(img_url, dl_filename_str, LATEST_CURL_VER)
 				.then(() => { console.log(`The image in the reddit post with ID [${shortlink_id}] has been downloaded`); })
 				.catch(err => { console.log(`Error encouterer while downloading the image in the reddit post with ID [${shortlink_id}]`, err); });
 		});
