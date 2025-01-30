@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           MISC Image Utilities
 // @namespace      https://github.com/w4tchdoge
-// @version        3.5.2-20250111_180859
+// @version        3.5.3-20250111_230345
 // @description    Miscellaneous IMG related utilities
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -15,6 +15,7 @@
 // @grant          GM.registerMenuCommand
 // @require        https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @license        AGPL-3.0-or-later
+// @history        3.5.3 — Make Discord IMG fix compatible with the "new" Discord IMG search params
 // @history        3.5.2 — Fix issue when encountering preview.redd.it image URLs with the post title in the URL pathname
 // @history        3.5.1 — Hard-disable script autorunning on Discord attachments
 // @history        3.5.0 — Overhaul script to use URL() function/method for parsing and making URLs
@@ -30,28 +31,39 @@ const ireddit_autofix = true;
 const currPG_URL = new URL(window.location.href);
 
 function generic_Discord_IMG_Fix(x) {
-	var init_url = new URL(window.location.href),
-		new_url = new URL(`https://cdn.discordapp.com`),
-		file_extension;
+	const init_url = new URL(window.location);
+	let file_extension;
 
 	if (Boolean(x)) {
 		file_extension = x;
 	} else {
-		file_extension = init_url.pathname.split('.')[1].toString();
+		file_extension = init_url.pathname.split('.').at(1).toString();
 	}
 
-	new_url.pathname = `${init_url.pathname.split('.')[0]}.${file_extension}`;
-
-	const search_params = {
+	const usr_search_params = {
 		size: `4096`,
 		quality: `lossless`
 	};
 
-	Object.entries(search_params).forEach(
-		([k, v]) => {
-			new_url.searchParams.append(k, v);
-		}
-	);
+	const search_params = (() => {
+		let output_search_params = new URLSearchParams();
+		const init_search_params = Object.fromEntries(init_url.searchParams.entries());
+
+		Object.entries(usr_search_params).forEach(
+			([k, v]) => {
+				output_search_params.append(k, v);
+			}
+		);
+		Object.entries(init_search_params).forEach(
+			([k, v]) => {
+				output_search_params.append(k, v);
+			}
+		);
+
+		return output_search_params.toString();
+	})();
+
+	const new_url = new URL(`${init_url.pathname.split('.').at(0)}.${file_extension}?${search_params}&`, `https://${init_url.hostname}`);
 
 	return new_url;
 }
