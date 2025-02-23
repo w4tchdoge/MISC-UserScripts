@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.12.1-20250103_123810
+// @version        2.13.0-20250223_193216
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -18,6 +18,7 @@
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @run-at         document-end
 // @license        GNU GPLv3
+// @history        2.13.0 — Add a new default variable title_HTML that can be used in the workInfo customisation function. for more details about title_HTML please refer to the "USER CONFIGURABLE SETTINGS" section at the bottom of the script
 // @history        2.12.1 — Fix BSP_conditional and TSP_conditional always being true because it was checking for `on_summary_page != null` instead of `on_summary_page == false`
 // @history        2.12.0 — Add setting to toggle whether script always runs on any work page or only runs on the summary page of work
 // @history        2.11.1 — Add an exclude rule for compatibility with my go to latest chapter userscript
@@ -39,7 +40,7 @@
 // @history        2.6.3 — Fix some minor messups I made in 2.6.2 before they break something or the other
 // @history        2.6.2 — Fix author_HTML only retrieving the first author in multi-author works/series
 // @history        2.6.1 — Fixes incompatibilty with users's skins caused by not using cloneNode(true) when retrieving relationship tags and subsequently removing all classes from them. credit to @notdoingthateither on Greasy Fork for the fix
-// @history        2.6.0 — Add a new default variable author_HTML that can be used in the workInfo customisation function. for more details about author_HTML please refer to line 1496
+// @history        2.6.0 — Add a new default variable author_HTML that can be used in the workInfo customisation function. for more details about author_HTML please refer to line 1871
 // @history        2.5.0 — Add toggle in the dropdown present on the user's preferences page for showing/not showing the AutoTag button when making/editing a bookmark
 // @history        2.4.5 — Add exlude rule for pages listing bookmarks as the script isn't designed to run on those pages
 // @history        2.4.4 — Add a fallback for retrieving the "Entire Work" button in case it's been modified but is still somewhat recognisable in the DOM
@@ -126,7 +127,7 @@ If false, retrieves the work summary in a way (which I call the fancy way) that 
 
 
 FWS_asBlockquote      : If using the fancy work summary method, set whether you want to retrieve the summary as a blockquote.
-For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 1308
+For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 1697
 
 
 AutoTag_type          : Determines how the AutoTag function works.
@@ -246,7 +247,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 197
+		// doing the same thing as the first if else on line 233
 		switch (Boolean(localStorage.getItem(`w4BM_autoPrivate`))) {
 			case false:
 				console.log(`
@@ -277,7 +278,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 197
+		// doing the same thing as the first if else on line 233
 		switch (Boolean(localStorage.getItem(`w4BM_autoRecommend`))) {
 			case false:
 				console.log(`
@@ -308,7 +309,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 197
+		// doing the same thing as the first if else on line 233
 		switch (Boolean(localStorage.getItem(`w4BM_autoAutoTag`))) {
 			case false:
 				console.log(`
@@ -339,7 +340,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 197
+		// doing the same thing as the first if else on line 233
 		switch (Boolean(localStorage.getItem(`w4BM_autoCollections`))) {
 			case false:
 				console.log(`
@@ -370,7 +371,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 197
+		// doing the same thing as the first if else on line 233
 		switch (Boolean(localStorage.getItem(`w4BM_showAutoTagButton`))) {
 			case false:
 				console.log(`
@@ -401,7 +402,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 197
+		// doing the same thing as the first if else on line 233
 		switch (Boolean(localStorage.getItem(`w4BM_bottomSummaryPage`))) {
 			case false:
 				console.log(`
@@ -432,7 +433,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 197
+		// doing the same thing as the first if else on line 233
 		switch (Boolean(localStorage.getItem(`w4BM_topSummaryPage`))) {
 			case false:
 				console.log(`
@@ -463,7 +464,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 197
+		// doing the same thing as the first if else on line 233
 		switch (Boolean(localStorage.getItem(`w4BM_simpleWorkSummary`))) {
 			case false:
 				console.log(`
@@ -494,7 +495,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 197
+		// doing the same thing as the first if else on line 233
 		switch (Boolean(localStorage.getItem(`w4BM_FWS_asBlockquote`))) {
 			case false:
 				console.log(`
@@ -525,7 +526,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 197
+		// doing the same thing as the first if else on line 233
 		switch (Boolean(localStorage.getItem(`w4BM_alwaysInjectBookmark`))) {
 			case false:
 				console.log(`
@@ -556,7 +557,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 197
+		// doing the same thing as the first if else on line 233
 		switch (Boolean(localStorage.getItem(`w4BM_AutoTag_type`))) {
 			case false:
 				console.log(`
@@ -587,7 +588,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 197
+		// doing the same thing as the first if else on line 233
 		switch (Boolean(localStorage.getItem(`w4BM_splitSelect`))) {
 			case false:
 				console.log(`
@@ -1275,7 +1276,10 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 	// determine whether the current page is one where the bookmark script can run
 	// adds onto the old method of just checking whether the URL has works or series by also taking into account whether the user always wants the script to run
 	const script_execute_conditional = (() => {
-		const worksInURL = currPgURL.pathname.includes(`works`), seriesInURL = currPgURL.pathname.includes(`series`);
+		const
+			worksInURL = currPgURL.pathname.includes(`works`),
+			seriesInURL = currPgURL.pathname.includes(`series`);
+
 		let output = Boolean(worksInURL || seriesInURL);
 
 		if (alwaysInjectBookmark == true) {
@@ -1364,6 +1368,14 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			}
 		}
 
+		function FindID(search_term) {
+			const currPg_pathname_arr = currPgURL.pathname.split(`/`);
+			const pathname_idx = currPg_pathname_arr.indexOf(`${search_term}`);
+
+			const AO3_id = currPg_pathname_arr.at(parseInt(pathname_idx + 1)).toString();
+			return AO3_id;
+		}
+
 		// Make the button used in Auto Tag
 		if (document.querySelector(`#bookmark-form`) && showAutoTagButton) {
 
@@ -1408,16 +1420,20 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 
 		// Extract all details used in bookmark configuration and assign them to variables
 
-		const title = (function () {
+		const [title, title_HTML] = (function () {
 			if (seriesTrue != undefined) {
 				// Retrieve series title
 				const srs_title = main.querySelector(`:scope > h2.heading`).textContent.trim();
-				return srs_title;
+				const srs_title_HTML = `<a href="/series/${FindID(`series`)}">${srs_title}</a>`;
+
+				return [srs_title, srs_title_HTML];
 			}
 			else {
 				// Retrieve work title
 				const wrk_title = main.querySelector(`#workskin .title.heading`).textContent.trim();
-				return wrk_title;
+				const wrk_title_HTML = `<a href="/works/${FindID(`works`)}">${wrk_title}</a>`;
+
+				return [wrk_title, wrk_title_HTML];
 			}
 		})();
 
@@ -1783,21 +1799,6 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		})();
 
 		const ws_id = (function () {
-			function FindID(search_term) {
-				const currPg_pathname_arr = currPgURL.pathname.split(`/`);
-				// let results = [];
-				let pathname_idx = currPg_pathname_arr.indexOf(`${search_term}`);
-
-				// while (pathname_idx !== -1) {
-				// 	results.push(pathname_idx);
-				// 	pathname_idx = currPg_pathname_arr.indexOf(`${search_term}`, pathname_idx + 1);
-				// }
-
-				// const AO3_id = currPg_pathname_arr.at(parseInt(results[0] + 1)).toString();
-				const AO3_id = currPg_pathname_arr.at(parseInt(pathname_idx + 1)).toString();
-				return AO3_id;
-			}
-
 			if (seriesTrue != undefined) {
 				const srs_AO3_id = FindID(`series`);
 				return srs_AO3_id;
@@ -1865,6 +1866,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		Variables that can be used when creating the string for newBookmarkNotes:
 		- date_string               // String to show when the work was last read – User configurable in the Date configuration sub-section
 		- title                     // Title of the work or series
+		- title_HTML                // Title of the work or series, as an HTML <a> element (a link). e.g. the title_HTML string for AO3 work 54769867 would be '<a href="/works/54769867">Glass Cannon</a>'
 		- author                    // Author of the work or series
 		- author_HTML               // Author of the work or series, as an HTML <a> element (a link). e.g. the author_HTML string for AO3 work 54769867 would be '<a rel="author" href="/users/nescias/pseuds/nescias">nescias</a>'
 		- AO3_status                // Status of the work or series. i.e. Completed: 2020-08-23, Updated: 2022-05-08, Published: 2015-06-29
@@ -1939,7 +1941,7 @@ Date String Generated: ${date_string}`
 		// new_notes = `${workInfo}\n\n${curr_notes}`
 
 		workInfo = `<details><summary>Work/Series Details</summary>
-\t${title} by ${author_HTML}
+\t${title_HTML} by ${author_HTML}
 \t${AO3_status}
 \tWork/Series ID: ${ws_id}
 \t${relationships}
