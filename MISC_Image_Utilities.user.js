@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           MISC Image Utilities
 // @namespace      https://github.com/w4tchdoge
-// @version        3.5.3-20250111_230345
+// @version        3.5.4-20250207_193332
 // @description    Miscellaneous IMG related utilities
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -15,6 +15,7 @@
 // @grant          GM.registerMenuCommand
 // @require        https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @license        AGPL-3.0-or-later
+// @history        3.5.4 — Switch the order of Discord search params that get added to the new URL so that my ones can override any existing ones
 // @history        3.5.3 — Make Discord IMG fix compatible with the "new" Discord IMG search params
 // @history        3.5.2 — Fix issue when encountering preview.redd.it image URLs with the post title in the URL pathname
 // @history        3.5.1 — Hard-disable script autorunning on Discord attachments
@@ -49,21 +50,21 @@ function generic_Discord_IMG_Fix(x) {
 		let output_search_params = new URLSearchParams();
 		const init_search_params = Object.fromEntries(init_url.searchParams.entries());
 
-		Object.entries(usr_search_params).forEach(
-			([k, v]) => {
-				output_search_params.append(k, v);
-			}
-		);
 		Object.entries(init_search_params).forEach(
 			([k, v]) => {
-				output_search_params.append(k, v);
+				output_search_params.set(k, v);
+			}
+		);
+		Object.entries(usr_search_params).forEach(
+			([k, v]) => {
+				output_search_params.set(k, v);
 			}
 		);
 
 		return output_search_params.toString();
 	})();
 
-	const new_url = new URL(`${init_url.pathname.split('.').at(0)}.${file_extension}?${search_params}&`, `https://${init_url.hostname}`);
+	const new_url = new URL(`${init_url.pathname.split('.').at(0)}.${file_extension}?${search_params}`, `https://${init_url.hostname}`);
 
 	return new_url;
 }
