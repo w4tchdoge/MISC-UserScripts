@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3 Formatted Copy
 // @namespace      https://github.com/w4tchdoge
-// @version        2.6.1-20240806_115253
+// @version        2.7.0-20250223_195541
 // @description    Copy the curretly open AO3 work in the folloring MarkDown format '- [work name](work url) – [author name](author url) — '
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -18,6 +18,7 @@
 // @grant          GM.registerMenuCommand
 // @require        https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @license        AGPL-3.0-or-later
+// @history        2.7.0 — Add Initially Read Formatted Copy functionality
 // @history        2.6.1 — Fix the already read chapters input in re-read function not being padded correctly
 // @history        2.6.0 — Cleanup; Add feature to re-read that adds how many chapters have already beed re-read
 // @history        2.5.1 — Fix script not running on series pages
@@ -281,7 +282,7 @@ ${performance.now() - s_t} ms
 			);
 
 			/* Paste final MD formatted text to clipboard */
-			GM_setClipboard(final_out);
+			GM.setClipboard(final_out);
 			console.log(
 				`
 final_out pasted to clipboard
@@ -435,7 +436,7 @@ ${performance.now() - s_t} ms
 			);
 
 			/* Paste final MD formatted text to clipboard */
-			GM_setClipboard(srs_f_o);
+			GM.setClipboard(srs_f_o);
 			console.log(
 				`
 final_out pasted to clipboard
@@ -544,7 +545,7 @@ ${performance.now() - s_t} ms
 			);
 
 			/* Paste final MD formatted text to clipboard */
-			GM_setClipboard(final_out);
+			GM.setClipboard(final_out);
 			console.log(
 				`
 final_out pasted to clipboard
@@ -689,7 +690,7 @@ ${performance.now() - s_t} ms
 			);
 
 			/* Paste final MD formatted text to clipboard */
-			GM_setClipboard(final_out);
+			GM.setClipboard(final_out);
 			console.log(
 				`
 final_out pasted to clipboard
@@ -744,7 +745,101 @@ ${performance.now() - s_t} ms
 		);
 
 		/* Paste final MD formatted text to clipboard */
-		GM_setClipboard(final_out);
+		GM.setClipboard(final_out);
+		console.log(
+			`
+final_out pasted to clipboard
+------------------------
+Time Elapsed:
+${performance.now() - s_t} ms
+———————————————————————————`
+		);
+	}
+
+	function IniRead_Frmt_Copy() {
+
+		const
+			re_se_si = /^(\d(?:\d+)?)$/,                          /* Regex for matching single chapter input */
+			re_se_mu = /^(\d(?:\d+)?)\D(?:\D+)?(\d(?:\d+)?)$/;    /* Regex for matching multiple chapter input */
+
+		const s_t = performance.now();
+
+		const iniread_start_end = (() => {
+			let user_input = prompt(
+				`Input start and end chapter numbers for initially read chapters in the form:
+		'start_#, end_#'`
+			);
+			while ((re_se_mu.test(user_input) || re_se_si.test(user_input)) == false && user_input != -1) {
+				user_input = prompt(
+					`Incorrect input, try again.
+
+		Input start and end chapter numbers for re-read in the form: 'start_#, end_#'`
+				);
+			}
+
+			if (user_input == -1) {
+				throw new Error("UserScript execution cancelled");
+			}
+
+			try {
+				user_input = JSON.parse(`[${user_input.replace(re_se_mu, `$1,$2`)}]`);
+			} catch (SyntaxError) {
+				user_input = JSON.parse(`[${parseInt(user_input)}]`);
+			}
+
+			return user_input;
+		})();
+
+		const chap_str_pad_amt = GetPadAmt(iniread_start_end);
+		const chap_str = iniread_start_end.map(input => input.toString().padStart(chap_str_pad_amt, `0`)).join(` - `);
+
+		const days_ago = Math.abs(parseInt(prompt(`How many days ago was this initially read?`, 1)));
+		const prev_date = ((d) => {
+			const date = new Date(d.setDate(d.getDate() - days_ago));
+			const date_str = `${date.getFullYear()}/${((date.getMonth()) + 1).toString().padStart(2, `0`)}/${date.getDate().toString().padStart(2, `0`)}`;
+			return date_str;
+		})((new Date()));
+
+		console.log(
+			`
+Beginning execution of AO3 Formatted Copy Shortcut (UserScript)
+------------------------
+Time Elapsed:
+${performance.now() - s_t} ms
+———————————————————————————`
+		);
+
+		console.log(
+			`
+Executing Initially Read Formatting for \"Works\"
+------------------------
+Time Elapsed:
+${performance.now() - s_t} ms
+———————————————————————————`
+		);
+
+		const { work_title, work_url, authors } = AO3_genWork_Copy(s_t);
+
+		let bookmark_link = `Bookmark Link`;
+
+		if (re_bmk_url_1.test(curr_page_url.href)) { bookmark_link = `[Bookmark Link](${document.querySelector(`li > [id^="bookmark_form_trigger"]`).href.replace(`/edit`, ``)})`; }
+		if (re_bmk_url_2.test(curr_page_url.href)) { bookmark_link = `[Bookmark Link](${curr_page_url.href.toString()})`; }
+
+		/* Generate final MD formatted text */
+		const final_out = `- [${work_title}](${work_url}) – ${authors.join(`, `)} —— ${bookmark_link}
+\t- Chapter ${chap_str} –– Initially Read on ${prev_date}`.replace(re_mu, `\\$4`);
+		console.log(
+			`
+Final Clipboard:
+${final_out}
+------------------------
+Time Elapsed:
+${performance.now() - s_t} ms
+———————————————————————————`
+		);
+
+		/* Paste final MD formatted text to clipboard */
+		GM.setClipboard(final_out);
 		console.log(
 			`
 final_out pasted to clipboard
@@ -776,5 +871,6 @@ ${performance.now() - s_t} ms
 	/* Add Options to the Tampermonkey Popup Menu to execute each function */
 	GM.registerMenuCommand(`Copy Work w/ re-read formatting`, AO3_Reread_Format_Copy);
 	GM.registerMenuCommand(`Copy Work w/ Note Formatting`, NoteSection_Frmt_Copy);
+	GM.registerMenuCommand(`Copy Work w/ Initially Read Formatting`, IniRead_Frmt_Copy);
 
 })();
