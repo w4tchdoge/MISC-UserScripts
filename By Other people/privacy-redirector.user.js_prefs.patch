@@ -1,0 +1,98 @@
+diff --git a/../../privacy-redirector/privacy-redirector.user.js b/privacy-redirector.user.js
+index b933f27..58fbb60 100644
+--- a/../../privacy-redirector/privacy-redirector.user.js
++++ b/privacy-redirector.user.js
+@@ -125,32 +125,32 @@ PARTICULAR PLATFORM */
+ 
+ //           REDIRECTON / FARSIDE
+ 
+-let bandcamp = [true, true];
++let bandcamp = [false, false];
+ let deepl = [false, true]; // Mozhi Deepl engine doesn't work
+-let deviantart = [true, false];
++let deviantart = [false, false];
+ let fandom = [true, true];
+-let genius = [true, true];
+-let goodreads = [true, false];
+-let google = [true, true];
+-let gtranslate = [true, true];
+-let hackernews = [true, true];
+-let imdb = [true, true];
+-let imgur = [true, false];
+-let instagram = [true, true];
+-let medium = [true, true];
++let genius = [false, false];
++let goodreads = [false, false];
++let google = [false, false];
++let gtranslate = [false, false];
++let hackernews = [false, false];
++let imdb = [false, false];
++let imgur = [false, false];
++let instagram = [false, false];
++let medium = [false, false];
+ let pinterest = [true, true];
+-let pixiv = [true, true];
+-let quora = [true, false];
+-let reddit = [true, false];
+-let reuters = [true, true];
+-let soundcloud = [true, true];
+-let stackoverflow = [true, true];
++let pixiv = [false, false];
++let quora = [false, false];
++let reddit = [false, false];
++let reuters = [false, false];
++let soundcloud = [false, false];
++let stackoverflow = [false, false];
+ let tiktok = [true, false];
+-let tumblr = [true, false];
+-let twitch = [true, true];
+-let twitter = [true, true];
+-let wikipedia = [true, false];
+-let youtube = [true, false];
++let tumblr = [false, false];
++let twitch = [false, false];
++let twitter = [false, false];
++let wikipedia = [false, false];
++let youtube = [false, false];
+ 
+ // PREFERRED FRONTEND
+ let youtubeFrontend = "freetube"; // accepts "invidious", "piped", "tubo", "freetube"
+@@ -225,21 +225,24 @@ const Instances = {
+     "bn.opnxng.com",
+     "bn.vern.cc",
+   ],
++//  breezewiki: [
++//    "breezewiki.com",
++//    "antifandom.com",
++//    "breezewiki.pussthecat.org",
++//    "bw.hamstro.dev",
++//    "bw.projectsegfau.lt",
++//    "breeze.hostux.net",
++//    "bw.artemislena.eu",
++//    "breezewiki.woodland.cafe",
++//    "breeze.nohost.network",
++//    "z.opnxng.com",
++//    "breezewiki.catsarch.com",
++//    "breeze.mint.lgbt",
++//    "breezewiki.lunar.icu",
++//    "fandom.adminforge.de",
++//  ],
+   breezewiki: [
+-    "breezewiki.com",
+-    "antifandom.com",
+-    "breezewiki.pussthecat.org",
+-    "bw.hamstro.dev",
+-    "bw.projectsegfau.lt",
+-    "breeze.hostux.net",
+-    "bw.artemislena.eu",
+-    "breezewiki.woodland.cafe",
+-    "breeze.nohost.network",
+-    "z.opnxng.com",
+-    "breezewiki.catsarch.com",
+-    "breeze.mint.lgbt",
+-    "breezewiki.lunar.icu",
+-    "fandom.adminforge.de",
++    "breezewiki.hyperreal.coffee",
+   ],
+   dumb: [
+     "dumb.privacydev.net",
