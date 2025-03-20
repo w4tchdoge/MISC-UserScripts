@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3: Add button to Show Bookmark
 // @namespace      https://github.com/w4tchdoge
-// @version        2.0.2-20240612_153032
+// @version        2.1.0-20250320_085258
 // @description    Adds a "Show Bookmark" button before the "Edit Bookmark" button on the page where you view a work's bookmarks
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -9,10 +9,12 @@
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Show_Bookmark_btn.user.js
 // @match          *://archiveofourown.org/*chapters/*
 // @match          *://archiveofourown.org/*works/*
+// @match          *://archiveofourown.org/*series/*
 // @match          *://archiveofourown.org/*/bookmarks
 // @match          *://archiveofourown.org/bookmarks*
 // @exclude        *://archiveofourown.org/*works/*/navigate
 // @license        AGPL-3.0-or-later
+// @history        2.1.0 — Add "User Bookmark" button to the series page
 // @history        2.0.2 — Move the detection of whether the work is bookmarked to the start of the script instead of making it part of what the bookmarks page fetch does. This is to make sure the bookmarks page is only fetched when the user has the work bookmarked
 // @history        2.0.1 — Add exclude rule so that userscript doesn't run on /navigate pages
 // @history        2.0.0 — Add a link to view a user's bookmark in the stats area that is present when viewing a chapter (https://i.imgur.com/a5O1lpD.png)
@@ -25,8 +27,51 @@
 (async function () {
 	`use strict`;
 
+	async function respText(url) {
+		const fetch_resp = await fetch(url);
+		const resp_text = await fetch_resp.text();
+		return resp_text;
+	}
+
+	function respText2bkmrkUrl(resp) {
+		const html_parser = new DOMParser();
+		const html_bookmark_page_html = html_parser.parseFromString(resp, `text/html`);
+		// console.log(html_bookmark_page_html);
+		const edit_bookmark_elem = html_bookmark_page_html.querySelector(`a[id^="bookmark_form_trigger"]`).cloneNode();
+		const show_bookmark_href = edit_bookmark_elem.getAttribute(`href`).split(/\/edit/i).at(0);
+		return show_bookmark_href;
+	}
+
+	function genUserBookmarkElms(bkmrk_href) {
+		const dt_elem = Object.assign(document.createElement(`dt`), {
+			id: `show_user_bookmark_dt`,
+			className: `user_bookmark`,
+			innerHTML: `User Bookmark:`
+		});
+
+		const dd_elem = Object.assign(document.createElement(`dd`), {
+			className: `user_bookmark`,
+			id: `show_user_bookmark_dd`,
+			innerHTML: (() => {
+				const element = Object.assign(document.createElement(`a`), {
+					href: `${bkmrk_href}`,
+					id: `show_user_bookmark_a`,
+					innerHTML: `View`
+				});
+				return element.outerHTML;
+			})()
+		});
+
+		return [dt_elem, dd_elem];
+	}
+
+
 	const current_page_url = new URL(window.location);
-	
+
+	const
+		is_pg_wrk = (current_page_url.pathname.includes(`works`) || current_page_url.pathname.includes(`chapters`)),
+		is_pg_srs = current_page_url.pathname.includes(`series`);
+
 	const bkmrk_page_check = current_page_url.pathname.includes(`bookmarks`);
 
 	const is_work_bookmarked = (() => {
@@ -43,7 +88,7 @@
 	})();
 
 
-	if (bkmrk_page_check && Boolean(document.querySelector(`a[id^="bookmark_form_trigger"]`))) {
+	if (is_pg_wrk && bkmrk_page_check && Boolean(document.querySelector(`a[id^="bookmark_form_trigger"]`))) {
 
 		// create array of the parent elements of the li element that makes up the native edit bookmark buttons
 		const existing_edit_btns = Array.from(document.querySelectorAll(`*:has(> li > [id^="bookmark_form_trigger"][href*="edit"])`));
@@ -98,7 +143,7 @@ No "Edit Bookmark" buttons exist on this page.`
 		}
 	}
 
-	if (!bkmrk_page_check && Boolean(document.querySelector(`dd.bookmarks a`)) && !is_work_bookmarked) {
+	if (is_pg_wrk && !bkmrk_page_check && Boolean(document.querySelector(`dd.bookmarks a`)) && !is_work_bookmarked) {
 
 		// console.log(`branch B`);
 
@@ -108,67 +153,58 @@ User does not have the work bookmarked.`
 		);
 	}
 
-	if (!bkmrk_page_check && Boolean(document.querySelector(`dd.bookmarks a`)) && is_work_bookmarked) {
+	if (is_pg_wrk && !bkmrk_page_check && Boolean(document.querySelector(`dd.bookmarks a`)) && is_work_bookmarked) {
 
 		// console.log(`branch A`);
 
 		const bookmark_page_href = document.querySelector(`dd.bookmarks a`).getAttribute(`href`);
-
-		const bkmrk_fetch_resp_txt = await (async () => {
-			const fetch_resp = await fetch(bookmark_page_href);
-			const resp_text = await fetch_resp.text();
-			return resp_text;
-		})();
-
+		const bkmrk_fetch_resp_txt = await respText(bookmark_page_href);
 		// console.log(bkmrk_fetch_resp_txt);
-		const html_parser = new DOMParser();
-		const html_bookmark_page_html = html_parser.parseFromString(bkmrk_fetch_resp_txt, `text/html`);
-		// console.log(html_bookmark_page_html);
-		const edit_bookmark_elem = html_bookmark_page_html.querySelector(`a[id^="bookmark_form_trigger"]`).cloneNode();
-
-		// console.log(edit_bookmark_elem);
-
-		// const work_is_already_bookmarked = edit_bookmark_elem.href.includes(`edit`);
-		// if (!work_is_already_bookmarked) {
-		// console.log(`
-		// Add "Show Bookmark" Button userscript:
-		// User does not have the work bookmarked.`
-		// );
-		// }
-		// if (work_is_already_bookmarked) {
 
 		console.log(`
 Add "Show Bookmark" Button userscript:
 User has the work bookmarked.`
 		);
+
 		const
-			show_bookmark_href = edit_bookmark_elem.getAttribute(`href`).split(/\/edit/i).at(0),
+			show_bookmark_href = respText2bkmrkUrl(bkmrk_fetch_resp_txt),
 			all_public_bkmrks_link = document.querySelector(`.work.meta.group dl.stats dd[class^="bookmark"]:has(>a)`);
 
 		// console.log(show_bookmark_href);
 
-		const dt_user_bookmark_elem = Object.assign(document.createElement(`dt`), {
-			id: `show_user_bookmark_dt`,
-			className: `user_bookmark`,
-			innerHTML: `User Bookmark:`
-		});
-
-		const dd_user_bookmark_elem = Object.assign(document.createElement(`dd`), {
-			className: `user_bookmark`,
-			id: `show_user_bookmark_dd`,
-			innerHTML: (() => {
-				const element = Object.assign(document.createElement(`a`), {
-					href: `${show_bookmark_href}`,
-					id: `show_user_bookmark_a`,
-					innerHTML: `View`
-				});
-				return element.outerHTML;
-			})()
-		});
+		const [dt_user_bookmark_elem, dd_user_bookmark_elem] = genUserBookmarkElms(show_bookmark_href);
 
 		all_public_bkmrks_link.after(dt_user_bookmark_elem, dd_user_bookmark_elem);
 
-		// }
+	}
+
+	if (is_pg_srs && Boolean(document.querySelector(`dl.series.meta.group > dd.stats dd.bookmarks > a`)) && !is_work_bookmarked) {
+		console.log(`
+Add "Show Bookmark" Button userscript:
+User does not have the series bookmarked.`
+		);
+	}
+
+	if (is_pg_srs && Boolean(document.querySelector(`dl.series.meta.group > dd.stats dd.bookmarks > a`)) && is_work_bookmarked) {
+
+		const bookmark_page_href = document.querySelector(`dl.series.meta.group > dd.stats dd.bookmarks > a`).getAttribute(`href`);
+		const bkmrk_fetch_resp_txt = await respText(bookmark_page_href);
+		// console.log(bkmrk_fetch_resp_txt);
+
+		console.log(`
+Add "Show Bookmark" Button userscript:
+User has the work bookmarked.`
+		);
+
+		const
+			show_bookmark_href = respText2bkmrkUrl(bkmrk_fetch_resp_txt),
+			all_public_bkmrks_link = document.querySelector(`dl.series.meta.group dl.stats > dd[class^="bookmark"]:has(>a)`);
+
+		// console.log(show_bookmark_href);
+
+		const [dt_user_bookmark_elem, dd_user_bookmark_elem] = genUserBookmarkElms(show_bookmark_href);
+
+		all_public_bkmrks_link.after(dt_user_bookmark_elem, dd_user_bookmark_elem);
 
 	}
 
