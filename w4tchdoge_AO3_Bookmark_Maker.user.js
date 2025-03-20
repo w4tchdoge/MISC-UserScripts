@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.13.0-20250223_193216
+// @version        2.14.0-20250321_062814
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -18,6 +18,7 @@
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @run-at         document-end
 // @license        GNU GPLv3
+// @history        2.14.0 — Add option for AutoTag to include the fandom of the work/series when autotagging (https://greasyfork.org/en/scripts/467885/discussions/291232); Add new variable `title_URL` which is just the URL of the work/series as plaintext (https://greasyfork.org/en/scripts/467885/discussions/290711); Make the title of each work in `series_works_titles_summaries` a hyperlink to the work (https://greasyfork.org/en/scripts/467885/discussions/290546); Add new work-only variable `series_link` which add information about any series' the work may be a part of (https://greasyfork.org/en/scripts/467885/discussions/290546)
 // @history        2.13.0 — Add a new default variable title_HTML that can be used in the workInfo customisation function. for more details about title_HTML please refer to the "USER CONFIGURABLE SETTINGS" section at the bottom of the script
 // @history        2.12.1 — Fix BSP_conditional and TSP_conditional always being true because it was checking for `on_summary_page != null` instead of `on_summary_page == false`
 // @history        2.12.0 — Add setting to toggle whether script always runs on any work page or only runs on the summary page of work
@@ -93,6 +94,7 @@
 		autoRecommend: false,
 		autoAutoTag: false,
 		autoCollections: ``,
+		includeFandom: false,
 		showAutoTagButton: true,
 		bottomSummaryPage: true,
 		topSummaryPage: false,
@@ -191,6 +193,7 @@ Another way to explain it is that the script works by taking the current content
 		autoRecommend,
 		autoAutoTag,
 		autoCollections,
+		includeFandom,
 		showAutoTagButton,
 		bottomSummaryPage,
 		topSummaryPage,
@@ -368,6 +371,37 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 
 			default:
 				console.log(`Error in retrieving localStorage variable w4BM_autoCollections`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 233
+		switch (Boolean(localStorage.getItem(`w4BM_includeFandom`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_includeFandom' is not set in the localStorage
+Now setting it to '${ini_settings_dict.includeFandom}'`
+				);
+
+				includeFandom = ini_settings_dict.includeFandom;
+				localStorage.setItem(`w4BM_includeFandom`, ini_settings_dict.includeFandom);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_includeFandom' IS SET in the localStorage`
+				);
+
+				includeFandom = localStorage.getItem(`w4BM_includeFandom`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_includeFandom`);
 				break;
 		}
 
@@ -627,6 +661,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 		autoRecommend = ini_settings_dict.autoRecommend;
 		autoAutoTag = ini_settings_dict.autoAutoTag;
 		autoCollections = ini_settings_dict.autoCollections;
+		includeFandom = ini_settings_dict.includeFandom;
 		showAutoTagButton = ini_settings_dict.showAutoTagButton;
 		bottomSummaryPage = ini_settings_dict.bottomSummaryPage;
 		topSummaryPage = ini_settings_dict.topSummaryPage;
@@ -946,6 +981,28 @@ ${input_value}`
 			w4BM_showAutoTagButton_no.replaceWith(w4BM_showAutoTagButton_yes);
 		});
 
+		// create button - include fandom in AutoTag - yes
+		const w4BM_includeFandomButton_yes = Object.assign(document.createElement(`li`), {
+			className: `w4BM_includeFandomButton_yes`,
+			id: `w4BM_includeFandomButton_yes`,
+			innerHTML: `<a>Include Fandom on AutoTag: YES</a>`
+		});
+		w4BM_includeFandomButton_yes.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_includeFandom`, false);
+			w4BM_includeFandomButton_yes.replaceWith(w4BM_includeFandomButton_no);
+		});
+
+		// create button - include fandom in AutoTag - no
+		const w4BM_includeFandomButton_no = Object.assign(document.createElement(`li`), {
+			className: `w4BM_includeFandomButton_no`,
+			id: `w4BM_includeFandomButton_no`,
+			innerHTML: `<a>Include Fandom on AutoTag: NO</a>`
+		});
+		w4BM_includeFandomButton_no.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_includeFandom`, true);
+			w4BM_includeFandomButton_no.replaceWith(w4BM_includeFandomButton_yes);
+		});
+
 		// create button - AutoTag type 0
 		const w4BM_AutoTagType_0 = Object.assign(document.createElement(`li`), {
 			className: `w4BM_AutoTagType_0`,
@@ -1133,6 +1190,13 @@ ${input_value}`
 			}
 			else {
 				w4BM_dropMenu.append(w4BM_showAutoTagButton_no);
+			}
+
+			//
+			if (includeFandom == true || includeFandom == `true`) {
+				w4BM_dropMenu.append(w4BM_includeFandomButton_yes);
+			} else {
+				w4BM_dropMenu.append(w4BM_includeFandomButton_no);
 			}
 
 			// choosing AutoTag type button
@@ -1420,20 +1484,22 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 
 		// Extract all details used in bookmark configuration and assign them to variables
 
-		const [title, title_HTML] = (function () {
+		const [title, title_HTML, title_URL] = (function () {
 			if (seriesTrue != undefined) {
 				// Retrieve series title
 				const srs_title = main.querySelector(`:scope > h2.heading`).textContent.trim();
 				const srs_title_HTML = `<a href="/series/${FindID(`series`)}">${srs_title}</a>`;
+				const srs_URL = `https://archiveofourown.org/series/${FindID(`series`)}`;
 
-				return [srs_title, srs_title_HTML];
+				return [srs_title, srs_title_HTML, srs_URL];
 			}
 			else {
 				// Retrieve work title
 				const wrk_title = main.querySelector(`#workskin .title.heading`).textContent.trim();
 				const wrk_title_HTML = `<a href="/works/${FindID(`works`)}">${wrk_title}</a>`;
+				const wrk_URL = `https://archiveofourown.org/works/${FindID(`works`)}`;
 
-				return [wrk_title, wrk_title_HTML];
+				return [wrk_title, wrk_title_HTML, wrk_URL];
 			}
 		})();
 
@@ -1742,10 +1808,11 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 					let srs_work_sum = summary_default_value;
 					const workname = (() => {
 						try {
-							let work_title = child.querySelector(`.heading a[href*="works"]`).innerText;
+							const work_title_elm = child.querySelector(`.heading a[href*="works"]`);
+							const work_title = `<a href="${work_title_elm.getAttribute(`href`)}">${work_title_elm.innerText}</a>`;
 							return work_title;
 						} catch (error) {
-							let work_title = child.querySelector(`.header > h4.heading`).innerText;
+							const work_title = child.querySelector(`.header > h4.heading`).innerText;
 							return work_title;
 						}
 					})();
@@ -1795,6 +1862,27 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 				// Retrieve work work count
 				const wrk_words = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
 				return wrk_words;
+			}
+		})();
+
+		const series_link = (function () {
+			if (seriesTrue != undefined) { // blank for series pages
+				return '';
+			}
+			else {
+				// Get series text elem
+				const work_series_info =
+					Array
+						.from(main.querySelectorAll(`dl.work.meta.group > dd.series > span.series > span.position`))
+						.map(elm => `• ${elm.innerHTML}`);
+				if (work_series_info.length > 0) {
+					const output = `<details><summary>Work's Series</summary>
+${work_series_info.join(`\n`)}
+</details>`;
+					return output;
+				} else {
+					return '';
+				}
 			}
 		})();
 
@@ -1867,6 +1955,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		- date_string               // String to show when the work was last read – User configurable in the Date configuration sub-section
 		- title                     // Title of the work or series
 		- title_HTML                // Title of the work or series, as an HTML <a> element (a link). e.g. the title_HTML string for AO3 work 54769867 would be '<a href="/works/54769867">Glass Cannon</a>'
+		- title_URL                 // The URL of the work/series being bookmarked as plaintext
 		- author                    // Author of the work or series
 		- author_HTML               // Author of the work or series, as an HTML <a> element (a link). e.g. the author_HTML string for AO3 work 54769867 would be '<a rel="author" href="/users/nescias/pseuds/nescias">nescias</a>'
 		- AO3_status                // Status of the work or series. i.e. Completed: 2020-08-23, Updated: 2022-05-08, Published: 2015-06-29
@@ -1880,6 +1969,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 
 		Variables specific to works:
 		- lastChapter               // Last published chapter of the work or series
+		- series_link               // Info about the series' the work belongs to
 		- fform_tags_list_HTML      // The freeform tags of a work as links in a list similar to that in the relationships variable
 		- fform_tags_list_TXT       // The freeform tags of a work as plaintext (so you don't run into the character limit) in a list similar to that in the relationships variable
 		- fform_tags_comma_HTML     // The freeform tags of a work as comma separated links
@@ -2010,21 +2100,41 @@ ${date_string}</details>`; */
 				return input >= minimum && input <= maximum;
 			}
 
+			// Find User Tags input box
 			let tag_input_box = document.querySelector('.input #bookmark_tag_string_autocomplete');
+
+			// Make array of everything that will go into the aforementionedinput box
+			let tag_inputs = [autotag_status];
+
+			// Get word count of work/series
+			const AT_words = (function () {
+				let
+					AT_words_XPath = './/*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd',
+					AT_words = document.evaluate(AT_words_XPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.toString().replaceAll(/[, \s]/gi, '');
+
+				AT_words = parseInt(AT_words);
+				return AT_words;
+			})();
+
+			if (includeFandom === true || includeFandom === `true`) {
+				if (seriesTrue != undefined) { // Check if current page is a series
+					const fandoms_set = new Set(Array.from(main.querySelectorAll(`.header.module .fandoms > a.tag`)).map(elm => elm.textContent.trim()));
+					// console.log(fandoms_set);
+					fandoms_set.forEach(elm => tag_inputs.push(elm));
+				} else {
+					const fandoms_set = new Set(Array.from(main.querySelectorAll(`dl.work.meta.group > dd.fandom > ul.commas > li > a.tag`)).map(elm => elm.textContent.trim()));
+					// console.log(fandoms_set);
+					fandoms_set.forEach(elm => {
+						// console.log(elm);
+						tag_inputs.push(elm);
+					});
+				}
+			}
 
 			// Original AutoTag Behaviour
 			// As suggested by `oliver t` @ https://greasyfork.org/en/scripts/467885/discussions/198028
 			if (inRange(AutoTag_type, 0, 1) && AutoTag_type == 0) {
 				let word_count_tag = ``;
-
-				const AT_words = (function () {
-					let
-						AT_words_XPath = './/*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd',
-						AT_words = document.evaluate(AT_words_XPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.toString().replaceAll(/[, \s]/gi, '');
-
-					AT_words = parseInt(AT_words);
-					return AT_words;
-				})();
 
 				// Define Word Count Tag
 				// In case you want to add more tags or change the word count range for each tag,
@@ -2037,23 +2147,13 @@ ${date_string}</details>`; */
 				if (AT_words < 30000 && AT_words >= 15000) { word_count_tag = 'Word Count: 15000 to 29999'; }
 				if (AT_words >= 30000) { word_count_tag = 'Word Count: Greater than 30000'; }
 
-				// Put the Auto Tags into the User Tags field
-				tag_input_box.value = `${autotag_status}, ${word_count_tag}`;
+				// Add the autotag to the array of inputs
+				tag_inputs.push(word_count_tag);
 			}
 
 			// AutoTag using canonical AO3 "Wordcount Over *" tags for the word count
 			// As suggested by `prismbox` @ https://greasyfork.org/en/scripts/467885/discussions/255399
 			if (inRange(AutoTag_type, 0, 1) && AutoTag_type == 1) {
-				let word_count_tag_arr = [];
-
-				const AT_words = (function () {
-					let
-						AT_words_XPath = './/*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd',
-						AT_words = document.evaluate(AT_words_XPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.toString().replaceAll(/[, \s]/gi, '');
-
-					AT_words = parseInt(AT_words);
-					return AT_words;
-				})();
 
 				const canon_AO3_wc_lims = await (async () => {
 					// Try to fetch the "Canon AO3 Wordcount Over *" tag page to get the canon wordcounts
@@ -2094,17 +2194,21 @@ ${date_string}</details>`; */
 				// here are some recourses on how comparators work in JavaScript:
 				// StackOverflow answer that shows you how equalities work: https://stackoverflow.com/a/14718577/11750206
 				// An overview of JavaScript's Comparison and Logical Operators: https://www.w3schools.com/js/js_comparisons.asp
+
+				// Add word count tags directly into the tag_inputs array
 				canon_AO3_wc_lims.forEach(element => {
 					if (AT_words > element) {
-						word_count_tag_arr.push(`Wordcount: Over ${(new Intl.NumberFormat({ style: `decimal` }).format(element)).replaceAll(`,`, `.`)}`);
+						tag_inputs.push(`Wordcount: Over ${(new Intl.NumberFormat({ style: `decimal` }).format(element)).replaceAll(`,`, `.`)}`);
 					}
 				});
-
-				// Put the Auto Tags into the User Tags field
-				tag_input_box.value = `${autotag_status}, ${word_count_tag_arr.join(`, `)}`;
 			}
 
 			if (!inRange(AutoTag_type, 0, 1)) { console.log(`AutoTag_type is not between 0 and 1. Please contact me (the script author) on GreasyFork for troubleshooting`); }
+
+			// console.log(tag_inputs);
+
+			// Add all values in the tag_inputs variable to the User Tags input box
+			tag_input_box.value = tag_inputs.join(`, `);
 
 		}
 
