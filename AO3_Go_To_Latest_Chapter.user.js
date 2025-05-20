@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name           AO3: Go To to Latest Chapter
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0-20241029_212556
-// @description    Adds a link to the chapter navigation bar to go to the latest chapter of a work. Alternative method is to add `/latest` to the end of an AO3 work URL. e.g. https://archiveofourown.org/works/{AO3_WORK_ID}/chapters/{AO3_CHAPTER_ID}#workskin/latest
+// @version        1.1.0-20250520_131637
+// @description    Adds a link to the chapter navigation bar to go to the latest chapter of a work. Alternative method is to add `/latest` to the end of an AO3 work URL. e.g. https://archiveofourown.org/works/{AO3_WORK_ID}/chapters/{AO3_CHAPTER_ID}/latest
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Go_To_Latest_Chapter.user.js
@@ -13,6 +13,7 @@
 // @exclude        *://archiveofourown.org/*works/*/navigate
 // @license        AGPL-3.0-or-later
 // @run-at         document-start
+// @history        1.1.0 — Use the chapter index dropdown to get the latest chapter ID when already viewing a multi chapter work instead of making an fetch request to the work's /navigate page
 // @history        1.0.0 — Move the `latest_url` stuff to a function. Comment the code to the point where hopefully someone that doesn't know JS can understand what it's doing. Clean up old commented code that's no longer used. Add a description
 // @history        0.0.1 — Initial commit
 // ==/UserScript==
@@ -105,6 +106,9 @@
 	}
 	else { // If URL doesn't end in latest
 
+		// Get the current page's hostname
+		const curr_pg_hostname = (new URL(window.location)).hostname;
+
 		// Wait for the main content of the webpage to be loaded into the DOM
 		const main = await waitForElm(`#main`);
 
@@ -114,8 +118,13 @@
 		// Check to see if this is the latest chapter by checking for the presense of the 'Next Chapter →' button
 		if (work_nav_actions.querySelector(`.chapter.next`)) { // If not on latest chapter
 
-			// Get URL for the latest chapter
-			const latest_url = await getLatestURL(work_id);
+			// Get latest chapter ID & current work ID from DOM
+			const
+				latest_ch_id = work_nav_actions.querySelector(`#chapter_index form select#selected_id > option:last-of-type`).getAttribute(`value`),
+				curr_work_id = work_nav_actions.querySelector(`#chapter_index form`).getAttribute(`action`).split(`/`).filter(e => e).at(1);
+
+			// Construct URL for the latest chapter
+			const latest_url = new URL(`works/${curr_work_id}/chapters/${latest_ch_id}`, `https://${curr_pg_hostname}`);
 
 			// Get next chapter elements
 			const next_chapter_elm_arr = Array.from(main.querySelectorAll(`li`)).filter(elm => elm.textContent === `Next Chapter →`);
@@ -140,7 +149,7 @@
 
 				return base_elm;
 
-			})(next_chapter_elm_arr[0]);
+			})(next_chapter_elm_arr.at(0));
 
 			// console.log(latest_chapter_elm);
 
