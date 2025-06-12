@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.14.1-20250323_121532
+// @version        2.15.0-20250612_141358
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -18,6 +18,7 @@
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @run-at         document-end
 // @license        GNU GPLv3
+// @history        2.15.0 — Add ability to include whether the work is a part of a series when Auto Tagging (defaults to off). Add new default workInfo variable `part_of_series` which is a string that shows what series a work is a part of and at what position of the series.
 // @history        2.14.1 — Fix autoAutoTag not working when user has IncludeFandom set to true
 // @history        2.14.0 — Add option for AutoTag to include the fandom of the work/series when autotagging (https://greasyfork.org/en/scripts/467885/discussions/291232); Add new variable `title_URL` which is just the URL of the work/series as plaintext (https://greasyfork.org/en/scripts/467885/discussions/290711); Make the title of each work in `series_works_titles_summaries` a hyperlink to the work (https://greasyfork.org/en/scripts/467885/discussions/290546); Add new work-only variable `series_link` which add information about any series' the work may be a part of (https://greasyfork.org/en/scripts/467885/discussions/290546)
 // @history        2.13.0 — Add a new default variable title_HTML that can be used in the workInfo customisation function. for more details about title_HTML please refer to the "USER CONFIGURABLE SETTINGS" section at the bottom of the script
@@ -97,6 +98,7 @@
 		autoCollections: ``,
 		includeFandom: false,
 		showAutoTagButton: true,
+		seriesAutoTag: false,
 		bottomSummaryPage: true,
 		topSummaryPage: false,
 		simpleWorkSummary: false,
@@ -114,7 +116,22 @@ divider               : String which is used to indicate where the bookmark shou
 autoPrivate           : If true, automatically checks the checkbox to private the bookmark
 
 
+autoRecommend         : If true, automatically checks the checkbox to mark the bookmark as a recommend
+
+
+autoAutoTag           : If true, attempts to automatically run the Auto Tag function. Will NOT work if showAutoTagButton is false as it just automatically clicks the button provided by the showAutoTagButton
+
+
+autoCollections       : A comma seperated list of names of collections you would like to add to the bookmark
+
+
+includeFandom         : If true, include the fandom(s) of the work/series as user tags when running the Auto Tag function
+
+
 showAutoTagButton     : If true, shows the "Auto Tag" button when bookmarking a work
+
+
+seriesAutoTag         : If true, if the work is a part of a series adds the string "Series" to the user tags when running the Auto Tag function
 
 
 bottomSummaryPage     : If true, checks if the current page is an entire work page or a work page that is not on the first chapter.
@@ -196,6 +213,7 @@ Another way to explain it is that the script works by taking the current content
 		autoCollections,
 		includeFandom,
 		showAutoTagButton,
+		seriesAutoTag,
 		bottomSummaryPage,
 		topSummaryPage,
 		simpleWorkSummary,
@@ -438,6 +456,37 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 		}
 
 		// doing the same thing as the first if else on line 233
+		switch (Boolean(localStorage.getItem(`w4BM_seriesAutoTag`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_seriesAutoTag' is not set in the localStorage
+Now setting it to '${ini_settings_dict.seriesAutoTag}'`
+				);
+
+				seriesAutoTag = ini_settings_dict.seriesAutoTag;
+				localStorage.setItem(`w4BM_seriesAutoTag`, ini_settings_dict.seriesAutoTag);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_seriesAutoTag' IS SET in the localStorage`
+				);
+
+				seriesAutoTag = stringToBoolean(localStorage.getItem(`w4BM_seriesAutoTag`));
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_seriesAutoTag`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 233
 		switch (Boolean(localStorage.getItem(`w4BM_bottomSummaryPage`))) {
 			case false:
 				console.log(`
@@ -664,6 +713,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 		autoCollections = ini_settings_dict.autoCollections;
 		includeFandom = ini_settings_dict.includeFandom;
 		showAutoTagButton = ini_settings_dict.showAutoTagButton;
+		seriesAutoTag = ini_settings_dict.seriesAutoTag;
 		bottomSummaryPage = ini_settings_dict.bottomSummaryPage;
 		topSummaryPage = ini_settings_dict.topSummaryPage;
 		simpleWorkSummary = ini_settings_dict.simpleWorkSummary;
@@ -698,7 +748,12 @@ localStorage vars:`;
 current script vars (list may be incomplete):
 divider              : ${divider.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}
 autoPrivate          : ${autoPrivate}
+autoRecommend        : ${autoRecommend}
+autoAutoTag          : ${autoAutoTag}
+autoCollections      : ${autoCollections}
+includeFandom        : ${includeFandom}
 showAutoTagButton    : ${showAutoTagButton}
+seriesAutoTag        : ${seriesAutoTag}
 bottomSummaryPage    : ${bottomSummaryPage}
 topSummaryPage       : ${topSummaryPage}
 simpleWorkSummary    : ${simpleWorkSummary}
@@ -982,6 +1037,28 @@ ${input_value}`
 			w4BM_showAutoTagButton_no.replaceWith(w4BM_showAutoTagButton_yes);
 		});
 
+		// create button - show AutoTag button - yes
+		const w4BM_seriesAutoTag_yes = Object.assign(document.createElement(`li`), {
+			className: `w4BM_seriesAutoTag_yes`,
+			id: `w4BM_seriesAutoTag_yes`,
+			innerHTML: `<a>Autotag, Work is Part of a Series: YES</a>`
+		});
+		w4BM_seriesAutoTag_yes.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_seriesAutoTag`, false);
+			w4BM_seriesAutoTag_yes.replaceWith(w4BM_seriesAutoTag_no);
+		});
+
+		// create button - show AutoTag button - no
+		const w4BM_seriesAutoTag_no = Object.assign(document.createElement(`li`), {
+			className: `w4BM_seriesAutoTag_no`,
+			id: `w4BM_seriesAutoTag_no`,
+			innerHTML: `<a>Autotag, Work is Part of a Series: NO</a>`
+		});
+		w4BM_seriesAutoTag_no.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_seriesAutoTag`, true);
+			w4BM_seriesAutoTag_no.replaceWith(w4BM_seriesAutoTag_yes);
+		});
+
 		// create button - include fandom in AutoTag - yes
 		const w4BM_includeFandomButton_yes = Object.assign(document.createElement(`li`), {
 			className: `w4BM_includeFandomButton_yes`,
@@ -1191,6 +1268,14 @@ ${input_value}`
 			}
 			else {
 				w4BM_dropMenu.append(w4BM_showAutoTagButton_no);
+			}
+
+			// showing seriesAutoTag button
+			if (seriesAutoTag == true || seriesAutoTag == `true`) {
+				w4BM_dropMenu.append(w4BM_seriesAutoTag_yes);
+			}
+			else {
+				w4BM_dropMenu.append(w4BM_seriesAutoTag_no);
 			}
 
 			//
@@ -1588,6 +1673,19 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			}
 		})();
 
+		const part_of_series = (function () {
+			if (seriesTrue != undefined) { return ``; }
+			else {
+				const series_pos = main.querySelector(`dl.work.meta.group > dd.series span.position`);
+				if (Boolean(series_pos)) {
+					const series_pos_str = series_pos.innerHTML.toString();
+					return series_pos_str;
+				} else {
+					return ``;
+				}
+			}
+		})();
+
 		const relationships = (function () {
 			if (seriesTrue != undefined) {
 				// Get all relationship tags present in series' works and add them to series bookmark
@@ -1935,6 +2033,13 @@ ${work_series_info.join(`\n`)}
 		// define autotag_status for use in AutoTag()
 		const autotag_status = StatusForAutoTag();
 
+		// define autotag_series for use in AutoTag()
+		// autotag_series indicates whether the work is part of a series or not
+		const autotag_series = (function () {
+			if (seriesTrue != undefined) { return false; }
+			else { return (Boolean(main.querySelector(`dl.work.meta.group > dd.series`))); }
+		})();
+
 
 		/* ///////////////// USER CONFIGURABLE SETTINGS ///////////////// */
 		/*
@@ -1964,6 +2069,7 @@ ${work_series_info.join(`\n`)}
 		- series_works_titles_summaries    // Adds all of the summaries of the works in the series to the series bookmark
 
 		Variables specific to works:
+		- part_of_series            // Adds AO3's part of series indicator to the bookmark. i.e. a string in the vein of "Part X of Y" where Y is a hyperlink to the series on AO3
 		- lastChapter               // Last published chapter of the work or series
 		- series_link               // Info about the series' the work belongs to
 		- fform_tags_list_HTML      // The freeform tags of a work as links in a list similar to that in the relationships variable
@@ -2027,7 +2133,8 @@ Date String Generated: ${date_string}`
 		// new_notes = `${workInfo}\n\n${curr_notes}`
 
 		workInfo = `<details><summary>Work/Series Details</summary>
-\t${title_HTML} by ${author_HTML}
+\t${title_HTML} by ${author_HTML}${(() => { if (part_of_series != ``) { return `\n\t${part_of_series}`; } else { return ``; } })()}
+
 \t${AO3_status}
 \tWork/Series ID: ${ws_id}
 \t${relationships}
@@ -2044,7 +2151,8 @@ ${date_string}</details>`;
 		// new_notes = `${workInfo}\n\n${curr_notes}`
 
 		/* workInfo = `<details><summary>Work/Series Details</summary>
-\t${title} by ${author_HTML}
+\t${title_HTML} by ${author_HTML}${(() => { if (part_of_series != ``) { return `\n\t${part_of_series}`; } else { return ``; } })()}
+
 \t${AO3_status}
 \tWork/Series ID: ${ws_id}
 \t${relationships}
@@ -2061,7 +2169,8 @@ ${date_string}</details>`;
 		// new_notes = `${curr_notes}<br />\n${workInfo}`
 
 		/* workInfo = `<details><summary>Work/Series Details</summary>
-\t${title} by ${author_HTML}
+\t${title_HTML} by ${author_HTML}${(() => { if (part_of_series != ``) { return `\n\t${part_of_series}`; } else { return ``; } })()}
+
 \t${AO3_status}
 \tWork/Series ID: ${ws_id}
 \t${relationships}
@@ -2078,7 +2187,8 @@ ${date_string}</details>`; */
 		// new_notes = `${curr_notes}<br />\n${workInfo}`
 
 		/* workInfo = `<details><summary>Work/Series Details</summary>
-\t${title} by ${author_HTML}
+\t${title_HTML} by ${author_HTML}${(() => { if (part_of_series != ``) { return `\n\t${part_of_series}`; } else { return ``; } })()}
+
 \t${AO3_status}
 \tWork/Series ID: ${ws_id}
 \t${relationships}
@@ -2101,6 +2211,9 @@ ${date_string}</details>`; */
 
 			// Make array of everything that will go into the aforementionedinput box
 			let tag_inputs = [autotag_status];
+
+			// Add the string "Series" to tag_inputs if work is a series
+			if (autotag_series && seriesAutoTag) { tag_inputs.push(`Series`); }
 
 			// Get word count of work/series
 			const AT_words = (function () {
