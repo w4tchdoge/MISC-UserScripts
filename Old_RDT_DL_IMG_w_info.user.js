@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Old Reddit: Download IMG post with title
 // @namespace      https://github.com/w4tchdoge
-// @version        1.1.0-20250128_142504
+// @version        1.2.0-20250611_220824
 // @description    Add a button next to the IMG domain to download the IMG with the post title, old reddit shortlink ID, and IMG name in the output filename
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -15,6 +15,7 @@
 // @connect        i.imgur.com
 // @run-at         document-start
 // @license        AGPL-3.0-or-later
+// @history        1.2.0 — Add subreddit name to the filename
 // @history        1.1.0 — Switch to using xmlhttpRequest function from the userscript extension instead of fetch in order to bypass CORS
 // @history        1.0.0 — Initial script release
 // ==/UserScript==
@@ -102,6 +103,12 @@
 
 		const input_elm = await waitForElm(`div[role="main"] a.title`);
 
+		const subname = await (async () => {
+			const subnameA = await waitForElm(`span.redditname > a`);
+			const subnameText = subnameA.textContent.trim();
+			return subnameText;
+		})();
+
 		const [img_url, post_title_safe, filename] = ((input_elm) => {
 
 			const img_url = input_elm.href.toString();
@@ -117,7 +124,7 @@
 			return slid;
 		})();
 
-		const dl_filename_str = `${post_title_safe} - reddit ${shortlink_id} - ${filename}`;
+		const dl_filename_str = `${post_title_safe} - reddit ${shortlink_id} [${subname}] - ${filename}`;
 
 		const img_dl_btn = Object.assign(document.createElement(`span`), {
 			className: `domain`,
