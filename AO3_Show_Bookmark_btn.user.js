@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3: Add button to Show Bookmark
 // @namespace      https://github.com/w4tchdoge
-// @version        2.1.0-20250320_085258
+// @version        2.1.1-20250706_201420
 // @description    Adds a "Show Bookmark" button before the "Edit Bookmark" button on the page where you view a work's bookmarks
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -14,6 +14,7 @@
 // @match          *://archiveofourown.org/bookmarks*
 // @exclude        *://archiveofourown.org/*works/*/navigate
 // @license        AGPL-3.0-or-later
+// @history        2.1.1 — Fix script not working on the user's bookmarks page
 // @history        2.1.0 — Add "User Bookmark" button to the series page
 // @history        2.0.2 — Move the detection of whether the work is bookmarked to the start of the script instead of making it part of what the bookmarks page fetch does. This is to make sure the bookmarks page is only fetched when the user has the work bookmarked
 // @history        2.0.1 — Add exclude rule so that userscript doesn't run on /navigate pages
@@ -69,7 +70,6 @@
 	const current_page_url = new URL(window.location);
 
 	const
-		is_pg_wrk = (current_page_url.pathname.includes(`works`) || current_page_url.pathname.includes(`chapters`)),
 		is_pg_srs = current_page_url.pathname.includes(`series`);
 
 	const bkmrk_page_check = current_page_url.pathname.includes(`bookmarks`);
@@ -88,7 +88,7 @@
 	})();
 
 
-	if (is_pg_wrk && bkmrk_page_check && Boolean(document.querySelector(`a[id^="bookmark_form_trigger"]`))) {
+	if (!is_pg_srs && bkmrk_page_check && Boolean(document.querySelector(`a[id^="bookmark_form_trigger"]`))) {
 
 		// create array of the parent elements of the li element that makes up the native edit bookmark buttons
 		const existing_edit_btns = Array.from(document.querySelectorAll(`*:has(> li > [id^="bookmark_form_trigger"][href*="edit"])`));
@@ -143,7 +143,7 @@ No "Edit Bookmark" buttons exist on this page.`
 		}
 	}
 
-	if (is_pg_wrk && !bkmrk_page_check && Boolean(document.querySelector(`dd.bookmarks a`)) && !is_work_bookmarked) {
+	if (!is_pg_srs && !bkmrk_page_check && Boolean(document.querySelector(`dd.bookmarks a`)) && !is_work_bookmarked) {
 
 		// console.log(`branch B`);
 
@@ -153,7 +153,7 @@ User does not have the work bookmarked.`
 		);
 	}
 
-	if (is_pg_wrk && !bkmrk_page_check && Boolean(document.querySelector(`dd.bookmarks a`)) && is_work_bookmarked) {
+	if (!is_pg_srs && !bkmrk_page_check && Boolean(document.querySelector(`dd.bookmarks a`)) && is_work_bookmarked) {
 
 		// console.log(`branch A`);
 
