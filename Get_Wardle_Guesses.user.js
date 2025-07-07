@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Copy Wardle Guesses
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0-20240924_214547
+// @version        1.0.1-20250616_022536
 // @description    Copies a list of your Wardle guesses (spoilered for Discord) to your clipboard
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -56,7 +56,7 @@
 		// guess_table;
 
 		// let names_elm_arr = Array.from(guess_table.querySelectorAll(`div.vehicle-name`)).reverse();
-		const names_txt_arr = Array.from(guess_table.querySelectorAll(`div.vehicle-name`), elm => elm.textContent.trim()).reverse();
+		const names_txt_arr = Array.from(guess_table.querySelectorAll(`div[tooltip-data]:has(img[alt="Guessed vehicle"])`), elm => elm.getAttribute(`tooltip-data`).trim()).reverse();
 
 		const nations_txt_arr = (() => {
 
@@ -175,7 +175,7 @@ ${cliptext}`);
 
 	}
 
-	const share_row = await waitForElmXPATH(`.//div[contains(concat(" ",normalize-space(@class)," ")," shareWidget ")]/div[contains(concat(" ",normalize-space(@class)," ")," flex-row ")][count(.//button[count(.//p[contains(concat(" ",normalize-space(@class)," ")," font-bold ")]) > 0][count(preceding-sibling::a) > 0 or count(following-sibling::a) > 0]) > 0]`);
+	const share_row = await waitForElmXPATH(`.//div[contains(concat(" ",normalize-space(@class)," ")," shareWidget ")]/div[contains(@class,"flex-row")][count(.//p[contains(concat(" ",normalize-space(@class)," ")," font-bold ")][contains(normalize-space(),SHARE)]) > 0]`);
 
 	const userscript_share_row = Object.assign(share_row.cloneNode(false), {
 		innerHTML: `<button class="flex flex-row items-center justify-center rounded-2xl bg-secondary-background p-3 text-text-color transition delay-100 duration-300 ease-in-out hover:scale-110 hover:bg-blue-600 md:p-4"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" class="mr-3 h-6 w-6 md:h-9 md:w-9 iconify iconify--mdi" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2m-7 0a1 1 0 0 1 1 1a1 1 0 0 1-1 1a1 1 0 0 1-1-1a1 1 0 0 1 1-1M7 7h10V5h2v14H5V5h2z"></path></svg><p class="font-bold tracking-wider md:text-lg">COPY GUESSES\n(DISCORD)</p></button>`
