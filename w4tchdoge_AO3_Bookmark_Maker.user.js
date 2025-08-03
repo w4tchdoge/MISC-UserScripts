@@ -1,23 +1,24 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.15.0-20250612_141358
+// @version        2.16.0-20250803_171037
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/w4tchdoge_AO3_Bookmark_Maker.user.js
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/w4tchdoge_AO3_Bookmark_Maker.user.js
-// @match          *://archiveofourown.org/*chapters/*
+// @match          *://archiveofourown.org/users/*/preferences*
 // @match          *://archiveofourown.org/*works/*
+// @match          *://archiveofourown.org/*chapters/*
+// @match          *://archiveofourown.org/series/*
 // @exclude        *://archiveofourown.org/*works/*/bookmarks
 // @exclude        *://archiveofourown.org/*works/*/navigate
 // @exclude        *://archiveofourown.org/*works/*/latest
-// @match          *://archiveofourown.org/series/*
-// @match          *://archiveofourown.org/users/*/preferences*
 // @icon           https://archiveofourown.org/favicon.ico
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @run-at         document-end
 // @license        GNU GPLv3
+// @history        2.16.0 — Add new workInfo variables for use on works that are a part of a series. Default workInfo has been changed to use these variables
 // @history        2.15.0 — Add ability to include whether the work is a part of a series when Auto Tagging (defaults to off). Add new default workInfo variable `part_of_series` which is a string that shows what series a work is a part of and at what position of the series.
 // @history        2.14.1 — Fix autoAutoTag not working when user has IncludeFandom set to true
 // @history        2.14.0 — Add option for AutoTag to include the fandom of the work/series when autotagging (https://greasyfork.org/en/scripts/467885/discussions/291232); Add new variable `title_URL` which is just the URL of the work/series as plaintext (https://greasyfork.org/en/scripts/467885/discussions/290711); Make the title of each work in `series_works_titles_summaries` a hyperlink to the work (https://greasyfork.org/en/scripts/467885/discussions/290546); Add new work-only variable `series_link` which add information about any series' the work may be a part of (https://greasyfork.org/en/scripts/467885/discussions/290546)
@@ -83,14 +84,14 @@
 // (https://archiveofourown.org/users/{YOUR_USERNAME}/preferences)
 // IF YOU HAVE ANY QUESTIONS AT ALL DO NOT HESITATE TO PM ME ON GREASYFORK
 
-(function () {
+(async function () {
 
 	const s_t = performance.now();
 
 	console.log(`Starting w4BM userscript execution: ${performance.now() - s_t}ms`);
 
 	/* Dictionary of "constants" that can be changed by the end user to affect how the script functions */
-	let ini_settings_dict = {
+	let initial_settings_dict = {
 		divider: `</details>\n\n`,
 		autoPrivate: false,
 		autoRecommend: false,
@@ -240,15 +241,15 @@ localStorage exists`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_divider' is not set in the localStorage
-Now setting it to '${ini_settings_dict.divider.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}'`
+Now setting it to '${initial_settings_dict.divider.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}'`
 				);
 
 				// set the divider in localStorage and current script execution to the default value
 				// this will only happen on the first ever execution of the script, because this action only happens when:
 				// a) localStorage exists
 				// b) w4BM_divider does not exist in the localStorage
-				divider = ini_settings_dict.divider;
-				localStorage.setItem(`w4BM_divider`, ini_settings_dict.divider);
+				divider = initial_settings_dict.divider;
+				localStorage.setItem(`w4BM_divider`, initial_settings_dict.divider);
 
 				break;
 
@@ -276,11 +277,11 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_autoPrivate' is not set in the localStorage
-Now setting it to '${ini_settings_dict.autoPrivate}'`
+Now setting it to '${initial_settings_dict.autoPrivate}'`
 				);
 
-				autoPrivate = ini_settings_dict.autoPrivate;
-				localStorage.setItem(`w4BM_autoPrivate`, ini_settings_dict.autoPrivate);
+				autoPrivate = initial_settings_dict.autoPrivate;
+				localStorage.setItem(`w4BM_autoPrivate`, initial_settings_dict.autoPrivate);
 
 				break;
 
@@ -307,11 +308,11 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_autoRecommend' is not set in the localStorage
-Now setting it to '${ini_settings_dict.autoRecommend}'`
+Now setting it to '${initial_settings_dict.autoRecommend}'`
 				);
 
-				autoRecommend = ini_settings_dict.autoRecommend;
-				localStorage.setItem(`w4BM_autoRecommend`, ini_settings_dict.autoRecommend);
+				autoRecommend = initial_settings_dict.autoRecommend;
+				localStorage.setItem(`w4BM_autoRecommend`, initial_settings_dict.autoRecommend);
 
 				break;
 
@@ -338,11 +339,11 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_autoAutoTag' is not set in the localStorage
-Now setting it to '${ini_settings_dict.autoAutoTag}'`
+Now setting it to '${initial_settings_dict.autoAutoTag}'`
 				);
 
-				autoAutoTag = ini_settings_dict.autoAutoTag;
-				localStorage.setItem(`w4BM_autoAutoTag`, ini_settings_dict.autoAutoTag);
+				autoAutoTag = initial_settings_dict.autoAutoTag;
+				localStorage.setItem(`w4BM_autoAutoTag`, initial_settings_dict.autoAutoTag);
 
 				break;
 
@@ -369,11 +370,11 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_autoCollections' is not set in the localStorage
-Now setting it to '${ini_settings_dict.autoCollections}'`
+Now setting it to '${initial_settings_dict.autoCollections}'`
 				);
 
-				autoCollections = ini_settings_dict.autoCollections;
-				localStorage.setItem(`w4BM_autoCollections`, ini_settings_dict.autoCollections);
+				autoCollections = initial_settings_dict.autoCollections;
+				localStorage.setItem(`w4BM_autoCollections`, initial_settings_dict.autoCollections);
 
 				break;
 
@@ -400,11 +401,11 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_includeFandom' is not set in the localStorage
-Now setting it to '${ini_settings_dict.includeFandom}'`
+Now setting it to '${initial_settings_dict.includeFandom}'`
 				);
 
-				includeFandom = ini_settings_dict.includeFandom;
-				localStorage.setItem(`w4BM_includeFandom`, ini_settings_dict.includeFandom);
+				includeFandom = initial_settings_dict.includeFandom;
+				localStorage.setItem(`w4BM_includeFandom`, initial_settings_dict.includeFandom);
 
 				break;
 
@@ -431,11 +432,11 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_showAutoTagButton' is not set in the localStorage
-Now setting it to '${ini_settings_dict.showAutoTagButton}'`
+Now setting it to '${initial_settings_dict.showAutoTagButton}'`
 				);
 
-				showAutoTagButton = ini_settings_dict.showAutoTagButton;
-				localStorage.setItem(`w4BM_showAutoTagButton`, ini_settings_dict.showAutoTagButton);
+				showAutoTagButton = initial_settings_dict.showAutoTagButton;
+				localStorage.setItem(`w4BM_showAutoTagButton`, initial_settings_dict.showAutoTagButton);
 
 				break;
 
@@ -462,11 +463,11 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_seriesAutoTag' is not set in the localStorage
-Now setting it to '${ini_settings_dict.seriesAutoTag}'`
+Now setting it to '${initial_settings_dict.seriesAutoTag}'`
 				);
 
-				seriesAutoTag = ini_settings_dict.seriesAutoTag;
-				localStorage.setItem(`w4BM_seriesAutoTag`, ini_settings_dict.seriesAutoTag);
+				seriesAutoTag = initial_settings_dict.seriesAutoTag;
+				localStorage.setItem(`w4BM_seriesAutoTag`, initial_settings_dict.seriesAutoTag);
 
 				break;
 
@@ -493,11 +494,11 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_bottomSummaryPage' is not set in the localStorage
-Now setting it to '${ini_settings_dict.bottomSummaryPage}'`
+Now setting it to '${initial_settings_dict.bottomSummaryPage}'`
 				);
 
-				bottomSummaryPage = ini_settings_dict.bottomSummaryPage;
-				localStorage.setItem(`w4BM_bottomSummaryPage`, ini_settings_dict.bottomSummaryPage);
+				bottomSummaryPage = initial_settings_dict.bottomSummaryPage;
+				localStorage.setItem(`w4BM_bottomSummaryPage`, initial_settings_dict.bottomSummaryPage);
 
 				break;
 
@@ -524,11 +525,11 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_topSummaryPage' is not set in the localStorage
-Now setting it to '${ini_settings_dict.topSummaryPage}'`
+Now setting it to '${initial_settings_dict.topSummaryPage}'`
 				);
 
-				topSummaryPage = ini_settings_dict.topSummaryPage;
-				localStorage.setItem(`w4BM_topSummaryPage`, ini_settings_dict.topSummaryPage);
+				topSummaryPage = initial_settings_dict.topSummaryPage;
+				localStorage.setItem(`w4BM_topSummaryPage`, initial_settings_dict.topSummaryPage);
 
 				break;
 
@@ -555,11 +556,11 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_simpleWorkSummary' is not set in the localStorage
-Now setting it to '${ini_settings_dict.simpleWorkSummary}'`
+Now setting it to '${initial_settings_dict.simpleWorkSummary}'`
 				);
 
-				simpleWorkSummary = ini_settings_dict.simpleWorkSummary;
-				localStorage.setItem(`w4BM_simpleWorkSummary`, ini_settings_dict.simpleWorkSummary);
+				simpleWorkSummary = initial_settings_dict.simpleWorkSummary;
+				localStorage.setItem(`w4BM_simpleWorkSummary`, initial_settings_dict.simpleWorkSummary);
 
 				break;
 
@@ -586,11 +587,11 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_FWS_asBlockquote' is not set in the localStorage
-Now setting it to '${ini_settings_dict.FWS_asBlockquote}'`
+Now setting it to '${initial_settings_dict.FWS_asBlockquote}'`
 				);
 
-				FWS_asBlockquote = ini_settings_dict.FWS_asBlockquote;
-				localStorage.setItem(`w4BM_FWS_asBlockquote`, ini_settings_dict.FWS_asBlockquote);
+				FWS_asBlockquote = initial_settings_dict.FWS_asBlockquote;
+				localStorage.setItem(`w4BM_FWS_asBlockquote`, initial_settings_dict.FWS_asBlockquote);
 
 				break;
 
@@ -617,11 +618,11 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_alwaysInjectBookmark' is not set in the localStorage
-Now setting it to '${ini_settings_dict.alwaysInjectBookmark}'`
+Now setting it to '${initial_settings_dict.alwaysInjectBookmark}'`
 				);
 
-				alwaysInjectBookmark = ini_settings_dict.alwaysInjectBookmark;
-				localStorage.setItem(`w4BM_alwaysInjectBookmark`, ini_settings_dict.alwaysInjectBookmark);
+				alwaysInjectBookmark = initial_settings_dict.alwaysInjectBookmark;
+				localStorage.setItem(`w4BM_alwaysInjectBookmark`, initial_settings_dict.alwaysInjectBookmark);
 
 				break;
 
@@ -648,11 +649,11 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_AutoTag_type' is not set in the localStorage
-Now setting it to '${ini_settings_dict.AutoTag_type}'`
+Now setting it to '${initial_settings_dict.AutoTag_type}'`
 				);
 
-				AutoTag_type = ini_settings_dict.AutoTag_type;
-				localStorage.setItem(`w4BM_AutoTag_type`, ini_settings_dict.AutoTag_type);
+				AutoTag_type = initial_settings_dict.AutoTag_type;
+				localStorage.setItem(`w4BM_AutoTag_type`, initial_settings_dict.AutoTag_type);
 
 				break;
 
@@ -679,11 +680,11 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 'w4BM_splitSelect' is not set in the localStorage
-Now setting it to '${ini_settings_dict.splitSelect}'`
+Now setting it to '${initial_settings_dict.splitSelect}'`
 				);
 
-				splitSelect = ini_settings_dict.splitSelect;
-				localStorage.setItem(`w4BM_splitSelect`, ini_settings_dict.splitSelect);
+				splitSelect = initial_settings_dict.splitSelect;
+				localStorage.setItem(`w4BM_splitSelect`, initial_settings_dict.splitSelect);
 
 				break;
 
@@ -706,20 +707,20 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 	}
 	else { // if localStorage does not exist
 
-		divider = ini_settings_dict.divider;
-		autoPrivate = ini_settings_dict.autoPrivate;
-		autoRecommend = ini_settings_dict.autoRecommend;
-		autoAutoTag = ini_settings_dict.autoAutoTag;
-		autoCollections = ini_settings_dict.autoCollections;
-		includeFandom = ini_settings_dict.includeFandom;
-		showAutoTagButton = ini_settings_dict.showAutoTagButton;
-		seriesAutoTag = ini_settings_dict.seriesAutoTag;
-		bottomSummaryPage = ini_settings_dict.bottomSummaryPage;
-		topSummaryPage = ini_settings_dict.topSummaryPage;
-		simpleWorkSummary = ini_settings_dict.simpleWorkSummary;
-		FWS_asBlockquote = ini_settings_dict.FWS_asBlockquote;
-		AutoTag_type = ini_settings_dict.AutoTag_type;
-		splitSelect = ini_settings_dict.splitSelect;
+		divider = initial_settings_dict.divider;
+		autoPrivate = initial_settings_dict.autoPrivate;
+		autoRecommend = initial_settings_dict.autoRecommend;
+		autoAutoTag = initial_settings_dict.autoAutoTag;
+		autoCollections = initial_settings_dict.autoCollections;
+		includeFandom = initial_settings_dict.includeFandom;
+		showAutoTagButton = initial_settings_dict.showAutoTagButton;
+		seriesAutoTag = initial_settings_dict.seriesAutoTag;
+		bottomSummaryPage = initial_settings_dict.bottomSummaryPage;
+		topSummaryPage = initial_settings_dict.topSummaryPage;
+		simpleWorkSummary = initial_settings_dict.simpleWorkSummary;
+		FWS_asBlockquote = initial_settings_dict.FWS_asBlockquote;
+		AutoTag_type = initial_settings_dict.AutoTag_type;
+		splitSelect = initial_settings_dict.splitSelect;
 
 	}
 
@@ -732,9 +733,10 @@ Logging the current state of vars used by the script
 
 localStorage vars:`;
 
-	const log_string_localStorage_maxSpacing = Object.keys(ini_settings_dict).reduce((a, b) => a.length <= b.length ? b : a).length + 1;
+	// Get max length of the key names in the initial settings dictionary for use in making log_string
+	const log_string_localStorage_maxSpacing = Object.keys(initial_settings_dict).reduce((a, b) => a.length <= b.length ? b : a).length + 1;
 
-	Object.keys(ini_settings_dict).forEach((key) => {
+	Object.keys(initial_settings_dict).forEach((key) => {
 		let spacing = log_string_localStorage_maxSpacing - key.toString().length;
 		if (key == `divider`) {
 			log_string += `\n${key.toString()}${" ".repeat(spacing)}: ${localStorage.getItem(`w4BM_${key}`).replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}`;
@@ -1411,14 +1413,14 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		// If true, add a "Summary Page" button after the "↑ Top" button in the bottom navbar to take you to a page where the summary exists and can be used by the userscript
 		const [toTop_btn, , , btm_sum_pg] = CreateSummaryPageButton();
 
-		// console.log(`\ntoTop_btn:\n${toTop_btn.outerHTML}\n\nbtm_sum_pg:\n${btm_sum_pg.outerHTML}`);
+		// console.log(`\ntoTop_btn:\n${toTop_btn.outerHTML.trim()}\n\nbtm_sum_pg:\n${btm_sum_pg.outerHTML.trim()}`);
 		toTop_btn.after(btm_sum_pg);
 	}
 	if (TSP_conditional) {
 		// If true, adds summary page btn to top navbar
 		const [, entiWork_topnavBTN, top_sum_pg,] = CreateSummaryPageButton();
 
-		// console.log(`\nentiWork_topnavBTN:\n${entiWork_topnavBTN.outerHTML}\n\ntop_sum_pg:\n${top_sum_pg.outerHTML}`);
+		// console.log(`\nentiWork_topnavBTN:\n${entiWork_topnavBTN.outerHTML.trim()}\n\ntop_sum_pg:\n${top_sum_pg.outerHTML.trim()}`);
 		entiWork_topnavBTN.after(top_sum_pg);
 	}
 
@@ -1467,7 +1469,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		const
 			currdate = new Date(),
 			dd = String(currdate.getDate()).padStart(2, `0`),
-			mm = String(currdate.getMonth() + 1).padStart(2, `0`), //January is 0
+			mm = String(currdate.getMonth() + 1).padStart(2, `0`),  // January is the 0th month in a JS date object
 			yyyy = currdate.getFullYear(),
 			hh = String(currdate.getHours()).padStart(2, `0`),
 			mins = String(currdate.getMinutes()).padStart(2, `0`);
@@ -1518,16 +1520,16 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			}
 		}
 
-		function FindID(search_term) {
-			const currPg_pathname_arr = currPgURL.pathname.split(`/`);
-			const pathname_idx = currPg_pathname_arr.indexOf(`${search_term}`);
+		function FindIDfromURL(search_term, input_url = currPgURL) {
+			const currPg_pathname_arr = input_url.pathname.split(`/`);
+			const pathname_index = currPg_pathname_arr.indexOf(`${search_term}`);
 
-			const AO3_id = currPg_pathname_arr.at(parseInt(pathname_idx + 1)).toString();
-			return AO3_id;
+			const out_id = currPg_pathname_arr.at(parseInt(pathname_index + 1)).toString();
+			return out_id;
 		}
 
 		// Make the button used in Auto Tag
-		if (document.querySelector(`#bookmark-form`) && showAutoTagButton) {
+		if (main.querySelector(`#bookmark-form`) && showAutoTagButton) {
 
 			// Get element in bookmark form to append button to
 			const
@@ -1560,25 +1562,38 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		}
 
 
-		// Look for HTML DOM element only present on series pages
-		const seriesTrue = document.evaluate(`.//*[@id="main"]//span[text()="Series"]`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+		// Check if the current page is a series by looking for an HTML DOM element only present on series pages
+		// Is true when the current page is a series. Is false otherwise
+		const IS_SERIES = Boolean(document.evaluate(`.//*[@id="main"]//span[text()="Series"]`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue);
+
+		// Check if the current page is for a work that is a part of a series. Is true when it is. Is false otherwise
+		const IS_SERIES_PART = (() => {
+			if (IS_SERIES) {
+				return false;
+			} else {
+				return Boolean(main.querySelector(`dl.work.meta.group > .series`));
+			}
+		})();
+
 
 		// Extract all details used in bookmark configuration and assign them to variables
 
 		const [title, title_HTML, title_URL] = (function () {
-			if (seriesTrue != undefined) {
+			if (IS_SERIES) {
 				// Retrieve series title
+				const srs_id = FindIDfromURL(`series`);
 				const srs_title = main.querySelector(`:scope > h2.heading`).textContent.trim();
-				const srs_title_HTML = `<a href="/series/${FindID(`series`)}">${srs_title}</a>`;
-				const srs_URL = `https://archiveofourown.org/series/${FindID(`series`)}`;
+				const srs_title_HTML = `<a href="/series/${srs_id}">${srs_title}</a>`;
+				const srs_URL = `https://archiveofourown.org/series/${srs_id}`;
 
 				return [srs_title, srs_title_HTML, srs_URL];
 			}
 			else {
 				// Retrieve work title
+				const wrk_id = FindIDfromURL(`works`);
 				const wrk_title = main.querySelector(`#workskin .title.heading`).textContent.trim();
-				const wrk_title_HTML = `<a href="/works/${FindID(`works`)}">${wrk_title}</a>`;
-				const wrk_URL = `https://archiveofourown.org/works/${FindID(`works`)}`;
+				const wrk_title_HTML = `<a href="/works/${wrk_id}">${wrk_title}</a>`;
+				const wrk_URL = `https://archiveofourown.org/works/${wrk_id}`;
 
 				return [wrk_title, wrk_title_HTML, wrk_URL];
 			}
@@ -1590,7 +1605,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 				return (!Array.isArray(array) || !array.length);
 			}
 
-			if (seriesTrue != undefined) {
+			if (IS_SERIES) {
 				// Retrieve series author
 				const
 					series_author_xpath = `.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dt[text()[contains(.,"Creator")]]/following-sibling::*[1]/self::dd`,
@@ -1608,7 +1623,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 					Array.from(series_author_element.querySelectorAll(`a`)).forEach(function (el) {
 						const el_c = el.cloneNode(true);
 						el_c.removeAttribute(`rel`);
-						auth_str_arr.push(el_c.outerHTML);
+						auth_str_arr.push(el_c.outerHTML.trim());
 					});
 					const srs_authors_HTML = auth_str_arr.join(`, `);
 					return [srs_authors, srs_authors_HTML];
@@ -1630,7 +1645,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 					Array.from(work_author_element.querySelectorAll(`a`)).forEach(function (el) {
 						const el_c = el.cloneNode(true);
 						el_c.removeAttribute(`rel`);
-						auth_str_arr.push(el_c.outerHTML);
+						auth_str_arr.push(el_c.outerHTML.trim());
 					});
 					const wrk_authors_HTML = auth_str_arr.join(`, `);
 					return [wrk_authors, wrk_authors_HTML];
@@ -1639,7 +1654,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		})();
 
 		const AO3_status = (function () {
-			if (seriesTrue != undefined) {
+			if (IS_SERIES) {
 				// Get the last updated date of the series
 				const updated = main.querySelectorAll(`.series.meta.group dd`)[2].textContent;
 
@@ -1674,7 +1689,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		})();
 
 		const part_of_series = (function () {
-			if (seriesTrue != undefined) { return ``; }
+			if (IS_SERIES) { return ``; }
 			else {
 				const series_pos = main.querySelector(`dl.work.meta.group > dd.series span.position`);
 				if (Boolean(series_pos)) {
@@ -1686,8 +1701,52 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			}
 		})();
 
+		const [series_desc_blockquote, series_desc_text, series_word_count, series_work_count, series_bkmrk_count_txt, series_bkmrk_count_html, series_status, series_id] = await (async () => {
+			if (IS_SERIES_PART) {
+				const series_url = new URL(main.querySelector(`.work.meta.group > dd.series span.position > a`).getAttribute(`href`), `https://archiveofourown.org`);
+				const series_id = FindIDfromURL(`series`, series_url);
+				const series_pg_resp_txt = await (async () => {
+					const fetch_resp = await fetch(series_url);
+					const resp_text = await fetch_resp.text();
+					return resp_text;
+				})();
+				const series_pg_html = (() => {
+					const html_parser = new DOMParser();
+					const parsed_html = html_parser.parseFromString(series_pg_resp_txt, `text/html`);
+					return parsed_html;
+				})();
+				const [series_desc_blockquote, series_desc_text] = (() => {
+					const xpath_expr = `.//*[@id="main"]//*[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]/dd[count(preceding::dt[contains(normalize-space(),"Description:")]) > 0]`;
+					const xpath_result = document.evaluate(xpath_expr, series_pg_html, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+					if (Boolean(xpath_result)) {
+						const blockquote = xpath_result.querySelector(`blockquote`).outerHTML.trim();
+						const text = xpath_result.textContent.trim();
+						return [blockquote, text];
+					} else {
+						return [`<blockquote><p><em><strong>NO DESCRIPTION</strong></em></p></blockquote>`, `<em><strong>NO DESCRIPTION</strong></em>`];
+					}
+				})();
+
+				const series_stats = series_pg_html.querySelector(`#main .series.meta.group dl.stats`);
+				const
+					series_word_count = series_stats.querySelector(`dd.words`).textContent.trim(),
+					series_work_count = series_stats.querySelector(`dd.works`).textContent.trim(),
+					[series_bkmrk_count_txt, series_bkmrk_count_html] = (() => { const srs_bkmrk_cnt = series_stats.querySelector(`dd.bookmarks > a`); return [srs_bkmrk_cnt.textContent.trim(), srs_bkmrk_cnt.outerHTML.trim()]; })(),
+					series_status = (() => {
+						// const srs_sts_xpth_expr = `.//*[@id="main"]//*[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dd[count(preceding::dt[contains(normalize-space(),"Complete:")]) > 0]`;
+						const srs_sts_xpth_expr = `.//dd[count(preceding::dt[contains(normalize-space(),"Complete:")]) > 0]`;
+						const srs_sts_xpth_res = document.evaluate(srs_sts_xpth_expr, series_stats, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+						return srs_sts_xpth_res.textContent.trim();
+					})();
+
+				return [series_desc_blockquote, series_desc_text, series_word_count, series_work_count, series_bkmrk_count_txt, series_bkmrk_count_html, series_status, series_id];
+			} else {
+				return [``, ``, ``, ``, ``, ``, ``, ``];
+			}
+		})();
+
 		const relationships = (function () {
-			if (seriesTrue != undefined) {
+			if (IS_SERIES) {
 				// Get all relationship tags present in series' works and add them to series bookmark
 				// Retrieve relationship tags
 				const raw_rels_arr = Array.from(document.querySelectorAll(`ul.tags > li.relationships > a.tag`));
@@ -1697,9 +1756,9 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 					const element_clone = element.cloneNode(true);
 					element_clone.removeAttribute(`class`);
 
-					const rel_string = element_clone.outerHTML;
+					const rel_string = element_clone.outerHTML.trim();
 					// console.log(`Content in array ${array} at index ${index}: ${array[index]}`);
-					// console.log(element_clone.outerHTML);
+					// console.log(element_clone.outerHTML.trim());
 
 					rels_arr.push(`• ${rel_string}`);
 				});
@@ -1741,7 +1800,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 					const el_c = el.cloneNode(true);
 					el_c.removeAttribute(`class`);
 
-					const rel_string = `• ${el_c.outerHTML}`;
+					const rel_string = `• ${el_c.outerHTML.trim()}`;
 
 					rels_arr.push(rel_string);
 				});
@@ -1762,7 +1821,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		})();
 
 		const [fform_tags_list_HTML, fform_tags_list_TXT, fform_tags_comma_HTML, fform_tags_comma_TXT] = (function () {
-			if (seriesTrue != undefined) { return [``, ``, ``, ``]; }
+			if (IS_SERIES) { return [``, ``, ``, ``]; }
 			else {
 				// Retrieve relationship tags
 				const raw_freeform_arr = Array.from(document.querySelectorAll(`.freeform.tags > ul a`));
@@ -1777,9 +1836,9 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 					const el_c = el.cloneNode(true);
 					el_c.removeAttribute(`class`);
 
-					const fform_lh_str = `• ${el_c.outerHTML}`;
+					const fform_lh_str = `• ${el_c.outerHTML.trim()}`;
 					const fform_lt_str = `• ${el_c.textContent.trim()}`;
-					const fform_ch_str = `${el_c.outerHTML}`;
+					const fform_ch_str = `${el_c.outerHTML.trim()}`;
 					const fform_ct_str = `${el_c.textContent.trim()}`;
 
 					freeform_arr_ls_HTML.push(fform_lh_str);
@@ -1811,7 +1870,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		const summary_default_value = `<em><strong>NO SUMMARY</strong></em>`;
 
 		const summary = ((function () {
-			if (seriesTrue != undefined) {
+			if (IS_SERIES) {
 				// Check if there is a series summary
 				let series_summary;
 				switch (Boolean(main.querySelector(`.series.meta.group .userstuff`))) {
@@ -1864,7 +1923,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 
 				}
 				else if (!simpleWorkSummary && FWS_asBlockquote && main.querySelector(`.summary blockquote`) != null) { // new method #1
-					const wrk_summary = main.querySelector(`.summary blockquote`).outerHTML;
+					const wrk_summary = main.querySelector(`.summary blockquote`).outerHTML.trim();
 					return wrk_summary;
 
 					// Example output of the above method:
@@ -1894,7 +1953,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 				}
 			}
 
-			if (seriesTrue != undefined) {
+			if (IS_SERIES) {
 				// Get summaries for each work in series
 				const series_children = Array.from(main.querySelector(`.series.work.index.group`).children);
 				let srsWkSum_arr = [];
@@ -1912,7 +1971,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 					})();
 					const summary_elem = child.querySelector(`.userstuff.summary`);
 					if (Boolean(summary_elem) == true) {
-						srs_work_sum = summary_elem.outerHTML;
+						srs_work_sum = summary_elem.outerHTML.trim();
 					}
 
 					const series_pagination_mult = (() => {
@@ -1947,7 +2006,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		})();
 
 		const words = (function () {
-			if (seriesTrue != undefined) {
+			if (IS_SERIES) {
 				// Retrieve series word count
 				const srs_words = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
 				return srs_words;
@@ -1960,7 +2019,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		})();
 
 		const series_link = (function () {
-			if (seriesTrue != undefined) { // blank for series pages
+			if (IS_SERIES) { // blank for series pages
 				return '';
 			}
 			else {
@@ -1981,18 +2040,18 @@ ${work_series_info.join(`\n`)}
 		})();
 
 		const ws_id = (function () {
-			if (seriesTrue != undefined) {
-				const srs_AO3_id = FindID(`series`);
+			if (IS_SERIES) {
+				const srs_AO3_id = FindIDfromURL(`series`);
 				return srs_AO3_id;
 			}
 			else {
-				const wrk_AO3_id = FindID(`works`);
+				const wrk_AO3_id = FindIDfromURL(`works`);
 				return wrk_AO3_id;
 			}
 		})();
 
 		const lastChapter = (function () {
-			if (seriesTrue != undefined) {
+			if (IS_SERIES) {
 				// Have lastChapter be an empty string for series
 				const srs_lastChapter = ``;
 				return srs_lastChapter;
@@ -2036,7 +2095,7 @@ ${work_series_info.join(`\n`)}
 		// define autotag_series for use in AutoTag()
 		// autotag_series indicates whether the work is part of a series or not
 		const autotag_series = (function () {
-			if (seriesTrue != undefined) { return false; }
+			if (IS_SERIES) { return false; }
 			else { return (Boolean(main.querySelector(`dl.work.meta.group > dd.series`))); }
 		})();
 
@@ -2077,6 +2136,16 @@ ${work_series_info.join(`\n`)}
 		- fform_tags_comma_HTML     // The freeform tags of a work as comma separated links
 		- fform_tags_comma_TXT      // The freeform tags of a work as comma separated plaintext (so you don't run into the character limit)
 
+		Variables specific to works that belong to a series:
+		- series_id                 // The ID of the series the work belongs to
+		- series_status             // The completion status of the series the work belongs to
+		- series_word_count         // The word count of the series the work belongs to
+		- series_work_count         // The number of works in the series the work belongs to
+		- series_bkmrk_count_html   // The number of bookmarks of the series the work belongs to, formatted as an HTML hyperlink
+		- series_bkmrk_count_txt    // The number of bookmarks of the series the work belongs to, as raw text
+		- series_desc_blockquote    // The description of the series the work belongs to, formatted as an HTML blockquote element
+		- series_desc_text          // The description of the series the work belongs to, as raw text
+
 		*/
 
 		/* //// Date configuration sub-section //// */
@@ -2101,7 +2170,7 @@ ${work_series_info.join(`\n`)}
 			date = `${yyyy}/${mm}/${dd}`, // Date without time
 			date_string = (function () {
 				// Make the date string an empty string for series because it doesnt make sense there
-				if (Boolean(seriesTrue)) {
+				if (Boolean(IS_SERIES)) {
 					return ``;
 				} else {
 					return `(Approximate) Last Read: ${date}`;
@@ -2112,7 +2181,7 @@ ${work_series_info.join(`\n`)}
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
 Date Generated: ${date}
-Date String Generated: ${date_string}`
+Date String Generated: ${(function () { if (date_string == ``) { return `No Date String Generated`; } else { return date_string; } })()}`
 		);
 
 		/* ///////////// Select from Presets ///////////// */
@@ -2133,7 +2202,27 @@ Date String Generated: ${date_string}`
 		// new_notes = `${workInfo}\n\n${curr_notes}`
 
 		workInfo = `<details><summary>Work/Series Details</summary>
-\t${title_HTML} by ${author_HTML}${(() => { if (part_of_series != ``) { return `\n\t${part_of_series}`; } else { return ``; } })()}
+\t${title_HTML} by ${author_HTML}${(function () {
+
+				if (part_of_series != ``) { return `\n\t${part_of_series}`; }
+				else { return ``; }
+
+			})()}${(function () {
+
+				if (IS_SERIES_PART) {
+					const out_str = `
+\t<details><summary>Series Information:</summary>
+\tID: ${series_id}
+\tWords: ${series_word_count} | Works: ${series_work_count} | Complete: ${series_status} | Bookmarks: ${series_bkmrk_count_html}
+\tDescription:
+${series_desc_blockquote}</details>`;
+					return out_str;
+				}
+				else {
+					return ``;
+				}
+
+			})()}
 
 \t${AO3_status}
 \tWork/Series ID: ${ws_id}
@@ -2151,7 +2240,27 @@ ${date_string}</details>`;
 		// new_notes = `${workInfo}\n\n${curr_notes}`
 
 		/* workInfo = `<details><summary>Work/Series Details</summary>
-\t${title_HTML} by ${author_HTML}${(() => { if (part_of_series != ``) { return `\n\t${part_of_series}`; } else { return ``; } })()}
+\t${title_HTML} by ${author_HTML}${(function () {
+
+				if (part_of_series != ``) { return `\n\t${part_of_series}`; }
+				else { return ``; }
+
+			})()}${(function () {
+
+				if (IS_SERIES_PART) {
+					const out_str = `
+\t<details><summary>Series Information:</summary>
+\tID: ${series_id}
+\tWords: ${series_word_count} | Works: ${series_work_count} | Complete: ${series_status} | Bookmarks: ${series_bkmrk_count_html}
+\tDescription:
+${series_desc_blockquote}</details>`;
+					return out_str;
+				}
+				else {
+					return ``;
+				}
+
+			})()}
 
 \t${AO3_status}
 \tWork/Series ID: ${ws_id}
@@ -2169,7 +2278,27 @@ ${date_string}</details>`;
 		// new_notes = `${curr_notes}<br />\n${workInfo}`
 
 		/* workInfo = `<details><summary>Work/Series Details</summary>
-\t${title_HTML} by ${author_HTML}${(() => { if (part_of_series != ``) { return `\n\t${part_of_series}`; } else { return ``; } })()}
+\t${title_HTML} by ${author_HTML}${(function () {
+
+				if (part_of_series != ``) { return `\n\t${part_of_series}`; }
+				else { return ``; }
+
+			})()}${(function () {
+
+				if (IS_SERIES_PART) {
+					const out_str = `
+\t<details><summary>Series Information:</summary>
+\tID: ${series_id}
+\tWords: ${series_word_count} | Works: ${series_work_count} | Complete: ${series_status} | Bookmarks: ${series_bkmrk_count_html}
+\tDescription:
+${series_desc_blockquote}</details>`;
+					return out_str;
+				}
+				else {
+					return ``;
+				}
+
+			})()}
 
 \t${AO3_status}
 \tWork/Series ID: ${ws_id}
@@ -2187,7 +2316,27 @@ ${date_string}</details>`; */
 		// new_notes = `${curr_notes}<br />\n${workInfo}`
 
 		/* workInfo = `<details><summary>Work/Series Details</summary>
-\t${title_HTML} by ${author_HTML}${(() => { if (part_of_series != ``) { return `\n\t${part_of_series}`; } else { return ``; } })()}
+\t${title_HTML} by ${author_HTML}${(function () {
+
+				if (part_of_series != ``) { return `\n\t${part_of_series}`; }
+				else { return ``; }
+
+			})()}${(function () {
+
+				if (IS_SERIES_PART) {
+					const out_str = `
+\t<details><summary>Series Information:</summary>
+\tID: ${series_id}
+\tWords: ${series_word_count} | Works: ${series_work_count} | Complete: ${series_status} | Bookmarks: ${series_bkmrk_count_html}
+\tDescription:
+${series_desc_blockquote}</details>`;
+					return out_str;
+				}
+				else {
+					return ``;
+				}
+
+			})()}
 
 \t${AO3_status}
 \tWork/Series ID: ${ws_id}
@@ -2202,9 +2351,7 @@ ${date_string}</details>`; */
 
 		async function AutoTag() {
 
-			function inRange(input, minimum, maximum) {
-				return input >= minimum && input <= maximum;
-			}
+			function inRange(input, minimum, maximum) { return (input >= minimum && input <= maximum); }
 
 			// Find User Tags input box
 			let tag_input_box = document.querySelector('.input #bookmark_tag_string_autocomplete');
@@ -2226,7 +2373,7 @@ ${date_string}</details>`; */
 			})();
 
 			if (includeFandom === true || includeFandom === `true`) {
-				if (seriesTrue != undefined) { // Check if current page is a series
+				if (IS_SERIES) { // Check if current page is a series
 					const fandoms_set = new Set(Array.from(main.querySelectorAll(`.header.module .fandoms > a.tag`)).map(elm => elm.textContent.trim()));
 					// console.log(fandoms_set);
 					fandoms_set.forEach(elm => tag_inputs.push(elm));
