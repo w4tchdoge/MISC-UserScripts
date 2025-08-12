@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.16.0-20250803_171037
+// @version        2.16.1-20250812_211651
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -18,6 +18,7 @@
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @run-at         document-end
 // @license        GNU GPLv3
+// @history        2.16.1 — Fix issue on Firefox where the processing of the new workInfo variables added in 2.16.0 were throwing a DOMException.
 // @history        2.16.0 — Add new workInfo variables for use on works that are a part of a series. Default workInfo has been changed to use these variables
 // @history        2.15.0 — Add ability to include whether the work is a part of a series when Auto Tagging (defaults to off). Add new default workInfo variable `part_of_series` which is a string that shows what series a work is a part of and at what position of the series.
 // @history        2.14.1 — Fix autoAutoTag not working when user has IncludeFandom set to true
@@ -1716,8 +1717,10 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 					return parsed_html;
 				})();
 				const [series_desc_blockquote, series_desc_text] = (() => {
+					const intermediate_elm = series_pg_html.querySelector(`div#outer`).cloneNode(true);
+					const importedNode = document.importNode(intermediate_elm, true);
 					const xpath_expr = `.//*[@id="main"]//*[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]/dd[count(preceding::dt[contains(normalize-space(),"Description:")]) > 0]`;
-					const xpath_result = document.evaluate(xpath_expr, series_pg_html, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+					const xpath_result = document.evaluate(xpath_expr, importedNode, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
 					if (Boolean(xpath_result)) {
 						const blockquote = xpath_result.querySelector(`blockquote`).outerHTML.trim();
 						const text = xpath_result.textContent.trim();
@@ -1727,7 +1730,12 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 					}
 				})();
 
-				const series_stats = series_pg_html.querySelector(`#main .series.meta.group dl.stats`);
+				const series_stats = (() => {
+					const intermediate_elm = series_pg_html.querySelector(`div#outer`).cloneNode(true);
+					const importedNode = document.importNode(intermediate_elm, true);
+					const series_stats = importedNode.querySelector(`#main .series.meta.group dl.stats`);
+					return series_stats;
+				})();
 				const
 					series_word_count = series_stats.querySelector(`dd.words`).textContent.trim(),
 					series_work_count = series_stats.querySelector(`dd.works`).textContent.trim(),
