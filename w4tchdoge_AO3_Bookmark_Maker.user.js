@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.16.1-20250812_211651
+// @version        2.16.2-20250820_171206
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -18,12 +18,13 @@
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @run-at         document-end
 // @license        GNU GPLv3
+// @history        2.16.2 — Fix issue where script errors on works that are a part of a series which does not have any bookmarks
 // @history        2.16.1 — Fix issue on Firefox where the processing of the new workInfo variables added in 2.16.0 were throwing a DOMException.
 // @history        2.16.0 — Add new workInfo variables for use on works that are a part of a series. Default workInfo has been changed to use these variables
 // @history        2.15.0 — Add ability to include whether the work is a part of a series when Auto Tagging (defaults to off). Add new default workInfo variable `part_of_series` which is a string that shows what series a work is a part of and at what position of the series.
 // @history        2.14.1 — Fix autoAutoTag not working when user has IncludeFandom set to true
 // @history        2.14.0 — Add option for AutoTag to include the fandom of the work/series when autotagging (https://greasyfork.org/en/scripts/467885/discussions/291232); Add new variable `title_URL` which is just the URL of the work/series as plaintext (https://greasyfork.org/en/scripts/467885/discussions/290711); Make the title of each work in `series_works_titles_summaries` a hyperlink to the work (https://greasyfork.org/en/scripts/467885/discussions/290546); Add new work-only variable `series_link` which add information about any series' the work may be a part of (https://greasyfork.org/en/scripts/467885/discussions/290546)
-// @history        2.13.0 — Add a new default variable title_HTML that can be used in the workInfo customisation function. for more details about title_HTML please refer to the "USER CONFIGURABLE SETTINGS" section at the bottom of the script
+// @history        2.13.0 — Add a new default variable title_HTML that can be used in the workInfo customisation function. For more details about title_HTML please refer to the "USER CONFIGURABLE SETTINGS" section at the bottom of the script
 // @history        2.12.1 — Fix BSP_conditional and TSP_conditional always being true because it was checking for `on_summary_page != null` instead of `on_summary_page == false`
 // @history        2.12.0 — Add setting to toggle whether script always runs on any work page or only runs on the summary page of work
 // @history        2.11.1 — Add an exclude rule for compatibility with my go to latest chapter userscript
@@ -1736,10 +1737,18 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 					const series_stats = importedNode.querySelector(`#main .series.meta.group dl.stats`);
 					return series_stats;
 				})();
+				// The first two are NOT duplicate lines do not delete one of them like I tried to do
 				const
 					series_word_count = series_stats.querySelector(`dd.words`).textContent.trim(),
 					series_work_count = series_stats.querySelector(`dd.works`).textContent.trim(),
-					[series_bkmrk_count_txt, series_bkmrk_count_html] = (() => { const srs_bkmrk_cnt = series_stats.querySelector(`dd.bookmarks > a`); return [srs_bkmrk_cnt.textContent.trim(), srs_bkmrk_cnt.outerHTML.trim()]; })(),
+					[series_bkmrk_count_txt, series_bkmrk_count_html] = (() => {
+						const srs_bkmrk_cnt = series_stats.querySelector(`dd.bookmarks > a`);
+
+						// The bookmark count element doesn't exist if the series has no bookmarks, which means srs_bkmrk_cnt will be undefined
+						if (srs_bkmrk_cnt != undefined) {
+							return [srs_bkmrk_cnt.textContent.trim(), srs_bkmrk_cnt.outerHTML.trim()];
+						} else { return [`None`, `None`]; }
+					})(),
 					series_status = (() => {
 						// const srs_sts_xpth_expr = `.//*[@id="main"]//*[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dd[count(preceding::dt[contains(normalize-space(),"Complete:")]) > 0]`;
 						const srs_sts_xpth_expr = `.//dd[count(preceding::dt[contains(normalize-space(),"Complete:")]) > 0]`;
