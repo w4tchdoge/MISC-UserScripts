@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Old Reddit: Download IMG post with title
 // @namespace      https://github.com/w4tchdoge
-// @version        1.2.0-20250611_220824
+// @version        1.2.1-20250908_120142
 // @description    Add a button next to the IMG domain to download the IMG with the post title, old reddit shortlink ID, and IMG name in the output filename
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -15,6 +15,7 @@
 // @connect        i.imgur.com
 // @run-at         document-start
 // @license        AGPL-3.0-or-later
+// @history        1.2.1 — Change the `Accept` header in the xmlHttpRequest to use `image/*`. Move getting latest curl version to it's own function
 // @history        1.2.0 — Add subreddit name to the filename
 // @history        1.1.0 — Switch to using xmlhttpRequest function from the userscript extension instead of fetch in order to bypass CORS
 // @history        1.0.0 — Initial script release
@@ -59,7 +60,7 @@
 				url: img_src,
 				responseType: `blob`,
 				headers: {
-					"Accept": `image/avif, image/webp, image/apng, */*;q=0.8`,
+					"Accept": `image/*, */*;q=0.8`,
 					"User-Agent": `curl/${curl_ver}`
 				}
 			}
@@ -81,6 +82,17 @@
 		window.URL.revokeObjectURL(img_href);
 	}
 
+	async function getLatestCurl() {
+		const curl_gh_repo_url = `https://api.github.com/repositories/569041/releases/latest`;
+		const gh_api_resp = await fetch(curl_gh_repo_url,
+			{ headers: { 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } }
+		);
+		const gh_api_resp_json = await gh_api_resp.json();
+		const curl_ver = gh_api_resp_json.name;
+		return curl_ver;
+	}
+
+
 	// wait for <head> to load so i can do shit
 	const HTML_DOC_HEAD = await waitForElm(`head`);
 
@@ -92,14 +104,7 @@
 	if (OLD_REDDIT == true) {
 
 		// get the latest curl version to be used as a header in the xmlHttpRequest
-		const LATEST_CURL_VER = await (async () => {
-			const gh_api_resp = await fetch(`https://api.github.com/repos/curl/curl/releases/latest`,
-				{ headers: { 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } }
-			);
-			const gh_api_resp_json = await gh_api_resp.json();
-			const curl_ver = gh_api_resp_json.name;
-			return curl_ver;
-		})();
+		const LATEST_CURL_VER = await getLatestCurl();
 
 		const input_elm = await waitForElm(`div[role="main"] a.title`);
 
