@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name           AO3 Formatted Copy
 // @namespace      https://github.com/w4tchdoge
-// @version        2.7.0-20250223_195541
+// @version        2.7.1-20250905_195836
 // @description    Copy the curretly open AO3 work in the folloring MarkDown format '- [work name](work url) – [author name](author url) — '
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Formatted_Copy.user.js
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Formatted_Copy.user.js
 // @match          *://archiveofourown.org/*works/*
+// @match          *://archiveofourown.org/chapters/*
 // @match          *://archiveofourown.org/*series/*
 // @match          *://archiveofourown.org/*bookmarks/*
 // @match          *://archiveofourown.org/*works/*/bookmarks
@@ -18,6 +19,7 @@
 // @grant          GM.registerMenuCommand
 // @require        https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @license        AGPL-3.0-or-later
+// @history        2.7.1 — Make the script work on AO3 chapter pages where the URL doesn't contain `works`
 // @history        2.7.0 — Add Initially Read Formatted Copy functionality
 // @history        2.6.1 — Fix the already read chapters input in re-read function not being padded correctly
 // @history        2.6.0 — Cleanup; Add feature to re-read that adds how many chapters have already beed re-read
@@ -51,7 +53,7 @@
 		re_mu = /(?<!(\\|http(\S(\S+?))?))(_)/gmi,                                             /* Regex for escaping underscores that are not part of URLs for Markdown */
 		re_ms = /(~|\*)/gmi,                                                                   /* Regex for escaping characters used in MD syntax that may appear in work or series titles – DO NO USE ON ANYTHING THAT COULD CONTAIN A URL */
 		re_ap = /’|ʼ|‘/gmi,                                                                    /* Regex for replacing multiple apostrophe-like characters with an apostrophe */
-		re_ck = /(^https?:\/\/)(.*\.)?(archiveofourown\.org)(.*?)(\/(works|series)\/\d+)\/?.*(?<!\/bookmarks)$/gmi,
+		re_ck = /(^https?:\/\/)(.*\.)?(archiveofourown\.org)(.*?)(\/(works|series|chapters)\/\d+)\/?.*(?<!\/bookmarks)$/gmi,
 		re_bmk_url_1 = /(^https?:\/\/)(.*\.)?(archiveofourown\.org)(.*?)(\/(works)\/\d+)(\/bookmarks)$/,
 		re_bmk_url_2 = /(^https?:\/\/)(.*\.)?(archiveofourown\.org)(.*?)(\/(bookmarks)\/\d+)/;
 
@@ -256,7 +258,7 @@ ${performance.now() - s_t} ms
 ———————————————————————————`
 		);
 
-		if (curr_page_url.pathname.includes(`works`)) {		/* Check if the page is a work page */
+		if (curr_page_url.pathname.includes(`works`) || curr_page_url.pathname.includes(`chapters`)) {		/* Check if the page is a work page */
 
 			console.log(
 				`
