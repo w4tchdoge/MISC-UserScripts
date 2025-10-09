@@ -1,18 +1,20 @@
 // ==UserScript==
 // @name           AO3: Clear User Tags
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.3-20230529_170523
+// @version        1.0.4-20251009_083128
 // @description    Adds a button for clearing user added tags on a bookmark. Script does not work on bookmark pages (i.e. pages with the url archiveofourown.org/bookmarks/{BOOKMARK_ID}) as the #bookmark-form element is not present on page load. Script is guarenteed to work when editing a bookmark from a work page.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @match          *://archiveofourown.org/works*
+// @match          *://archiveofourown.org/bookmarks*/edit
 // @icon           https://archiveofourown.org/favicon.ico
 // @license        AGPL-3.0-or-later
+// @history        1.0.4 — Make script work on bookmark pages. Replace usage of var with const or let
 // ==/UserScript==
 
 (function () {
 	`use strict`;
-	/* 
+	/*
 	<TODO>
 	- Add a user definable list of whitelisted tags
 
@@ -26,11 +28,12 @@
 		const main = document.querySelector(`#main`);
 
 		// Get element in bookmark form to append button to
-		var yourTags_xp = `.//div[@id="main"]//div[@id="bookmark-form"]//dt/label[text() = 'Your tags']`,
+		const
+			yourTags_xp = `.//div[@id="main"]//div[@id="bookmark-form"]//dt/label[text() = 'Your tags']`,
 			yourTags_elem = document.evaluate(yourTags_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
 
 		// Create button element
-		var clearTags_btn_elem = Object.assign(document.createElement(`label`), {
+		const clearTags_btn_elem = Object.assign(document.createElement(`label`), {
 			id: `clearUserTags_elem`,
 			className: `actions`,
 			style: `font-size: 0.85em`,
@@ -41,7 +44,8 @@
 		yourTags_elem.after(clearTags_btn_elem);
 
 		// Select the parent dt element to which the button will be a child of
-		var yourTags_parent_dt_xp = `.//div[@id="main"]//div[@id="bookmark-form"]//dt[./label[text() = 'Your tags']]`,
+		const
+			yourTags_parent_dt_xp = `.//div[@id="main"]//div[@id="bookmark-form"]//dt[./label[text() = 'Your tags']]`,
 			yourTags_parent_dt_elem = document.evaluate(yourTags_parent_dt_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;;
 
 		// Change the display style of the parent dt of the yourTags_elems to contents
@@ -51,7 +55,7 @@
 		clearTags_btn_elem.addEventListener(`click`, clearTags_func);
 
 		// Define var to indicate whether user tags exist
-		var UserTagsExist, UserTagsNodeList;
+		let UserTagsExist, UserTagsNodeList;
 
 		// Check if user tags exist
 		if (main.querySelectorAll(`div#main div#bookmark-form ul.autocomplete > li.added.tag`).length == 0) {
@@ -82,7 +86,7 @@ No user tags to clear`
 			else if (UserTagsExist) { // if User Tags do exist
 
 				// Add Tag Names to an array
-				var tagNames_arr = Array.from(UserTagsNodeList).map(x => x.textContent.trim().replace(/\s×/, ``));
+				const tagNames_arr = Array.from(UserTagsNodeList).map(x => x.textContent.trim().replace(/\s×/, ``));
 
 				// Confirm removal of user tags
 				confirm(`Confirm the removal of the following user tags from your bookmark:
@@ -91,7 +95,7 @@ ${tagNames_arr.join(`, `)}`
 
 				// Remove user tags and log in the console
 				UserTagsNodeList.forEach(function (x) {
-					let remove_btn = x.querySelector(`span.delete > a`);
+					const remove_btn = x.querySelector(`span.delete > a`);
 					console.log(`Removing Tag: "${x.textContent.trim().replace(/\s×/, ``)}"`);
 					remove_btn.click();
 				});
