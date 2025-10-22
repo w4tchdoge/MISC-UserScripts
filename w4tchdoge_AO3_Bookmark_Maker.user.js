@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.16.2-20250820_171206
+// @version        2.16.3-20251022_124112
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -18,6 +18,7 @@
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @run-at         document-end
 // @license        GNU GPLv3
+// @history        2.16.3 — Fix the XPath for getting the button on the bottom nav actions bar that takes you to top of the page
 // @history        2.16.2 — Fix issue where script errors on works that are a part of a series which does not have any bookmarks
 // @history        2.16.1 — Fix issue on Firefox where the processing of the new workInfo variables added in 2.16.0 were throwing a DOMException.
 // @history        2.16.0 — Add new workInfo variables for use on works that are a part of a series. Default workInfo has been changed to use these variables
@@ -1381,9 +1382,15 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			innerHTML: `<a href="${sum_pg_href}">SP</a>`
 		});
 
-		// Get the "↑ Top" button that's in the bottom nav bar
-		const toTop_xp = `.//*[@id="feedback"]//*[@role="navigation"]//li[*[text()[contains(.,"Top")]]]`;
-		const toTop_btn = document.evaluate(toTop_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+		// Get the "↑ Top" button that's in the bottom nav bar		
+		let toTop_btn = null;
+		const toTop_xp = `.//*[@id="feedback"]//*[@role="navigation"]//li[*[text()[contains(.,"Top")]]]`; // Original XPath stays in case the new DOM layout I'm seeing isn't a permanent change
+		toTop_btn = document.evaluate(toTop_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+
+		if (toTop_btn == null) { // Use new XPath in case the original fails
+			const toTop_xp = `.//*[@id="feedback"]/*[contains(concat(" ",normalize-space(@class)," ")," actions ")]//li[*[text()[contains(.,"Top")]]]`;
+			toTop_btn = document.evaluate(toTop_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+		}
 
 		// Get the Entire Work button in the top nav bar
 		// Define the var which the Entire Work button will be stored in
