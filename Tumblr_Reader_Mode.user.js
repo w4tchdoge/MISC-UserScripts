@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Tumblr: Post Reader Mode
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0-20230703_152333
+// @version        1.0.1-20251022_110434
 // @description    Add a clickable div element to a tumblr post to toggle a "Reader Mode" which removes the tags and related posts
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -16,6 +16,7 @@
 // @require        https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @noframes
 // @license        AGPL-3.0-or-later
+// @history        1.0.1 — Change vars to const
 // @history        1.0.0 — Initial "publish" to my GitHub repo
 // ==/UserScript==
 
@@ -28,23 +29,23 @@
 	}
 
 	// Get tags element & related posts element
-	var tags_Sec = document.querySelector('.tagged-page-cta');
-	var related_posts_Sec = document.querySelector('.related-posts-wrapper');
+	const tags_Sec = document.querySelector('.tagged-page-cta');
+	const related_posts_Sec = document.querySelector('.related-posts-wrapper');
 
 	// Make the elements for toggling Reader Mode
-	var toggle_RM_button = Object.assign(document.createElement('div'), {
+	const toggle_RM_button = Object.assign(document.createElement('div'), {
 		className: 'tumblr_RM_toggle_div',
 		id: 'tumblr_RM_toggle_div',
 		style: 'padding-bottom: 0.8rem',
 		innerHTML: '<div style="font-size: 0.9rem; color: #bdb7af; display: flex; justify-content: flex-end;">Toggle Reader Mode</div>'
 	});
-	var RM_disabled = Object.assign(document.createElement('div'), {
+	const RM_disabled = Object.assign(document.createElement('div'), {
 		className: 'tumblr_RM_status_disabled',
 		id: 'tumblr_RM_status_disabled',
 		style: 'font-size: 0.9rem; display: flex; justify-content: flex-end; flex-direction: row; flex-wrap: nowrap;',
 		innerHTML: '<div style="padding-right: 0.2rem; color: #bdb7af;">Reader Mode:</div><div style="color: #fd6666;">Disabled</div>'
 	});
-	var RM_enabled = Object.assign(document.createElement('div'), {
+	const RM_enabled = Object.assign(document.createElement('div'), {
 		className: 'tumblr_RM_status_enabled',
 		id: 'tumblr_RM_status_enabled',
 		style: 'font-size: 0.9rem; display: flex; justify-content: flex-end; flex-direction: row; flex-wrap: nowrap;',
@@ -55,7 +56,7 @@
 	toggle_RM_button.appendChild(RM_disabled);
 
 	// Find element to add the button before
-	var before_elem = document.querySelector('.main > article.active.exposed .post-wrapper.clearfix');
+	const before_elem = document.querySelector('.main > article.active.exposed .post-wrapper.clearfix');
 
 	// Add Reader Mode Toggle before the above element
 	before_elem.before(toggle_RM_button);
