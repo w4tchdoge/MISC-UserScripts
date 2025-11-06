@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3: Visible Full-page Index Button
 // @namespace      https://github.com/w4tchdoge
-// @version        1.3.4-20240611_164932
+// @version        1.3.5-20251106_084440
 // @description    Moves or copies (setting is user configurable) the "Full-page index" button to the main work navigation bar for ease of access
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -13,6 +13,7 @@
 // @exclude        *://archiveofourown.org/*works/*/navigate
 // @icon           https://archiveofourown.org/favicon.ico
 // @license        AGPL-3.0-or-later
+// @history        1.3.5 — Change ini_fpi_btn to use querySelector with a hopefully more reliable CSS selector since the XPath broke
 // @history        1.3.4 — Add @exclude rule so that userscript doesn't run on /navigate pages. Add match rule so that userscript runs on chaptes pages that don't include "works" in the URL
 // @history        1.3.3 — Minor cleanup
 // @history        1.3.2 — Modify the match rule so that it matches collections/*/works URLs as well; Add an exlude role so it doesn't work on works/*/bookmarks pages as it isn't designed to
@@ -35,7 +36,7 @@
 		const ch_indx_btn = document.querySelector(`ul.work.navigation.actions li[class="chapter"]`);
 
 		// Get the "Full-page index" button using XPATH
-		const ini_fpi_btn = document.evaluate(`//*[@id="chapter_index"]/li[*/text()[contains(.,'Full-page index')]]`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+		const ini_fpi_btn = ch_indx_btn.querySelector(`#chapter_index > li:has(> a[href$="navigate"])`);
 
 		// Get the href attribute of the "Full-page index" button that normally lives within the "Chapter Index" dropdown
 		const fpi_href = ini_fpi_btn.querySelector(`a`).getAttribute(`href`);
