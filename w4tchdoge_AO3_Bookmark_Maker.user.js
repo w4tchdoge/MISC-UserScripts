@@ -1382,7 +1382,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			innerHTML: `<a href="${sum_pg_href}">SP</a>`
 		});
 
-		// Get the "↑ Top" button that's in the bottom nav bar		
+		// Get the "↑ Top" button that's in the bottom nav bar
 		let toTop_btn = null;
 		const toTop_xp = `.//*[@id="feedback"]//*[@role="navigation"]//li[*[text()[contains(.,"Top")]]]`; // Original XPath stays in case the new DOM layout I'm seeing isn't a permanent change
 		toTop_btn = document.evaluate(toTop_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
@@ -1769,22 +1769,31 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			}
 		})();
 
-		const relationships = (function () {
+		const [relationships, relationships_tags_list_TXT, relationships_tags_comma_HTML, relationships_tags_comma_TXT] = (function () {
 			if (IS_SERIES) {
 				// Get all relationship tags present in series' works and add them to series bookmark
 				// Retrieve relationship tags
 				const raw_rels_arr = Array.from(document.querySelectorAll(`ul.tags > li.relationships > a.tag`));
-				let rels_arr = [];
+				let rels_arr = [],
+					rels_arr_ls_TXT = [],
+					rels_arr_comma_HTML = [],
+					rels_arr_comma_TXT = [];
 
 				raw_rels_arr.forEach(function (element, index, array) {
 					const element_clone = element.cloneNode(true);
 					element_clone.removeAttribute(`class`);
 
-					const rel_string = element_clone.outerHTML.trim();
+					const rel_string = `• ${element_clone.outerHTML.trim()}`;
+					const rels_lt_str = `• ${element_clone.textContent.trim()}`;
+					const rels_ch_str = `${element_clone.outerHTML.trim()}`;
+					const rels_ct_str = `${element_clone.textContent.trim()}`;
 					// console.log(`Content in array ${array} at index ${index}: ${array[index]}`);
 					// console.log(element_clone.outerHTML.trim());
 
-					rels_arr.push(`• ${rel_string}`);
+					rels_arr.push(rel_string);
+					rels_arr_ls_TXT.push(rels_lt_str);
+					rels_arr_comma_HTML.push(rels_ch_str);
+					rels_arr_comma_TXT.push(rels_ct_str);
 				});
 
 				// Remove duplicates in rels_arr
@@ -1806,40 +1815,56 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 				// return srs_relationships
 
 				// Check if rels_arr is empty, indicating no relationship tags
-				if (!Array.isArray(rels_arr) || !rels_arr.length) {
+				if (!Array.isArray(raw_rels_arr) || !raw_rels_arr.length) {
 					// If empty, set 'relationships' var to indicate no relationship tags
 					const srs_rels = `<details><summary>Relationship Tags:</summary>\n• <em><strong>No Relationship Tags</strong></em></details>`;
-					return srs_rels;
+					return [srs_rels, srs_rels, srs_rels, srs_rels];
 				} else {
 					// If not empty, use values in rels_arr to set 'relationships'
-					const srs_rels = `<details><summary>Relationship Tags:</summary>\n${rels_arr.join(`\n`)}</details>`;
-					return srs_rels;
+					const src_rels_lh = `<details><summary>Relationship Tags:</summary>\n${rels_arr.join(`\n`)}</details>`;
+					const src_rels_lt = `<details><summary>Relationship Tags:</summary>\n${rels_arr_ls_TXT.join(`\n`)}</details>`;
+					const src_rels_ch = `<details><summary>Relationship Tags:</summary>\n${rels_arr_comma_HTML.join(`, `)}</details>`;
+					const src_rels_ct = `<details><summary>Relationship Tags:</summary>\n${rels_arr_comma_TXT.join(`, `)}</details>`;
+					return [src_rels_lh, src_rels_lt, src_rels_ch, src_rels_ct];
 				}
 			}
 			else {
 				// Retrieve relationship tags
 				const raw_rels_arr = Array.from(document.querySelectorAll(`.relationship.tags ul a`));
-				let rels_arr = [];
+				let rels_arr = [],
+					rels_arr_ls_TXT = [],
+					rels_arr_comma_HTML = [],
+					rels_arr_comma_TXT = [];
+
 				raw_rels_arr.forEach(function (el) {
 					const el_c = el.cloneNode(true);
 					el_c.removeAttribute(`class`);
 
 					const rel_string = `• ${el_c.outerHTML.trim()}`;
+					const rels_lt_str = `• ${el_c.textContent.trim()}`;
+					const rels_ch_str = `${el_c.outerHTML.trim()}`;
+					const rels_ct_str = `${el_c.textContent.trim()}`;
 
 					rels_arr.push(rel_string);
+					rels_arr_ls_TXT.push(rels_lt_str);
+					rels_arr_comma_HTML.push(rels_ch_str);
+					rels_arr_comma_TXT.push(rels_ct_str);
 				});
 
 				// Add Relationship tags to 'relationships' var
 
 				// Check if rels_arr is empty, indicating no relationship tags
-				if (!Array.isArray(rels_arr) || !rels_arr.length) {
+				if (!Array.isArray(raw_rels_arr) || !raw_rels_arr.length) {
 					// If empty, set 'relationships' var to indicate no relationship tags
 					const wrk_rels = `<details><summary>Relationship Tags:</summary>\n• <em><strong>No Relationship Tags</strong></em></details>`;
-					return wrk_rels;
+					return [wrk_rels, wrk_rels, wrk_rels, wrk_rels];
 				} else {
 					// If not empty, fill 'relationships' var using rels_arr
-					const wrk_rels = `<details><summary>Relationship Tags:</summary>\n${rels_arr.join(`\n`)}</details>`;
-					return wrk_rels;
+					const wrk_rels_lh = `<details><summary>Relationship Tags:</summary>\n${rels_arr.join(`\n`)}</details>`;
+					const wrk_rels_lt = `<details><summary>Relationship Tags:</summary>\n${rels_arr_ls_TXT.join(`\n`)}</details>`;
+					const wrk_rels_ch = `<details><summary>Relationship Tags:</summary>\n${rels_arr_comma_HTML.join(`, `)}</details>`;
+					const wrk_rels_ct = `<details><summary>Relationship Tags:</summary>\n${rels_arr_comma_TXT.join(`, `)}</details>`;
+					return [wrk_rels_lh, wrk_rels_lt, wrk_rels_ch, wrk_rels_ct];
 				}
 			}
 		})();
@@ -1885,6 +1910,51 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 					const wrk_fforms_ch = `<details><summary>Additional Tags:</summary>\n${freeform_arr_comma_HTML.join(`, `)}</details>`;
 					const wrk_fforms_ct = `<details><summary>Additional Tags:</summary>\n${freeform_arr_comma_TXT.join(`, `)}</details>`;
 					return [wrk_fforms_lh, wrk_fforms_lt, wrk_fforms_ch, wrk_fforms_ct];
+				}
+			}
+		})();
+
+		const [character_tags_list_HTML, character_tags_list_TXT, character_tags_comma_HTML, character_tags_comma_TXT] = (function () {
+			if (IS_SERIES) { return [``, ``, ``, ``]; }
+			else {
+				// Retrieve character tags
+				const raw_character_arr = Array.from(document.querySelectorAll(`.character.tags > ul a`));
+
+				let
+					character_arr_ls_HTML = [],
+					character_arr_ls_TXT = [],
+					character_arr_comma_HTML = [],
+					character_arr_comma_TXT = [];
+
+				raw_character_arr.forEach(function (el) {
+					const el_c = el.cloneNode(true);
+					el_c.removeAttribute(`class`);
+
+					const character_lh_str = `• ${el_c.outerHTML.trim()}`;
+					const character_lt_str = `• ${el_c.textContent.trim()}`;
+					const character_ch_str = `${el_c.outerHTML.trim()}`;
+					const character_ct_str = `${el_c.textContent.trim()}`;
+
+					character_arr_ls_HTML.push(character_lh_str);
+					character_arr_ls_TXT.push(character_lt_str);
+					character_arr_comma_HTML.push(character_ch_str);
+					character_arr_comma_TXT.push(character_ct_str);
+				});
+
+				// Add Character tags to 'character' vars
+
+				// Check if char_arr is empty, indicating no character tags
+				if (!Array.isArray(raw_character_arr) || !raw_character_arr.length) {
+					// If empty, set 'characters' var to indicate no character tags
+					const wrk_characters = `<details><summary>Character Tags:</summary>\n• <em><strong>No Character Tags</strong></em></details>`;
+					return [wrk_characters, wrk_characters, wrk_characters, wrk_characters];
+				} else {
+					// If not empty, fill 'character' var using wrk_characters
+					const wrk_characters_lh = `<details><summary>Character Tags:</summary>\n${character_arr_ls_HTML.join(`\n`)}</details>`;
+					const wrk_characters_lt = `<details><summary>Character Tags:</summary>\n${character_arr_ls_TXT.join(`\n`)}</details>`;
+					const wrk_characters_ch = `<details><summary>Character Tags:</summary>\n${character_arr_comma_HTML.join(`, `)}</details>`;
+					const wrk_characters_ct = `<details><summary>Character Tags:</summary>\n${character_arr_comma_TXT.join(`, `)}</details>`;
+					return [wrk_characters_lh, wrk_characters_lt, wrk_characters_ch, wrk_characters_ct];
 				}
 			}
 		})();
@@ -2042,6 +2112,19 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			}
 		})();
 
+		const [work_bookmarks_count_txt, work_bookmarks_count_html] = (function () {
+			// Same HTML whether work or series...
+
+			// Retrieve work work count
+			// const wrk_bkmrk_cnt = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Bookmarks:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
+			// const bkmrk_stats = importedNode.querySelector(`#main .group.meta.work dl.stats`);
+			const wrk_bkmrk_cnt = main.querySelector(`dd.bookmarks > a`);
+			// The bookmark count element doesn't exist if the series has no bookmarks, which means wrk_bkmrk_cnt will be undefined
+			if (wrk_bkmrk_cnt != undefined) {
+				return [wrk_bkmrk_cnt.textContent.trim(), wrk_bkmrk_cnt.outerHTML.trim()];
+			} else { return [`None`, `None`]; }
+
+		})();
 		const series_link = (function () {
 			if (IS_SERIES) { // blank for series pages
 				return '';
@@ -2147,6 +2230,10 @@ ${work_series_info.join(`\n`)}
 		- summary                   // Summary of the work or series
 		- words                     // Current word count of the work or series
 		- ws_id                     // ID of the work/series being bookmarked
+		- relationships_tags_list_TXT   // The relationship tags of a work/series as plaintext (so you don't run into the character limit) in a list similar to that in the relationships variable
+		- relationships_tags_comma_HTML // The relationship tags of a work/series as comma separated links
+		- relationships_tags_comma_TXT  // The relationship tags of a work/series as comma separated plaintext (so you don't run into the character limit)
+		- work_or_series_word           // String that is 'Work' if bookmarking work, otherwise is 'Series'
 
 		Variables specific to series:
 		- series_works_titles_summaries    // Adds all of the summaries of the works in the series to the series bookmark
@@ -2159,6 +2246,12 @@ ${work_series_info.join(`\n`)}
 		- fform_tags_list_TXT       // The freeform tags of a work as plaintext (so you don't run into the character limit) in a list similar to that in the relationships variable
 		- fform_tags_comma_HTML     // The freeform tags of a work as comma separated links
 		- fform_tags_comma_TXT      // The freeform tags of a work as comma separated plaintext (so you don't run into the character limit)
+		- work_bookmarks_count_txt  // The number of bookmarks of the work, formatted as an HTML hyperlink
+		- work_bookmarks_count_html // The number of bookmarks of the work, formatted as raw text
+		- character_tags_list_HTML  // The character tags of a work as links in a list similar to that in the relationships variable
+		- character_tags_list_TXT   // The character tags of a work as plaintext (so you don't run into the character limit) in a list similar to that in the relationships variable
+		- character_tags_comma_HTML // The character tags of a work as comma separated links
+		- character_tags_comma_TXT  // The character tags of a work as comma separated plaintext (so you don't run into the character limit)
 
 		Variables specific to works that belong to a series:
 		- series_id                 // The ID of the series the work belongs to
@@ -2199,8 +2292,16 @@ ${work_series_info.join(`\n`)}
 				} else {
 					return `(Approximate) Last Read: ${date}`;
 				}
+			})(),
+			// date = `${yyyy}/${mm}/${dd} ${hh}${mm}hrs`; // Date with time
+			work_or_series_word = (function () {
+				// Make the date string an empty string for series because it doesnt make sense there
+				if (Boolean(IS_SERIES)) {
+					return `Series`;
+				} else {
+					return `Work`;
+				}
 			})();
-		// date = `${yyyy}/${mm}/${dd} ${hh}${mm}hrs`; // Date with time
 		console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
@@ -2368,6 +2469,46 @@ ${series_desc_blockquote}</details>`;
 \t<details><summary>Work/Series Summary:</summary>
 \t${summary}</details>
 </details>`; */
+
+		// ------------------------
+		// Grouchy modified preset
+		// Modified from preset 1
+		// To use this preset, uncomment the line starting with workInfo 
+		// and ending with </details>, and comment out preset 1's lines
+
+		/* workInfo = `<details><summary>${work_or_series_word} Details</summary>
+\t${title_HTML} by ${author_HTML}
+\tWords: ${words} | ${work_or_series_word} ID: ${ws_id} | ${AO3_status} | Bookmarks: ${work_bookmarks_count_html} | Last Chapter: ${lastChapter}
+${(function () {
+
+				if (part_of_series != ``) { return `\n\t${part_of_series}`; }
+				else { return ``; }
+
+			})()}${(function () {
+
+				if (IS_SERIES_PART) {
+					const out_str = `
+\t<details><summary>Series Information:</summary>
+\tWords: ${series_word_count} | Series ID: ${series_id} | Works: ${series_work_count} | Complete: ${series_status} | Bookmarks: ${series_bkmrk_count_html}
+\tDescription:
+${series_desc_blockquote}</details>`;
+					return out_str;
+				}
+				else {
+					return ``;
+				}
+
+			})()}
+\t<details><summary>${work_or_series_word} Summary:</summary>
+\t${summary}</details>${(function () {
+
+				if (IS_SERIES) { return `\n\t<details><summary>Series' Works Summaries:</summary>${series_works_titles_summaries}</details>`; }
+				else { return ``; }
+
+			})()}\t${relationships_tags_comma_HTML}
+\t${character_tags_comma_HTML}
+\t${fform_tags_comma_TXT}
+${date_string}</details>`;*/
 
 		// ------------------------
 
