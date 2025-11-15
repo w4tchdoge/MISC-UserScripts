@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.16.3-20251022_124112
+// @version        2.17.0-20251115_111749
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -18,6 +18,7 @@
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @run-at         document-end
 // @license        GNU GPLv3
+// @history        2.17.0 — (Pull request by PrincessGrouchy) Added/changed multiple `workInfo` variables. Changed `relationships` into 4 separate variants like fform_tags. Added `bkmrks_count` & `bkmrks_count_HTML` to indicate how many bookmarks a work/series has. Added `bookmark_type` to indicate whether it's a work or series bookmark. Added a workInfo variable for character tags with variants the same as for relationships and freeform tags.
 // @history        2.16.3 — Fix the XPath for getting the button on the bottom nav actions bar that takes you to top of the page
 // @history        2.16.2 — Fix issue where script errors on works that are a part of a series which does not have any bookmarks
 // @history        2.16.1 — Fix issue on Firefox where the processing of the new workInfo variables added in 2.16.0 were throwing a DOMException.
@@ -740,7 +741,7 @@ localStorage vars:`;
 	const log_string_localStorage_maxSpacing = Object.keys(initial_settings_dict).reduce((a, b) => a.length <= b.length ? b : a).length + 1;
 
 	Object.keys(initial_settings_dict).forEach((key) => {
-		let spacing = log_string_localStorage_maxSpacing - key.toString().length;
+		const spacing = log_string_localStorage_maxSpacing - key.toString().length;
 		if (key == `divider`) {
 			log_string += `\n${key.toString()}${" ".repeat(spacing)}: ${localStorage.getItem(`w4BM_${key}`).replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}`;
 		} else {
@@ -1382,7 +1383,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			innerHTML: `<a href="${sum_pg_href}">SP</a>`
 		});
 
-		// Get the "↑ Top" button that's in the bottom nav bar		
+		// Get the "↑ Top" button that's in the bottom nav bar
 		let toTop_btn = null;
 		const toTop_xp = `.//*[@id="feedback"]//*[@role="navigation"]//li[*[text()[contains(.,"Top")]]]`; // Original XPath stays in case the new DOM layout I'm seeing isn't a permanent change
 		toTop_btn = document.evaluate(toTop_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
@@ -1575,6 +1576,15 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		// Is true when the current page is a series. Is false otherwise
 		const IS_SERIES = Boolean(document.evaluate(`.//*[@id="main"]//span[text()="Series"]`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue);
 
+		// Define what type of bookmark it is
+		const bookmark_type = (function () {
+			if (IS_SERIES) {
+				return `Series`;
+			} else {
+				return `Work`;
+			}
+		})();
+
 		// Check if the current page is for a work that is a part of a series. Is true when it is. Is false otherwise
 		const IS_SERIES_PART = (() => {
 			if (IS_SERIES) {
@@ -1710,7 +1720,22 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			}
 		})();
 
-		const [series_desc_blockquote, series_desc_text, series_word_count, series_work_count, series_bkmrk_count_txt, series_bkmrk_count_html, series_status, series_id] = await (async () => {
+		const [bkmrks_count, bkmrks_count_HTML] = (function () {
+			const selector = (() => {
+				if (IS_SERIES) { return `dl.series.meta.group dl.stats > dd.bookmarks > a`; }
+				else { return `dl.work.meta.group dl.stats > dd.bookmarks > a`; }
+			})();
+
+			// Retrieve work/series bookmark count count
+			const bkmrk_cnt = main.querySelector(selector);
+			// The bookmark count element doesn't exist if the series has no bookmarks, which means bkmrk_cnt will be undefined
+			if (bkmrk_cnt != undefined) {
+				return [bkmrk_cnt.textContent.trim(), bkmrk_cnt.outerHTML.trim()];
+			} else { return [`None`, `None`]; }
+		})();
+
+		// workInfo variables related to the series a work is a part of
+		const [wrks_series_desc_blockquote, wrks_series_desc_text, wrks_series_word_count, wrks_series_work_count, wrks_series_bkmrk_count_txt, wrks_series_bkmrk_count_html, wrks_series_status, wrks_series_id] = await (async () => {
 			if (IS_SERIES_PART) {
 				const series_url = new URL(main.querySelector(`.work.meta.group > dd.series span.position > a`).getAttribute(`href`), `https://archiveofourown.org`);
 				const series_id = FindIDfromURL(`series`, series_url);
@@ -1769,26 +1794,39 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			}
 		})();
 
-		const relationships = (function () {
+		const [relationships_list_HTML, relationships_list_TXT, relationships_comma_HTML, relationships_comma_TXT] = (function () {
 			if (IS_SERIES) {
 				// Get all relationship tags present in series' works and add them to series bookmark
 				// Retrieve relationship tags
 				const raw_rels_arr = Array.from(document.querySelectorAll(`ul.tags > li.relationships > a.tag`));
-				let rels_arr = [];
+				let
+					rels_arr_ls_HTML = [],
+					rels_arr_ls_TXT = [],
+					rels_arr_comma_HTML = [],
+					rels_arr_comma_TXT = [];
 
-				raw_rels_arr.forEach(function (element, index, array) {
+				raw_rels_arr.forEach(function (element) {
 					const element_clone = element.cloneNode(true);
 					element_clone.removeAttribute(`class`);
 
-					const rel_string = element_clone.outerHTML.trim();
+					const rels_lh_str = `• ${element_clone.outerHTML.trim()}`;
+					const rels_lt_str = `• ${element_clone.textContent.trim()}`;
+					const rels_ch_str = `${element_clone.outerHTML.trim()}`;
+					const rels_ct_str = `${element_clone.textContent.trim()}`;
 					// console.log(`Content in array ${array} at index ${index}: ${array[index]}`);
 					// console.log(element_clone.outerHTML.trim());
 
-					rels_arr.push(`• ${rel_string}`);
+					rels_arr_ls_HTML.push(rels_lh_str);
+					rels_arr_ls_TXT.push(rels_lt_str);
+					rels_arr_comma_HTML.push(rels_ch_str);
+					rels_arr_comma_TXT.push(rels_ct_str);
 				});
 
-				// Remove duplicates in rels_arr
-				rels_arr = [...new Set(rels_arr)];
+				// Remove duplicates in the output relationships vars
+				rels_arr_ls_HTML = [...new Set(rels_arr_ls_HTML)];
+				rels_arr_ls_TXT = [...new Set(rels_arr_ls_TXT)];
+				rels_arr_comma_HTML = [...new Set(rels_arr_comma_HTML)];
+				rels_arr_comma_TXT = [...new Set(rels_arr_comma_TXT)];
 
 				// const srs_relationships = (function () {
 				// 	// Attempt to add entries from rels_arr to relationships regardless of whether rels_arr is empty or not
@@ -1806,40 +1844,57 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 				// return srs_relationships
 
 				// Check if rels_arr is empty, indicating no relationship tags
-				if (!Array.isArray(rels_arr) || !rels_arr.length) {
+				if (!Array.isArray(raw_rels_arr) || !raw_rels_arr.length) {
 					// If empty, set 'relationships' var to indicate no relationship tags
 					const srs_rels = `<details><summary>Relationship Tags:</summary>\n• <em><strong>No Relationship Tags</strong></em></details>`;
-					return srs_rels;
+					return [srs_rels, srs_rels, srs_rels, srs_rels];
 				} else {
 					// If not empty, use values in rels_arr to set 'relationships'
-					const srs_rels = `<details><summary>Relationship Tags:</summary>\n${rels_arr.join(`\n`)}</details>`;
-					return srs_rels;
+					const src_rels_lh = `<details><summary>Relationship Tags:</summary>\n${rels_arr_ls_HTML.join(`\n`)}</details>`;
+					const src_rels_lt = `<details><summary>Relationship Tags:</summary>\n${rels_arr_ls_TXT.join(`\n`)}</details>`;
+					const src_rels_ch = `<details><summary>Relationship Tags:</summary>\n${rels_arr_comma_HTML.join(`, `)}</details>`;
+					const src_rels_ct = `<details><summary>Relationship Tags:</summary>\n${rels_arr_comma_TXT.join(`, `)}</details>`;
+					return [src_rels_lh, src_rels_lt, src_rels_ch, src_rels_ct];
 				}
 			}
 			else {
 				// Retrieve relationship tags
 				const raw_rels_arr = Array.from(document.querySelectorAll(`.relationship.tags ul a`));
-				let rels_arr = [];
+				let
+					rels_arr_ls_HTML = [],
+					rels_arr_ls_TXT = [],
+					rels_arr_comma_HTML = [],
+					rels_arr_comma_TXT = [];
+
 				raw_rels_arr.forEach(function (el) {
 					const el_c = el.cloneNode(true);
 					el_c.removeAttribute(`class`);
 
-					const rel_string = `• ${el_c.outerHTML.trim()}`;
+					const rels_lh_str = `• ${el_c.outerHTML.trim()}`;
+					const rels_lt_str = `• ${el_c.textContent.trim()}`;
+					const rels_ch_str = `${el_c.outerHTML.trim()}`;
+					const rels_ct_str = `${el_c.textContent.trim()}`;
 
-					rels_arr.push(rel_string);
+					rels_arr_ls_HTML.push(rels_lh_str);
+					rels_arr_ls_TXT.push(rels_lt_str);
+					rels_arr_comma_HTML.push(rels_ch_str);
+					rels_arr_comma_TXT.push(rels_ct_str);
 				});
 
-				// Add Relationship tags to 'relationships' var
+				// Add Relationship tags to the relationship vars
 
 				// Check if rels_arr is empty, indicating no relationship tags
-				if (!Array.isArray(rels_arr) || !rels_arr.length) {
+				if (!Array.isArray(raw_rels_arr) || !raw_rels_arr.length) {
 					// If empty, set 'relationships' var to indicate no relationship tags
 					const wrk_rels = `<details><summary>Relationship Tags:</summary>\n• <em><strong>No Relationship Tags</strong></em></details>`;
-					return wrk_rels;
+					return [wrk_rels, wrk_rels, wrk_rels, wrk_rels];
 				} else {
 					// If not empty, fill 'relationships' var using rels_arr
-					const wrk_rels = `<details><summary>Relationship Tags:</summary>\n${rels_arr.join(`\n`)}</details>`;
-					return wrk_rels;
+					const wrk_rels_lh = `<details><summary>Relationship Tags:</summary>\n${rels_arr_ls_HTML.join(`\n`)}</details>`;
+					const wrk_rels_lt = `<details><summary>Relationship Tags:</summary>\n${rels_arr_ls_TXT.join(`\n`)}</details>`;
+					const wrk_rels_ch = `<details><summary>Relationship Tags:</summary>\n${rels_arr_comma_HTML.join(`, `)}</details>`;
+					const wrk_rels_ct = `<details><summary>Relationship Tags:</summary>\n${rels_arr_comma_TXT.join(`, `)}</details>`;
+					return [wrk_rels_lh, wrk_rels_lt, wrk_rels_ch, wrk_rels_ct];
 				}
 			}
 		})();
@@ -1871,7 +1926,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 					freeform_arr_comma_TXT.push(fform_ct_str);
 				});
 
-				// Add Relationship tags to 'relationships' var
+				// Add Freeform tags to the freeform vars
 
 				// Check if rels_arr is empty, indicating no relationship tags
 				if (!Array.isArray(raw_freeform_arr) || !raw_freeform_arr.length) {
@@ -1890,6 +1945,51 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		})();
 
 		// console.log([fform_tags_list_HTML, fform_tags_list_TXT, fform_tags_comma_HTML, fform_tags_comma_TXT]);
+
+		const [characters_list_HTML, characters_list_TXT, characters_comma_HTML, characters_comma_TXT] = (function () {
+			if (IS_SERIES) { return [``, ``, ``, ``]; }
+			else {
+				// Retrieve character tags
+				const raw_chrs_arr = Array.from(document.querySelectorAll(`.character.tags > ul a`));
+
+				let
+					chrs_arr_ls_HTML = [],
+					chrs_arr_ls_TXT = [],
+					chrs_arr_comma_HTML = [],
+					chrs_arr_comma_TXT = [];
+
+				raw_chrs_arr.forEach(function (el) {
+					const el_c = el.cloneNode(true);
+					el_c.removeAttribute(`class`);
+
+					const chrs_lh_str = `• ${el_c.outerHTML.trim()}`;
+					const chrs_lt_str = `• ${el_c.textContent.trim()}`;
+					const chrs_ch_str = `${el_c.outerHTML.trim()}`;
+					const chrs_ct_str = `${el_c.textContent.trim()}`;
+
+					chrs_arr_ls_HTML.push(chrs_lh_str);
+					chrs_arr_ls_TXT.push(chrs_lt_str);
+					chrs_arr_comma_HTML.push(chrs_ch_str);
+					chrs_arr_comma_TXT.push(chrs_ct_str);
+				});
+
+				// Add Character tags to the character vars
+
+				// Check if char_arr is empty, indicating no character tags
+				if (!Array.isArray(raw_chrs_arr) || !raw_chrs_arr.length) {
+					// If empty, set 'characters' var to indicate no character tags
+					const wrk_chrs = `<details><summary>Character Tags:</summary>\n• <em><strong>No Character Tags</strong></em></details>`;
+					return [wrk_chrs, wrk_chrs, wrk_chrs, wrk_chrs];
+				} else {
+					// If not empty, fill 'character' var using wrk_characters
+					const wrk_chrs_lh = `<details><summary>Character Tags:</summary>\n${chrs_arr_ls_HTML.join(`\n`)}</details>`;
+					const wrk_chrs_lt = `<details><summary>Character Tags:</summary>\n${chrs_arr_ls_TXT.join(`\n`)}</details>`;
+					const wrk_chrs_ch = `<details><summary>Character Tags:</summary>\n${chrs_arr_comma_HTML.join(`, `)}</details>`;
+					const wrk_chrs_ct = `<details><summary>Character Tags:</summary>\n${chrs_arr_comma_TXT.join(`, `)}</details>`;
+					return [wrk_chrs_lh, wrk_chrs_lt, wrk_chrs_ch, wrk_chrs_ct];
+				}
+			}
+		})();
 
 		const summary_default_value = `<em><strong>NO SUMMARY</strong></em>`;
 
@@ -2136,39 +2236,49 @@ ${work_series_info.join(`\n`)}
 		/*
 
 		Variables that can be used when creating the string for newBookmarkNotes:
-		- date_string               // String to show when the work was last read – User configurable in the Date configuration sub-section
-		- title                     // Title of the work or series
-		- title_HTML                // Title of the work or series, as an HTML <a> element (a link). e.g. the title_HTML string for AO3 work 54769867 would be '<a href="/works/54769867">Glass Cannon</a>'
-		- title_URL                 // The URL of the work/series being bookmarked as plaintext
-		- author                    // Author of the work or series
-		- author_HTML               // Author of the work or series, as an HTML <a> element (a link). e.g. the author_HTML string for AO3 work 54769867 would be '<a rel="author" href="/users/nescias/pseuds/nescias">nescias</a>'
-		- AO3_status                // Status of the work or series. i.e. Completed: 2020-08-23, Updated: 2022-05-08, Published: 2015-06-29
-		- relationships             // For work bookmarks, it's the Relationship tags present in the work and it will be a collapsible element in your work bookmark. For series bookmarks, it's all of the unique Relationship tags present in all the works in a series and it will be a collapsible element in your series bookmark
-		- summary                   // Summary of the work or series
-		- words                     // Current word count of the work or series
-		- ws_id                     // ID of the work/series being bookmarked
+		- date_string                      // String to show when the work was last read – User configurable in the Date configuration sub-section
+		- title                            // Title of the work or series
+		- title_HTML                       // Title of the work or series, as an HTML <a> element (a link). e.g. the title_HTML string for AO3 work 54769867 would be '<a href="/works/54769867">Glass Cannon</a>'
+		- title_URL                        // The URL of the work/series being bookmarked as plaintext
+		- author                           // Author of the work or series
+		- author_HTML                      // Author of the work or series, as an HTML <a> element (a link). e.g. the author_HTML string for AO3 work 54769867 would be '<a rel="author" href="/users/nescias/pseuds/nescias">nescias</a>'
+		- AO3_status                       // Status of the work or series. i.e. Completed: 2020-08-23, Updated: 2022-05-08, Published: 2015-06-29
+		- relationships_list_HTML          // The relationship tags of a work/series as links in a bulleted list
+		- relationships_list_TXT           // The relationship tags of a work/series as plaintext (so you don't run into the character limit) in a list similar to that in the relationships variable
+		- relationships_comma_HTML         // The relationship tags of a work/series as comma separated links
+		- relationships_comma_TXT          // The relationship tags of a work/series as comma separated plaintext (so you don't run into the character limit)
+		- summary                          // Summary of the work or series
+		- words                            // Current word count of the work or series
+		- ws_id                            // ID of the work/series being bookmarked
+		- bkmrks_count                     // The number of bookmarks of the work/series, formatted as an HTML hyperlink
+		- bkmrks_count_HTML                // The number of bookmarks of the work/series, formatted as raw text
+		- bookmark_type                    // String to indicate whether the bookmark is a work or series bookmark
 
 		Variables specific to series:
 		- series_works_titles_summaries    // Adds all of the summaries of the works in the series to the series bookmark
 
 		Variables specific to works:
-		- part_of_series            // Adds AO3's part of series indicator to the bookmark. i.e. a string in the vein of "Part X of Y" where Y is a hyperlink to the series on AO3
-		- lastChapter               // Last published chapter of the work or series
-		- series_link               // Info about the series' the work belongs to
-		- fform_tags_list_HTML      // The freeform tags of a work as links in a list similar to that in the relationships variable
-		- fform_tags_list_TXT       // The freeform tags of a work as plaintext (so you don't run into the character limit) in a list similar to that in the relationships variable
-		- fform_tags_comma_HTML     // The freeform tags of a work as comma separated links
-		- fform_tags_comma_TXT      // The freeform tags of a work as comma separated plaintext (so you don't run into the character limit)
+		- part_of_series                   // Adds AO3's part of series indicator to the bookmark. i.e. a string in the vein of "Part X of Y" where Y is a hyperlink to the series on AO3
+		- lastChapter                      // Last published chapter of the work or series
+		- series_link                      // Info about the series' the work belongs to
+		- fform_tags_list_HTML             // The freeform tags of a work as links in a list similar to that in the relationships variable
+		- fform_tags_list_TXT              // The freeform tags of a work as plaintext (so you don't run into the character limit) in a list similar to that in the relationships variable
+		- fform_tags_comma_HTML            // The freeform tags of a work as comma separated links
+		- fform_tags_comma_TXT             // The freeform tags of a work as comma separated plaintext (so you don't run into the character limit)
+		- characters_list_HTML             // The character tags of a work as links in a list similar to that in the relationships variable
+		- characters_list_TXT              // The character tags of a work as plaintext (so you don't run into the character limit) in a list similar to that in the relationships variable
+		- characters_comma_HTML            // The character tags of a work as comma separated links
+		- characters_comma_TXT             // The character tags of a work as comma separated plaintext (so you don't run into the character limit)
 
 		Variables specific to works that belong to a series:
-		- series_id                 // The ID of the series the work belongs to
-		- series_status             // The completion status of the series the work belongs to
-		- series_word_count         // The word count of the series the work belongs to
-		- series_work_count         // The number of works in the series the work belongs to
-		- series_bkmrk_count_html   // The number of bookmarks of the series the work belongs to, formatted as an HTML hyperlink
-		- series_bkmrk_count_txt    // The number of bookmarks of the series the work belongs to, as raw text
-		- series_desc_blockquote    // The description of the series the work belongs to, formatted as an HTML blockquote element
-		- series_desc_text          // The description of the series the work belongs to, as raw text
+		- wrks_series_id                   // The ID of the series the work belongs to
+		- wrks_series_status               // The completion status of the series the work belongs to
+		- wrks_series_word_count           // The word count of the series the work belongs to
+		- wrks_series_work_count           // The number of works in the series the work belongs to
+		- wrks_series_bkmrk_count_html     // The number of bookmarks of the series the work belongs to, formatted as an HTML hyperlink
+		- wrks_series_bkmrk_count_txt      // The number of bookmarks of the series the work belongs to, as raw text
+		- wrks_series_desc_blockquote      // The description of the series the work belongs to, formatted as an HTML blockquote element
+		- wrks_series_desc_text            // The description of the series the work belongs to, as raw text
 
 		*/
 
@@ -2194,7 +2304,7 @@ ${work_series_info.join(`\n`)}
 			date = `${yyyy}/${mm}/${dd}`, // Date without time
 			date_string = (function () {
 				// Make the date string an empty string for series because it doesnt make sense there
-				if (Boolean(IS_SERIES)) {
+				if (IS_SERIES) {
 					return ``;
 				} else {
 					return `(Approximate) Last Read: ${date}`;
@@ -2207,6 +2317,63 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 Date Generated: ${date}
 Date String Generated: ${(function () { if (date_string == ``) { return `No Date String Generated`; } else { return date_string; } })()}`
 		);
+
+		const workInfoVariablesDict = {
+			title: title,
+			title_HTML: title_HTML,
+			title_URL: title_URL,
+			author: author,
+			author_HTML: author_HTML,
+			ws_id: ws_id,
+			relationships_list_HTML: relationships_list_HTML,
+			relationships_list_TXT: relationships_list_TXT,
+			relationships_comma_HTML: relationships_comma_HTML,
+			relationships_comma_TXT: relationships_comma_TXT,
+			characters_list_HTML: characters_list_HTML,
+			characters_list_TXT: characters_list_TXT,
+			characters_comma_HTML: characters_comma_HTML,
+			characters_comma_TXT: characters_comma_TXT,
+			fform_tags_list_HTML: fform_tags_list_HTML,
+			fform_tags_list_TXT: fform_tags_list_TXT,
+			fform_tags_comma_HTML: fform_tags_comma_HTML,
+			fform_tags_comma_TXT: fform_tags_comma_TXT,
+			summary: summary,
+			AO3_status: AO3_status,
+			words: words,
+			lastChapter: lastChapter,
+			bkmrks_count: bkmrks_count,
+			bkmrks_count_HTML: bkmrks_count_HTML,
+			series_works_titles_summaries: series_works_titles_summaries,
+			series_link: series_link,
+			part_of_series: part_of_series,
+			wrks_series_id: wrks_series_id,
+			wrks_series_status: wrks_series_status,
+			wrks_series_word_count: wrks_series_word_count,
+			wrks_series_work_count: wrks_series_work_count,
+			wrks_series_bkmrk_count_html: wrks_series_bkmrk_count_html,
+			wrks_series_bkmrk_count_txt: wrks_series_bkmrk_count_txt,
+			wrks_series_desc_blockquote: wrks_series_desc_blockquote,
+			wrks_series_desc_text: wrks_series_desc_text,
+			date_string: date_string,
+			bookmark_type: bookmark_type,
+		};
+
+		// Print workInfo debug string to console
+		console.log(workInfoDebug(workInfoVariablesDict));
+
+		function workInfoDebug(input_dict) {
+			let debug_str = `
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+Logging the current state of workInfo vars used by the script
+
+workInfo vars:
+`;
+			Object.entries(input_dict).forEach(([key, value]) => {
+				debug_str += `\n${key.toString()}:\n${value.toString()}\n`;
+			});
+			return debug_str;
+		}
 
 		/* ///////////// Select from Presets ///////////// */
 
@@ -2225,7 +2392,7 @@ Date String Generated: ${(function () { if (date_string == ``) { return `No Date
 		// splitSelect = 1
 		// new_notes = `${workInfo}\n\n${curr_notes}`
 
-		workInfo = `<details><summary>Work/Series Details</summary>
+		workInfo = `<details><summary>${bookmark_type} Details</summary>
 \t${title_HTML} by ${author_HTML}${(function () {
 
 				if (part_of_series != ``) { return `\n\t${part_of_series}`; }
@@ -2236,10 +2403,10 @@ Date String Generated: ${(function () { if (date_string == ``) { return `No Date
 				if (IS_SERIES_PART) {
 					const out_str = `
 \t<details><summary>Series Information:</summary>
-\tID: ${series_id}
-\tWords: ${series_word_count} | Works: ${series_work_count} | Complete: ${series_status} | Bookmarks: ${series_bkmrk_count_html}
+\tID: ${wrks_series_id}
+\tWords: ${wrks_series_word_count} | Works: ${wrks_series_work_count} | Complete: ${wrks_series_status} | Bookmarks: ${wrks_series_bkmrk_count_html}
 \tDescription:
-${series_desc_blockquote}</details>`;
+${wrks_series_desc_blockquote}</details>`;
 					return out_str;
 				}
 				else {
@@ -2249,9 +2416,9 @@ ${series_desc_blockquote}</details>`;
 			})()}
 
 \t${AO3_status}
-\tWork/Series ID: ${ws_id}
-\t${relationships}
-\t<details><summary>Work/Series Summary:</summary>
+\t${bookmark_type} ID: ${ws_id}
+\t${relationships_list_HTML}
+\t<details><summary>${bookmark_type} Summary:</summary>
 \t${summary}</details>
 ${date_string}</details>`;
 
@@ -2263,7 +2430,7 @@ ${date_string}</details>`;
 		// splitSelect = 1
 		// new_notes = `${workInfo}\n\n${curr_notes}`
 
-		/* workInfo = `<details><summary>Work/Series Details</summary>
+		/* workInfo = `<details><summary>${bookmark_type} Details</summary>
 \t${title_HTML} by ${author_HTML}${(function () {
 
 				if (part_of_series != ``) { return `\n\t${part_of_series}`; }
@@ -2287,9 +2454,9 @@ ${series_desc_blockquote}</details>`;
 			})()}
 
 \t${AO3_status}
-\tWork/Series ID: ${ws_id}
+\t${bookmark_type} ID: ${ws_id}
 \t${relationships}
-\t<details><summary>Work/Series Summary:</summary>
+\t<details><summary>${bookmark_type} Summary:</summary>
 \t${summary}</details>
 </details>`; */
 
@@ -2301,7 +2468,7 @@ ${series_desc_blockquote}</details>`;
 		// splitSelect = 0
 		// new_notes = `${curr_notes}<br />\n${workInfo}`
 
-		/* workInfo = `<details><summary>Work/Series Details</summary>
+		/* workInfo = `<details><summary>${bookmark_type} Details</summary>
 \t${title_HTML} by ${author_HTML}${(function () {
 
 				if (part_of_series != ``) { return `\n\t${part_of_series}`; }
@@ -2325,9 +2492,9 @@ ${series_desc_blockquote}</details>`;
 			})()}
 
 \t${AO3_status}
-\tWork/Series ID: ${ws_id}
+\t${bookmark_type} ID: ${ws_id}
 \t${relationships}
-\t<details><summary>Work/Series Summary:</summary>
+\t<details><summary>${bookmark_type} Summary:</summary>
 \t${summary}</details>
 ${date_string}</details>`; */
 
@@ -2339,7 +2506,7 @@ ${date_string}</details>`; */
 		// splitSelect = 0
 		// new_notes = `${curr_notes}<br />\n${workInfo}`
 
-		/* workInfo = `<details><summary>Work/Series Details</summary>
+		/* workInfo = `<details><summary>${bookmark_type} Details</summary>
 \t${title_HTML} by ${author_HTML}${(function () {
 
 				if (part_of_series != ``) { return `\n\t${part_of_series}`; }
@@ -2363,11 +2530,51 @@ ${series_desc_blockquote}</details>`;
 			})()}
 
 \t${AO3_status}
-\tWork/Series ID: ${ws_id}
+\t${bookmark_type} ID: ${ws_id}
 \t${relationships}
-\t<details><summary>Work/Series Summary:</summary>
+\t<details><summary>${bookmark_type} Summary:</summary>
 \t${summary}</details>
 </details>`; */
+
+		// ------------------------
+		// Grouchy modified preset
+		// Modified from preset 1
+		// To use this preset, uncomment the line starting with workInfo
+		// and ending with </details>, and comment out preset 1's lines
+
+		/* workInfo = `<details><summary>${bookmark_type} Details</summary>
+\t${title_HTML} by ${author_HTML}
+\tWords: ${words} | ${bookmark_type} ID: ${ws_id} | ${AO3_status} | Bookmarks: ${bkmrks_count_HTML} | Last Chapter: ${lastChapter}
+${(function () {
+
+				if (part_of_series != ``) { return `\n\t${part_of_series}`; }
+				else { return ``; }
+
+			})()}${(function () {
+
+				if (IS_SERIES_PART) {
+					const out_str = `
+\t<details><summary>Series Information:</summary>
+\tWords: ${series_word_count} | Series ID: ${series_id} | Works: ${series_work_count} | Complete: ${series_status} | Bookmarks: ${series_bkmrk_count_html}
+\tDescription:
+${series_desc_blockquote}</details>`;
+					return out_str;
+				}
+				else {
+					return ``;
+				}
+
+			})()}
+\t<details><summary>${bookmark_type} Summary:</summary>
+\t${summary}</details>${(function () {
+
+				if (IS_SERIES) { return `\n\t<details><summary>Series' Works Summaries:</summary>${series_works_titles_summaries}</details>`; }
+				else { return ``; }
+
+			})()}\t${relationships_tags_comma_HTML}
+\t${characters_comma_HTML}
+\t${fform_tags_comma_TXT}
+${date_string}</details>`;*/
 
 		// ------------------------
 
