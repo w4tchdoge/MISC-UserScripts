@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.17.0-20251115_111749
+// @version        2.17.0-20251115_113356
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -2359,7 +2359,7 @@ Date String Generated: ${(function () { if (date_string == ``) { return `No Date
 		};
 
 		// Print workInfo debug string to console
-		console.log(workInfoDebug(workInfoVariablesDict));
+		// console.log(workInfoDebug(workInfoVariablesDict));
 
 		function workInfoDebug(input_dict) {
 			let debug_str = `
