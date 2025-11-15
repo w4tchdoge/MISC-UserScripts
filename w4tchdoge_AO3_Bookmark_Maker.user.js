@@ -2213,36 +2213,6 @@ ${work_series_info.join(`\n`)}
 		})();
 
 
-		const workInfoObj = {
-			title: title,
-			title_HTML: title_HTML,
-			title_URL: title_URL,
-			author: author,
-			author_HTML: author_HTML,
-			AO3_status: AO3_status,
-			relationships: relationships,
-			summary: summary,
-			words: words,
-			ws_id: ws_id,
-			series_works_titles_summaries: series_works_titles_summaries,
-			part_of_series: part_of_series,
-			lastChapter: lastChapter,
-			series_link: series_link,
-			fform_tags_list_HTML: fform_tags_list_HTML,
-			fform_tags_list_TXT: fform_tags_list_TXT,
-			fform_tags_comma_HTML: fform_tags_comma_HTML,
-			fform_tags_comma_TXT: fform_tags_comma_TXT,
-			series_id: series_id,
-			series_status: series_status,
-			series_word_count: series_word_count,
-			series_work_count: series_work_count,
-			series_bkmrk_count_html: series_bkmrk_count_html,
-			series_bkmrk_count_txt: series_bkmrk_count_txt,
-			series_desc_blockquote: series_desc_blockquote,
-			series_desc_text: series_desc_text
-		};
-
-
 		// define autotag_status for use in AutoTag()
 		const autotag_status = StatusForAutoTag();
 
