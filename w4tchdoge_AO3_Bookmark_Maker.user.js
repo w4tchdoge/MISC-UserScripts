@@ -102,6 +102,8 @@
 		autoAutoTag: false,
 		autoCollections: ``,
 		includeFandom: false,
+		includeMainRelationship: true,
+		includeWorkStatus: true,
 		showAutoTagButton: true,
 		seriesAutoTag: false,
 		bottomSummaryPage: true,
@@ -217,6 +219,8 @@ Another way to explain it is that the script works by taking the current content
 		autoAutoTag,
 		autoCollections,
 		includeFandom,
+		includeMainRelationship,
+		includeWorkStatus,
 		showAutoTagButton,
 		seriesAutoTag,
 		bottomSummaryPage,
@@ -426,6 +430,37 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 
 			default:
 				console.log(`Error in retrieving localStorage variable w4BM_includeFandom`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 233
+		switch (Boolean(localStorage.getItem(`w4BM_includeWorkStatus`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_includeWorkStatus' is not set in the localStorage
+Now setting it to '${initial_settings_dict.includeWorkStatus}'`
+				);
+
+				includeWorkStatus = initial_settings_dict.includeWorkStatus;
+				localStorage.setItem(`w4BM_includeWorkStatus`, initial_settings_dict.includeWorkStatus);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_includeWorkStatus' IS SET in the localStorage`
+				);
+
+				includeWorkStatus = localStorage.getItem(`w4BM_includeWorkStatus`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_includeWorkStatus`);
 				break;
 		}
 
@@ -717,6 +752,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 		autoAutoTag = initial_settings_dict.autoAutoTag;
 		autoCollections = initial_settings_dict.autoCollections;
 		includeFandom = initial_settings_dict.includeFandom;
+		includeWorkStatus = initial_settings_dict.includeWorkStatus;
 		showAutoTagButton = initial_settings_dict.showAutoTagButton;
 		seriesAutoTag = initial_settings_dict.seriesAutoTag;
 		bottomSummaryPage = initial_settings_dict.bottomSummaryPage;
@@ -758,6 +794,7 @@ autoRecommend        : ${autoRecommend}
 autoAutoTag          : ${autoAutoTag}
 autoCollections      : ${autoCollections}
 includeFandom        : ${includeFandom}
+includeWorkStatus    : ${includeWorkStatus}
 showAutoTagButton    : ${showAutoTagButton}
 seriesAutoTag        : ${seriesAutoTag}
 bottomSummaryPage    : ${bottomSummaryPage}
@@ -1069,7 +1106,7 @@ ${input_value}`
 		const w4BM_includeFandomButton_yes = Object.assign(document.createElement(`li`), {
 			className: `w4BM_includeFandomButton_yes`,
 			id: `w4BM_includeFandomButton_yes`,
-			innerHTML: `<a>Include Fandom on AutoTag: YES</a>`
+			innerHTML: `<a>Include Fandom in AutoTag: YES</a>`
 		});
 		w4BM_includeFandomButton_yes.addEventListener(`click`, function (event) {
 			localStorage.setItem(`w4BM_includeFandom`, false);
@@ -1080,11 +1117,33 @@ ${input_value}`
 		const w4BM_includeFandomButton_no = Object.assign(document.createElement(`li`), {
 			className: `w4BM_includeFandomButton_no`,
 			id: `w4BM_includeFandomButton_no`,
-			innerHTML: `<a>Include Fandom on AutoTag: NO</a>`
+			innerHTML: `<a>Include Fandom in AutoTag: NO</a>`
 		});
 		w4BM_includeFandomButton_no.addEventListener(`click`, function (event) {
 			localStorage.setItem(`w4BM_includeFandom`, true);
 			w4BM_includeFandomButton_no.replaceWith(w4BM_includeFandomButton_yes);
+		});
+
+		// create button - include work completion status in AutoTag - yes
+		const w4BM_includeWorkStatusButton_yes = Object.assign(document.createElement(`li`), {
+			className: `w4BM_includeWorkStatusButton_yes`,
+			id: `w4BM_includeWorkStatusButton_yes`,
+			innerHTML: `<a>Include Work Status in AutoTag: YES</a>`
+		});
+		w4BM_includeWorkStatusButton_yes.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_includeWorkStatus`, false);
+			w4BM_includeWorkStatusButton_yes.replaceWith(w4BM_includeWorkStatusButton_no);
+		});
+
+		// create button - include work status in AutoTag - no
+		const w4BM_includeWorkStatusButton_no = Object.assign(document.createElement(`li`), {
+			className: `w4BM_includeWorkStatusButton_no`,
+			id: `w4BM_includeWorkStatusButton_no`,
+			innerHTML: `<a>Include Work Status in AutoTag: NO</a>`
+		});
+		w4BM_includeWorkStatusButton_no.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_includeWorkStatus`, true);
+			w4BM_includeWorkStatusButton_no.replaceWith(w4BM_includeWorkStatusButton_yes);
 		});
 
 		// create button - AutoTag type 0
@@ -1284,11 +1343,18 @@ ${input_value}`
 				w4BM_dropMenu.append(w4BM_seriesAutoTag_no);
 			}
 
-			//
+			// including fandom in AutoTag button
 			if (includeFandom == true || includeFandom == `true`) {
 				w4BM_dropMenu.append(w4BM_includeFandomButton_yes);
 			} else {
 				w4BM_dropMenu.append(w4BM_includeFandomButton_no);
+			}
+
+			// including work completion status in AutoTag button
+			if (includeWorkStatus == true || includeWorkStatus == `true`) {
+				w4BM_dropMenu.append(w4BM_includeWorkStatusButton_yes);
+			} else {
+				w4BM_dropMenu.append(w4BM_includeWorkStatusButton_no);
 			}
 
 			// choosing AutoTag type button
@@ -1794,107 +1860,125 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			}
 		})();
 
-		const [relationships_list_HTML, relationships_list_TXT, relationships_comma_HTML, relationships_comma_TXT] = (function () {
+		// Helper function for getting the variant tags for relationships, characters, and freeform tags
+		function getTagsVariants(input_arr) {
+			let
+				tags_arr_ls_HTML = [],
+				tags_arr_ls_TXT = [],
+				tags_arr_comma_HTML = [],
+				tags_arr_comma_TXT = [];
+
+			input_arr.forEach(function (element) {
+				const element_clone = element.cloneNode(true);
+				element_clone.removeAttribute(`class`);
+
+				const tags_lh_str = `• ${element_clone.outerHTML.trim()}`;
+				const tags_lt_str = `• ${element_clone.textContent.trim()}`;
+				const tags_ch_str = `${element_clone.outerHTML.trim()}`;
+				const tags_ct_str = `${element_clone.textContent.trim()}`;
+				// console.log(`Content in array ${array} at index ${index}: ${array[index]}`);
+				// console.log(element_clone.outerHTML.trim());
+
+				tags_arr_ls_HTML.push(tags_lh_str);
+				tags_arr_ls_TXT.push(tags_lt_str);
+				tags_arr_comma_HTML.push(tags_ch_str);
+				tags_arr_comma_TXT.push(tags_ct_str);
+			});
+
+			return [tags_arr_ls_HTML, tags_arr_ls_TXT, tags_arr_comma_HTML, tags_arr_comma_TXT];
+		}
+
+		const [
+			relationships_list_HTML,
+			relationships_list_TXT,
+			relationships_comma_HTML,
+			relationships_comma_TXT,
+			main_relationship,
+			main_relationship_HTML,
+			main_romantic_relationship,
+			main_romantic_relationship_HTML,
+			main_platonic_relationship,
+			main_platonic_relationship_HTML
+		] = (function () {
+			function getMainRelationships(comma_TXT_arr, comma_HTML_arr) {
+				// Get the indices for the main/primary relationship tags
+				const
+					main_rel_idx = 0,
+					main_rel_rom_idx = comma_TXT_arr.findIndex(elm => elm.includes(`/`)),
+					main_rel_plt_idx = comma_TXT_arr.findIndex(elm => elm.includes(`&`));
+
+				// Get the main/primary relationship tags
+				const main_rels_variants_arr = (() => {
+					let return_arr = [];
+					Array.from([main_rel_idx, main_rel_rom_idx, main_rel_plt_idx]).forEach(function (idx) {
+						if (idx < 0) {
+							return_arr.push(`None`, `None`);
+						} else {
+							return_arr.push(comma_TXT_arr.at(idx));
+							return_arr.push(comma_HTML_arr.at(idx));
+						}
+					});
+					return return_arr;
+				})();
+
+				return main_rels_variants_arr;
+			}
+
 			if (IS_SERIES) {
 				// Get all relationship tags present in series' works and add them to series bookmark
-				// Retrieve relationship tags
+				// Retrieve relationship tags element if it exists
 				const raw_rels_arr = Array.from(document.querySelectorAll(`ul.tags > li.relationships > a.tag`));
-				let
-					rels_arr_ls_HTML = [],
-					rels_arr_ls_TXT = [],
-					rels_arr_comma_HTML = [],
-					rels_arr_comma_TXT = [];
-
-				raw_rels_arr.forEach(function (element) {
-					const element_clone = element.cloneNode(true);
-					element_clone.removeAttribute(`class`);
-
-					const rels_lh_str = `• ${element_clone.outerHTML.trim()}`;
-					const rels_lt_str = `• ${element_clone.textContent.trim()}`;
-					const rels_ch_str = `${element_clone.outerHTML.trim()}`;
-					const rels_ct_str = `${element_clone.textContent.trim()}`;
-					// console.log(`Content in array ${array} at index ${index}: ${array[index]}`);
-					// console.log(element_clone.outerHTML.trim());
-
-					rels_arr_ls_HTML.push(rels_lh_str);
-					rels_arr_ls_TXT.push(rels_lt_str);
-					rels_arr_comma_HTML.push(rels_ch_str);
-					rels_arr_comma_TXT.push(rels_ct_str);
-				});
-
-				// Remove duplicates in the output relationships vars
-				rels_arr_ls_HTML = [...new Set(rels_arr_ls_HTML)];
-				rels_arr_ls_TXT = [...new Set(rels_arr_ls_TXT)];
-				rels_arr_comma_HTML = [...new Set(rels_arr_comma_HTML)];
-				rels_arr_comma_TXT = [...new Set(rels_arr_comma_TXT)];
-
-				// const srs_relationships = (function () {
-				// 	// Attempt to add entries from rels_arr to relationships regardless of whether rels_arr is empty or not
-				// 	let srs_rels = `<details><summary>Relationship Tags:</summary>\n${rels_arr.join(`\n`)}</details>`;
-
-				// 	// Check if rels_arr is empty, indicating no relationship tags
-				// 	if (!Array.isArray(rels_arr) || !rels_arr.length) {
-				// 		// If empty, set 'relationships' var to indicate no relationship tags
-				// 		srs_rels = `<details><summary>Relationship Tags:</summary>\n• <em><strong>No Relationship Tags</strong></em></details>`;
-				// 	}
-
-				// 	return srs_rels;
-				// })();
-
-				// return srs_relationships
 
 				// Check if rels_arr is empty, indicating no relationship tags
 				if (!Array.isArray(raw_rels_arr) || !raw_rels_arr.length) {
 					// If empty, set 'relationships' var to indicate no relationship tags
 					const srs_rels = `<details><summary>Relationship Tags:</summary>\n• <em><strong>No Relationship Tags</strong></em></details>`;
-					return [srs_rels, srs_rels, srs_rels, srs_rels];
+					return [srs_rels, srs_rels, srs_rels, srs_rels, `None`, `None`, `None`, `None`, `None`, `None`];
 				} else {
-					// If not empty, use values in rels_arr to set 'relationships'
+					// If not empty, get the relationship tags
+					let [rels_arr_ls_HTML, rels_arr_ls_TXT, rels_arr_comma_HTML, rels_arr_comma_TXT] = getTagsVariants(raw_rels_arr);
+
+					// Remove duplicates in the output relationships vars
+					rels_arr_ls_HTML = [...new Set(rels_arr_ls_HTML)];
+					rels_arr_ls_TXT = [...new Set(rels_arr_ls_TXT)];
+					rels_arr_comma_HTML = [...new Set(rels_arr_comma_HTML)];
+					rels_arr_comma_TXT = [...new Set(rels_arr_comma_TXT)];
+
+					// Use values in the relationship arrays to set the relationships vars
 					const src_rels_lh = `<details><summary>Relationship Tags:</summary>\n${rels_arr_ls_HTML.join(`\n`)}</details>`;
 					const src_rels_lt = `<details><summary>Relationship Tags:</summary>\n${rels_arr_ls_TXT.join(`\n`)}</details>`;
 					const src_rels_ch = `<details><summary>Relationship Tags:</summary>\n${rels_arr_comma_HTML.join(`, `)}</details>`;
 					const src_rels_ct = `<details><summary>Relationship Tags:</summary>\n${rels_arr_comma_TXT.join(`, `)}</details>`;
-					return [src_rels_lh, src_rels_lt, src_rels_ch, src_rels_ct];
+
+					// Get the main/primary relationship tags
+					const [main_rel, main_rel_HTML, main_rom_rel, main_rom_rel_HTML, main_plt_rel, main_plt_rel_HTML] = getMainRelationships(rels_arr_comma_TXT, rels_arr_comma_HTML);
+
+					return [src_rels_lh, src_rels_lt, src_rels_ch, src_rels_ct, main_rel, main_rel_HTML, main_rom_rel, main_rom_rel_HTML, main_plt_rel, main_plt_rel_HTML];
 				}
 			}
 			else {
 				// Retrieve relationship tags
 				const raw_rels_arr = Array.from(document.querySelectorAll(`.relationship.tags ul a`));
-				let
-					rels_arr_ls_HTML = [],
-					rels_arr_ls_TXT = [],
-					rels_arr_comma_HTML = [],
-					rels_arr_comma_TXT = [];
-
-				raw_rels_arr.forEach(function (el) {
-					const el_c = el.cloneNode(true);
-					el_c.removeAttribute(`class`);
-
-					const rels_lh_str = `• ${el_c.outerHTML.trim()}`;
-					const rels_lt_str = `• ${el_c.textContent.trim()}`;
-					const rels_ch_str = `${el_c.outerHTML.trim()}`;
-					const rels_ct_str = `${el_c.textContent.trim()}`;
-
-					rels_arr_ls_HTML.push(rels_lh_str);
-					rels_arr_ls_TXT.push(rels_lt_str);
-					rels_arr_comma_HTML.push(rels_ch_str);
-					rels_arr_comma_TXT.push(rels_ct_str);
-				});
-
-				// Add Relationship tags to the relationship vars
 
 				// Check if rels_arr is empty, indicating no relationship tags
 				if (!Array.isArray(raw_rels_arr) || !raw_rels_arr.length) {
 					// If empty, set 'relationships' var to indicate no relationship tags
 					const wrk_rels = `<details><summary>Relationship Tags:</summary>\n• <em><strong>No Relationship Tags</strong></em></details>`;
-					return [wrk_rels, wrk_rels, wrk_rels, wrk_rels];
+					return [wrk_rels, wrk_rels, wrk_rels, wrk_rels, `None`, `None`, `None`, `None`, `None`, `None`];
 				} else {
-					// If not empty, fill 'relationships' var using rels_arr
+					// If not empty, get the relationship tags
+					const [rels_arr_ls_HTML, rels_arr_ls_TXT, rels_arr_comma_HTML, rels_arr_comma_TXT] = getTagsVariants(raw_rels_arr);
+
+					// Use values in the relationship arrays to set the relationships vars
 					const wrk_rels_lh = `<details><summary>Relationship Tags:</summary>\n${rels_arr_ls_HTML.join(`\n`)}</details>`;
 					const wrk_rels_lt = `<details><summary>Relationship Tags:</summary>\n${rels_arr_ls_TXT.join(`\n`)}</details>`;
 					const wrk_rels_ch = `<details><summary>Relationship Tags:</summary>\n${rels_arr_comma_HTML.join(`, `)}</details>`;
 					const wrk_rels_ct = `<details><summary>Relationship Tags:</summary>\n${rels_arr_comma_TXT.join(`, `)}</details>`;
-					return [wrk_rels_lh, wrk_rels_lt, wrk_rels_ch, wrk_rels_ct];
+
+					// Get the main/primary relationship tags
+					const [main_rel, main_rel_HTML, main_rom_rel, main_rom_rel_HTML, main_plt_rel, main_plt_rel_HTML] = getMainRelationships(rels_arr_comma_TXT, rels_arr_comma_HTML);
+
+					return [wrk_rels_lh, wrk_rels_lt, wrk_rels_ch, wrk_rels_ct, main_rel, main_rel_HTML, main_rom_rel, main_rom_rel_HTML, main_plt_rel, main_plt_rel_HTML];
 				}
 			}
 		})();
@@ -1903,42 +1987,23 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			if (IS_SERIES) { return [``, ``, ``, ``]; }
 			else {
 				// Retrieve relationship tags
-				const raw_freeform_arr = Array.from(document.querySelectorAll(`.freeform.tags > ul a`));
-
-				let
-					freeform_arr_ls_HTML = [],
-					freeform_arr_ls_TXT = [],
-					freeform_arr_comma_HTML = [],
-					freeform_arr_comma_TXT = [];
-
-				raw_freeform_arr.forEach(function (el) {
-					const el_c = el.cloneNode(true);
-					el_c.removeAttribute(`class`);
-
-					const fform_lh_str = `• ${el_c.outerHTML.trim()}`;
-					const fform_lt_str = `• ${el_c.textContent.trim()}`;
-					const fform_ch_str = `${el_c.outerHTML.trim()}`;
-					const fform_ct_str = `${el_c.textContent.trim()}`;
-
-					freeform_arr_ls_HTML.push(fform_lh_str);
-					freeform_arr_ls_TXT.push(fform_lt_str);
-					freeform_arr_comma_HTML.push(fform_ch_str);
-					freeform_arr_comma_TXT.push(fform_ct_str);
-				});
-
-				// Add Freeform tags to the freeform vars
+				const raw_fform_arr = Array.from(document.querySelectorAll(`.freeform.tags > ul a`));
 
 				// Check if rels_arr is empty, indicating no relationship tags
-				if (!Array.isArray(raw_freeform_arr) || !raw_freeform_arr.length) {
+				if (!Array.isArray(raw_fform_arr) || !raw_fform_arr.length) {
 					// If empty, set 'relationships' var to indicate no relationship tags
 					const wrk_fforms = `<details><summary>Additional Tags:</summary>\n• <em><strong>No Additional Tags</strong></em></details>`;
 					return [wrk_fforms, wrk_fforms, wrk_fforms, wrk_fforms];
 				} else {
-					// If not empty, fill 'relationships' var using rels_arr
-					const wrk_fforms_lh = `<details><summary>Additional Tags:</summary>\n${freeform_arr_ls_HTML.join(`\n`)}</details>`;
-					const wrk_fforms_lt = `<details><summary>Additional Tags:</summary>\n${freeform_arr_ls_TXT.join(`\n`)}</details>`;
-					const wrk_fforms_ch = `<details><summary>Additional Tags:</summary>\n${freeform_arr_comma_HTML.join(`, `)}</details>`;
-					const wrk_fforms_ct = `<details><summary>Additional Tags:</summary>\n${freeform_arr_comma_TXT.join(`, `)}</details>`;
+					// If not empty, get the freeform tags
+					const [fform_arr_ls_HTML, fform_arr_ls_TXT, fform_arr_comma_HTML, fform_arr_comma_TXT] = getTagsVariants(raw_fform_arr);
+
+					// Use values in the freeform arrays to set the freeform vars
+					const wrk_fforms_lh = `<details><summary>Additional Tags:</summary>\n${fform_arr_ls_HTML.join(`\n`)}</details>`;
+					const wrk_fforms_lt = `<details><summary>Additional Tags:</summary>\n${fform_arr_ls_TXT.join(`\n`)}</details>`;
+					const wrk_fforms_ch = `<details><summary>Additional Tags:</summary>\n${fform_arr_comma_HTML.join(`, `)}</details>`;
+					const wrk_fforms_ct = `<details><summary>Additional Tags:</summary>\n${fform_arr_comma_TXT.join(`, `)}</details>`;
+
 					return [wrk_fforms_lh, wrk_fforms_lt, wrk_fforms_ch, wrk_fforms_ct];
 				}
 			}
@@ -1952,40 +2017,21 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 				// Retrieve character tags
 				const raw_chrs_arr = Array.from(document.querySelectorAll(`.character.tags > ul a`));
 
-				let
-					chrs_arr_ls_HTML = [],
-					chrs_arr_ls_TXT = [],
-					chrs_arr_comma_HTML = [],
-					chrs_arr_comma_TXT = [];
-
-				raw_chrs_arr.forEach(function (el) {
-					const el_c = el.cloneNode(true);
-					el_c.removeAttribute(`class`);
-
-					const chrs_lh_str = `• ${el_c.outerHTML.trim()}`;
-					const chrs_lt_str = `• ${el_c.textContent.trim()}`;
-					const chrs_ch_str = `${el_c.outerHTML.trim()}`;
-					const chrs_ct_str = `${el_c.textContent.trim()}`;
-
-					chrs_arr_ls_HTML.push(chrs_lh_str);
-					chrs_arr_ls_TXT.push(chrs_lt_str);
-					chrs_arr_comma_HTML.push(chrs_ch_str);
-					chrs_arr_comma_TXT.push(chrs_ct_str);
-				});
-
-				// Add Character tags to the character vars
-
 				// Check if char_arr is empty, indicating no character tags
 				if (!Array.isArray(raw_chrs_arr) || !raw_chrs_arr.length) {
 					// If empty, set 'characters' var to indicate no character tags
 					const wrk_chrs = `<details><summary>Character Tags:</summary>\n• <em><strong>No Character Tags</strong></em></details>`;
 					return [wrk_chrs, wrk_chrs, wrk_chrs, wrk_chrs];
 				} else {
-					// If not empty, fill 'character' var using wrk_characters
+					// If not empty, get the character tags
+					const [chrs_arr_ls_HTML, chrs_arr_ls_TXT, chrs_arr_comma_HTML, chrs_arr_comma_TXT] = getTagsVariants(raw_chrs_arr);
+
+					// Use values in the character arrays to set the character vars
 					const wrk_chrs_lh = `<details><summary>Character Tags:</summary>\n${chrs_arr_ls_HTML.join(`\n`)}</details>`;
 					const wrk_chrs_lt = `<details><summary>Character Tags:</summary>\n${chrs_arr_ls_TXT.join(`\n`)}</details>`;
 					const wrk_chrs_ch = `<details><summary>Character Tags:</summary>\n${chrs_arr_comma_HTML.join(`, `)}</details>`;
 					const wrk_chrs_ct = `<details><summary>Character Tags:</summary>\n${chrs_arr_comma_TXT.join(`, `)}</details>`;
+
 					return [wrk_chrs_lh, wrk_chrs_lt, wrk_chrs_ch, wrk_chrs_ct];
 				}
 			}
@@ -2215,8 +2261,6 @@ ${work_series_info.join(`\n`)}
 
 		// define autotag_status for use in AutoTag()
 		const autotag_status = StatusForAutoTag();
-
-		// define autotag_series for use in AutoTag()
 		// autotag_series indicates whether the work is part of a series or not
 		const autotag_series = (function () {
 			if (IS_SERIES) { return false; }
@@ -2318,6 +2362,9 @@ Date Generated: ${date}
 Date String Generated: ${(function () { if (date_string == ``) { return `No Date String Generated`; } else { return date_string; } })()}`
 		);
 
+		/* /////////////// USER CONFIGURABLE SETTINGS END /////////////// */
+
+
 		const workInfoVariablesDict = {
 			title: title,
 			title_HTML: title_HTML,
@@ -2329,6 +2376,12 @@ Date String Generated: ${(function () { if (date_string == ``) { return `No Date
 			relationships_list_TXT: relationships_list_TXT,
 			relationships_comma_HTML: relationships_comma_HTML,
 			relationships_comma_TXT: relationships_comma_TXT,
+			main_relationship: main_relationship,
+			main_relationship_HTML: main_relationship_HTML,
+			main_romantic_relationship: main_romantic_relationship,
+			main_romantic_relationship_HTML: main_romantic_relationship_HTML,
+			main_platonic_relationship: main_platonic_relationship,
+			main_platonic_relationship_HTML: main_platonic_relationship_HTML,
 			characters_list_HTML: characters_list_HTML,
 			characters_list_TXT: characters_list_TXT,
 			characters_comma_HTML: characters_comma_HTML,
@@ -2359,7 +2412,7 @@ Date String Generated: ${(function () { if (date_string == ``) { return `No Date
 		};
 
 		// Print workInfo debug string to console
-		// console.log(workInfoDebug(workInfoVariablesDict));
+		console.log(workInfoDebug(workInfoVariablesDict));
 
 		function workInfoDebug(input_dict) {
 			let debug_str = `
@@ -2588,7 +2641,12 @@ ${date_string}</details>`;*/
 			let tag_input_box = document.querySelector('.input #bookmark_tag_string_autocomplete');
 
 			// Make array of everything that will go into the aforementionedinput box
-			let tag_inputs = [autotag_status];
+			let tag_inputs = [];
+
+			// Add completion status only if include work status is true
+			if (includeWorkStatus) {
+				tag_inputs.push(autotag_status);
+			}
 
 			// Add the string "Series" to tag_inputs if work is a series
 			if (autotag_series && seriesAutoTag) { tag_inputs.push(`Series`); }
