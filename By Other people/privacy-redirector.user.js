@@ -219,30 +219,33 @@ const Instances = {
     "biblioreads.lunar.icu",
     "read.seitan-ayoub.lol",
   ],
+  // binternet: [
+  //   "binternet.ahwx.org",
+  //   "bn.bloat.cat",
+  //   "bn.opnxng.com",
+  //   "bn.vern.cc",
+  // ],
   binternet: [
-    "binternet.ahwx.org",
-    "bn.bloat.cat",
     "bn.opnxng.com",
-    "bn.vern.cc",
   ],
-//  breezewiki: [
-//    "breezewiki.com",
-//    "antifandom.com",
-//    "breezewiki.pussthecat.org",
-//    "bw.hamstro.dev",
-//    "bw.projectsegfau.lt",
-//    "breeze.hostux.net",
-//    "bw.artemislena.eu",
-//    "breezewiki.woodland.cafe",
-//    "breeze.nohost.network",
-//    "z.opnxng.com",
-//    "breezewiki.catsarch.com",
-//    "breeze.mint.lgbt",
-//    "breezewiki.lunar.icu",
-//    "fandom.adminforge.de",
-//  ],
+  // breezewiki: [
+  //   "breezewiki.com",
+  //   "antifandom.com",
+  //   "breezewiki.pussthecat.org",
+  //   "bw.hamstro.dev",
+  //   "bw.projectsegfau.lt",
+  //   "breeze.hostux.net",
+  //   "bw.artemislena.eu",
+  //   "breezewiki.woodland.cafe",
+  //   "breeze.nohost.network",
+  //   "z.opnxng.com",
+  //   "breezewiki.catsarch.com",
+  //   "breeze.mint.lgbt",
+  //   "breezewiki.lunar.icu",
+  //   "fandom.adminforge.de",
+  // ],
   breezewiki: [
-    "breezewiki.hyperreal.coffee",
+    "breezewiki.catsarch.com",
   ],
   dumb: [
     "dumb.privacydev.net",
@@ -384,19 +387,22 @@ const Instances = {
     "pixivfe.ducks.party",
     "pixiv.perennialte.ch",
   ],
+  // proxitok: [
+  //   "proxitok.pabloferreiro.es",
+  //   "proxitok.pussthecat.org",
+  //   "tok.habedieeh.re",
+  //   "proxitok.privacydev.net",
+  //   "tok.artemislena.eu",
+  //   "tok.adminforge.de",
+  //   "cringe.whatever.social",
+  //   "proxitok.lunar.icu",
+  //   "proxitok.privacy.com.de",
+  //   "cringe.seitan-ayoub.lol",
+  //   "tt.opnxng.com",
+  //   "tiktok.wpme.pl",
+  // ],
   proxitok: [
-    "proxitok.pabloferreiro.es",
-    "proxitok.pussthecat.org",
-    "tok.habedieeh.re",
-    "proxitok.privacydev.net",
-    "tok.artemislena.eu",
-    "tok.adminforge.de",
     "cringe.whatever.social",
-    "proxitok.lunar.icu",
-    "proxitok.privacy.com.de",
-    "cringe.seitan-ayoub.lol",
-    "tt.opnxng.com",
-    "tiktok.wpme.pl",
   ],
   quetre: [
     "quetre.iket.me",
@@ -543,18 +549,18 @@ let debug_mode = false;
 if (debug_mode) {
   alert(
     "\n== DEBUG MODE IS ON ==" +
-      "\nIf you're seeing this" +
-      "\nset the debug_mode value to" +
-      "\nfalse for Privacy Redirector." +
-      "\n======================" +
-      "\n\nHostname: " +
-      window.location.hostname +
-      "\nPath: " +
-      window.location.pathname +
-      "\nQuery: " +
-      window.location.search +
-      "\nHash: " +
-      hash,
+    "\nIf you're seeing this" +
+    "\nset the debug_mode value to" +
+    "\nfalse for Privacy Redirector." +
+    "\n======================" +
+    "\n\nHostname: " +
+    window.location.hostname +
+    "\nPath: " +
+    window.location.pathname +
+    "\nQuery: " +
+    window.location.search +
+    "\nHash: " +
+    hash,
   );
 }
 
@@ -649,9 +655,8 @@ async function redirectYoutube(frontend) {
       selectedInstance = youtube[1]
         ? `${farsideInstance}/invidious`
         : await getrandom(Instances["invidious"]);
-      newURL = `${scheme}${selectedInstance}${window.location.pathname}${
-        window.location.search
-      }${hash}`;
+      newURL = `${scheme}${selectedInstance}${window.location.pathname}${window.location.search
+        }${hash}`;
       window.location.replace(newURL);
     } else {
       if (frontend === "tubo") {
@@ -698,9 +703,8 @@ async function redirectTiktok() {
       }),
     );
 
-    newURL = `${scheme}${selectedInstance}${pathname}${window.location.search}${
-      hash
-    }`;
+    newURL = `${scheme}${selectedInstance}${pathname}${window.location.search}${hash
+      }`;
     window.location.replace(newURL);
   }
 }
@@ -713,9 +717,8 @@ async function redirectImgur() {
       ? `${farsideInstance}/rimgo`
       : await getrandom(Instances.rimgo);
 
-    newURL = `${scheme}${selectedInstance}${window.location.pathname}${
-      window.location.search
-    }${hash}`;
+    newURL = `${scheme}${selectedInstance}${window.location.pathname}${window.location.search
+      }${hash}`;
 
     window.location.replace(newURL);
   }
@@ -742,9 +745,8 @@ async function redirectMedium(frontend) {
           : await getrandom(Instances[frontend]);
       const username = window.location.hostname.replace(/\.?medium\.com/, "");
       if (username) pathname = `/${username}${pathname}`;
-      newURL = `${scheme}${selectedInstance}${pathname}${
-        window.location.search
-      }${hash}`;
+      newURL = `${scheme}${selectedInstance}${pathname}${window.location.search
+        }${hash}`;
       window.location.replace(newURL);
     }
   }
@@ -870,9 +872,8 @@ async function redirectDeepl() {
     selectedInstance = await getrandom(Instances.mozhi);
     if (window.location.hash) {
       let hash_parts = window.location.hash.substring(1).split("/");
-      let pathname = `?text=${hash_parts[2]}&from=${hash_parts[0]}&to=${
-        hash_parts[1]
-      }&engine=deepl`;
+      let pathname = `?text=${hash_parts[2]}&from=${hash_parts[0]}&to=${hash_parts[1]
+        }&engine=deepl`;
       newURL = `${scheme}${selectedInstance}${pathname}`;
     }
 
@@ -884,9 +885,8 @@ async function redirectTumblr() {
   if (tumblr[0]) {
     window.stop();
     selectedInstance = await getrandom(Instances.priviblur);
-    newURL = `${scheme}${selectedInstance}${window.location.pathname}${
-      window.location.search
-    }${hash}`;
+    newURL = `${scheme}${selectedInstance}${window.location.pathname}${window.location.search
+      }${hash}`;
     window.location.replace(newURL);
   }
 }
@@ -895,9 +895,8 @@ async function redirectReuters() {
   if (reuters[0]) {
     window.stop();
     selectedInstance = await getrandom(Instances.neuters);
-    newURL = `${scheme}${selectedInstance}${window.location.pathname}${
-      window.location.search
-    }${hash}`;
+    newURL = `${scheme}${selectedInstance}${window.location.pathname}${window.location.search
+      }${hash}`;
     window.location.replace(newURL);
   }
 }
@@ -912,9 +911,8 @@ async function redirectWikipedia() {
       : await getrandom(Instances.wikiless);
 
     if (langCode === "www") langCode = "en";
-    newURL = `${scheme}${selectedInstance}${window.location.pathname}?lang=${
-      langCode
-    }${hash}`;
+    newURL = `${scheme}${selectedInstance}${window.location.pathname}?lang=${langCode
+      }${hash}`;
     window.location.replace(newURL);
   }
 }
@@ -927,9 +925,8 @@ async function redirectImdb() {
       ? `${farsideInstance}/libremdb`
       : await getrandom(Instances.libremdb);
 
-    newURL = `${scheme}${selectedInstance}${window.location.pathname}${
-      window.location.search
-    }${hash}`;
+    newURL = `${scheme}${selectedInstance}${window.location.pathname}${window.location.search
+      }${hash}`;
 
     window.location.replace(newURL);
   }
@@ -943,9 +940,8 @@ async function redirectQuora() {
       ? `${farsideInstance}/quetre`
       : await getrandom(Instances.quetre);
 
-    newURL = `${scheme}${selectedInstance}${window.location.pathname}${
-      window.location.search
-    }${hash}`;
+    newURL = `${scheme}${selectedInstance}${window.location.pathname}${window.location.search
+      }${hash}`;
 
     window.location.replace(newURL);
   }
@@ -959,9 +955,8 @@ async function redirectFandom() {
 
     let pathname = window.location.pathname;
     if (fandomName !== "www") pathname = `/${fandomName}${pathname}`;
-    newURL = `${scheme}${selectedInstance}${pathname}${window.location.search}${
-      hash
-    }`;
+    newURL = `${scheme}${selectedInstance}${pathname}${window.location.search}${hash
+      }`;
 
     window.location.replace(newURL);
   }
@@ -1000,9 +995,8 @@ async function redirectGoodreads() {
       const params = new URLSearchParams(search);
       search = `/${params.get("q")}`;
     }
-    newURL = `${scheme}${selectedInstance}${window.location.pathname}${search}${
-      hash
-    }`;
+    newURL = `${scheme}${selectedInstance}${window.location.pathname}${search}${hash
+      }`;
     window.location.replace(newURL);
   }
 }
@@ -1018,9 +1012,8 @@ async function redirectStackoverflow() {
       ? `${farsideInstance}/anonymousoverflow`
       : await getrandom(Instances.anonymousoverflow);
 
-    newURL = `${scheme}${selectedInstance}${window.location.pathname}${
-      window.location.search
-    }${hash}`;
+    newURL = `${scheme}${selectedInstance}${window.location.pathname}${window.location.search
+      }${hash}`;
     window.location.replace(newURL);
   }
 }
@@ -1055,9 +1048,8 @@ async function redirectBandcamp() {
         break;
       case window.location.hostname === "t4.bcbits.com":
         if (audio.length > 3)
-          searchpath = `/audio.php?directory=${audio[1]}&format=${
-            audio[2]
-          }&file=${audio[3]}&token=${params.get("token")}`;
+          searchpath = `/audio.php?directory=${audio[1]}&format=${audio[2]
+            }&file=${audio[3]}&token=${params.get("token")}`;
         break;
       default:
         return;
