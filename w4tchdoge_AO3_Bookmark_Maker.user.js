@@ -104,6 +104,7 @@
 		autoCollections: ``,
 		seriesAutoTag: false,
 		includeWorkStatus: true,
+		addSeriesStatsToWorkBookmark: false,
 		includeFandom: false,
 		includeMainRelationship: false,
 		includeMainRomRelationship: false,
@@ -239,6 +240,7 @@ Another way to explain it is that the script works by taking the current content
 		autoCollections = initial_settings_dict.autoCollections,
 		seriesAutoTag = initial_settings_dict.seriesAutoTag,
 		includeWorkStatus = initial_settings_dict.includeWorkStatus,
+		addSeriesStatsToWorkBookmark = initial_settings_dict.addSeriesStatsToWorkBookmark,
 		includeFandom = initial_settings_dict.includeFandom,
 		includeMainRelationship = initial_settings_dict.includeMainRelationship,
 		includeMainRomRelationship = initial_settings_dict.includeMainRomRelationship,
@@ -512,6 +514,37 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 
 			default:
 				console.log(`Error in retrieving localStorage variable w4BM_includeWorkStatus`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 284
+		switch (Boolean(localStorage.getItem(`w4BM_addSeriesStatsToWorkBookmark`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_addSeriesStatsToWorkBookmark' is not set in the localStorage
+Now setting it to '${initial_settings_dict.addSeriesStatsToWorkBookmark}'`
+				);
+
+				addSeriesStatsToWorkBookmark = initial_settings_dict.addSeriesStatsToWorkBookmark;
+				localStorage.setItem(`w4BM_addSeriesStatsToWorkBookmark`, initial_settings_dict.addSeriesStatsToWorkBookmark);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_addSeriesStatsToWorkBookmark' IS SET in the localStorage`
+				);
+
+				addSeriesStatsToWorkBookmark = localStorage2Boolean(`w4BM_addSeriesStatsToWorkBookmark`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_addSeriesStatsToWorkBookmark`);
 				break;
 		}
 
@@ -882,25 +915,26 @@ localStorage vars:`;
 	log_string += `
 
 current script vars (list may be incomplete):
-divider                    : ${divider.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}
-autoPrivate                : ${autoPrivate}
-autoRecommend              : ${autoRecommend}
-showAutoTagButton          : ${showAutoTagButton}
-autoAutoTag                : ${autoAutoTag}
-autoCollections            : ${autoCollections}
-seriesAutoTag              : ${seriesAutoTag}
-includeWorkStatus          : ${includeWorkStatus}
-includeFandom              : ${includeFandom}
-includeMainRelationship    : ${includeMainRelationship}
-includeMainRomRelationship : ${includeMainRomRelationship}
-includeMainPltRelationship : ${includeMainPltRelationship}
-bottomSummaryPage          : ${bottomSummaryPage}
-topSummaryPage             : ${topSummaryPage}
-simpleWorkSummary          : ${simpleWorkSummary}
-FWS_asBlockquote           : ${FWS_asBlockquote}
-alwaysInjectBookmark       : ${alwaysInjectBookmark}
-AutoTag_type               : ${AutoTag_type}
-splitSelect                : ${splitSelect}`;
+divider                      : ${divider.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}
+autoPrivate                  : ${autoPrivate}
+autoRecommend                : ${autoRecommend}
+showAutoTagButton            : ${showAutoTagButton}
+autoAutoTag                  : ${autoAutoTag}
+autoCollections              : ${autoCollections}
+seriesAutoTag                : ${seriesAutoTag}
+includeWorkStatus            : ${includeWorkStatus}
+addSeriesStatsToWorkBookmark : ${addSeriesStatsToWorkBookmark}
+includeFandom                : ${includeFandom}
+includeMainRelationship      : ${includeMainRelationship}
+includeMainRomRelationship   : ${includeMainRomRelationship}
+includeMainPltRelationship   : ${includeMainPltRelationship}
+bottomSummaryPage            : ${bottomSummaryPage}
+topSummaryPage               : ${topSummaryPage}
+simpleWorkSummary            : ${simpleWorkSummary}
+FWS_asBlockquote             : ${FWS_asBlockquote}
+alwaysInjectBookmark         : ${alwaysInjectBookmark}
+AutoTag_type                 : ${AutoTag_type}
+splitSelect                  : ${splitSelect}`;
 
 	console.log(log_string);
 
@@ -1836,11 +1870,8 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 
 		// Check if the current page is for a work that is a part of a series. Is true when it is. Is false otherwise
 		const IS_SERIES_PART = (() => {
-			if (IS_SERIES) {
-				return false;
-			} else {
-				return Boolean(main.querySelector(`dl.work.meta.group > .series`));
-			}
+			if (IS_SERIES) { return false; }
+			else { return Boolean(main.querySelector(`dl.work.meta.group > dd.series`)); }
 		})();
 
 
@@ -2459,12 +2490,6 @@ ${work_series_info.join(`\n`)}
 
 		// define autotag_status for use in AutoTag()
 		const autotag_status = StatusForAutoTag();
-		// autotag_series indicates whether the work is part of a series or not
-		const autotag_series = (function () {
-			if (IS_SERIES) { return false; }
-			else { return (Boolean(main.querySelector(`dl.work.meta.group > dd.series`))); }
-		})();
-
 
 		/* ///////////////// USER CONFIGURABLE SETTINGS ///////////////// */
 		/*
@@ -2852,11 +2877,15 @@ ${date_string}</details>`;*/
 			})();
 
 			// Add the string "Series" to tag_inputs if work is a series
-			if (autotag_series && seriesAutoTag) { tag_inputs.push(`Series`); }
+			if (IS_SERIES_PART && seriesAutoTag) { tag_inputs.push(`Series`); }
 
 			// Add completion status only if include work status is true
-			if (includeWorkStatus) {
-				tag_inputs.push(autotag_status);
+			if (includeWorkStatus) { tag_inputs.push(autotag_status); }
+
+			// Add series completion status if pref is set and work is part of a series
+			// Note that this will only add the stats for the 1st series the work is a part of
+			if (IS_SERIES_PART && addSeriesStatsToWorkBookmark) {
+				tag_inputs.push(`Series ${wrks_series_status.replace(/Yes/i, `Complete`).replace(/No/i, `In Progress`)}`);
 			}
 
 			if (includeFandom === true || includeFandom === `true`) {
