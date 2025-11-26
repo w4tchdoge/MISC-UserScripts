@@ -99,13 +99,15 @@
 		divider: `</details>\n\n`,
 		autoPrivate: false,
 		autoRecommend: false,
+		showAutoTagButton: true,
 		autoAutoTag: false,
 		autoCollections: ``,
-		includeFandom: false,
-		includeMainRelationship: true,
-		includeWorkStatus: true,
-		showAutoTagButton: true,
 		seriesAutoTag: false,
+		includeWorkStatus: true,
+		includeFandom: false,
+		includeMainRelationship: false,
+		includeMainRomRelationship: false,
+		includeMainPltRelationship: false,
 		bottomSummaryPage: true,
 		topSummaryPage: false,
 		simpleWorkSummary: false,
@@ -117,52 +119,64 @@
 
 	/* EXPLANATION OF THE "CONSTANTS" THAT CAN BE CHANGED BY THE END USER
 
-divider               : String which is used to indicate where the bookmark should be split in half
+divider                       : String which is used to indicate where the bookmark should be split in half
 
 
-autoPrivate           : If true, automatically checks the checkbox to private the bookmark
+autoPrivate                   : If true, automatically checks the checkbox to private the bookmark
 
 
-autoRecommend         : If true, automatically checks the checkbox to mark the bookmark as a recommend
+autoRecommend                 : If true, automatically checks the checkbox to mark the bookmark as a recommend
 
 
-autoAutoTag           : If true, attempts to automatically run the Auto Tag function. Will NOT work if showAutoTagButton is false as it just automatically clicks the button provided by the showAutoTagButton
+showAutoTagButton             : If true, shows the "Auto Tag" button when bookmarking a work
 
 
-autoCollections       : A comma seperated list of names of collections you would like to add to the bookmark
+autoAutoTag                   : If true, attempts to automatically run the Auto Tag function. Will NOT work if showAutoTagButton is false as it just automatically clicks the button provided by the showAutoTagButton
 
 
-includeFandom         : If true, include the fandom(s) of the work/series as user tags when running the Auto Tag function
+autoCollections               : A comma seperated list of names of collections you would like to add to the bookmark
 
 
-showAutoTagButton     : If true, shows the "Auto Tag" button when bookmarking a work
+seriesAutoTag                 : If true, if the work is a part of a series adds the string "Series" to the user tags when running the Auto Tag function
 
 
-seriesAutoTag         : If true, if the work is a part of a series adds the string "Series" to the user tags when running the Auto Tag function
+includeWorkStatus             : If true, adds the completion status of the work/series as a user tag when running the Auto Tag function
 
 
-bottomSummaryPage     : If true, checks if the current page is an entire work page or a work page that is not on the first chapter.
+includeFandom                 : If true, include the fandom(s) of the work/series as user tags when running the Auto Tag function
+
+
+includeMainRelationship       : If true, adds the first relationship tag (regardless of romantic or platonic) present in the work/series as a user tag when running the Auto Tag function
+
+
+includeMainRomRelationship    : If true, adds the first romantic relationship tag present in the work/series as a user tag when running the Auto Tag function
+
+
+includeMainPltRelationship    : If true, adds the first platonic relationship tag present in the work/series as a user tag when running the Auto Tag function
+
+
+bottomSummaryPage             : If true, checks if the current page is an entire work page or a work page that is not on the first chapter.
 If the aforementioned checks are passed, Adds a "Summary Page" button to the bottom nav bar to easily navigate to a page where the summary exists so it can be picked up by the userscript.
 This is done due to the fact that the last read date will not update when updating a bookmark from the latest chapter.
 
 
-topSummaryPage        : If true, also adds a Summary Page button to the top nav bar next to the "Entire Work" button
+topSummaryPage                : If true, also adds a Summary Page button to the top nav bar next to the "Entire Work" button
 
 
-simpleWorkSummary     : If true, uses the original method to retrieve the work summary (least hassle, but includes the 'Summary' heading element which some users may find annoying).
+simpleWorkSummary             : If true, uses the original method to retrieve the work summary (least hassle, but includes the 'Summary' heading element which some users may find annoying).
 If false, retrieves the work summary in a way (which I call the fancy way) that allows more flexibility when customising newBookmarkNotes
 
 
-FWS_asBlockquote      : If using the fancy work summary method, set whether you want to retrieve the summary as a blockquote.
+FWS_asBlockquote              : If using the fancy work summary method, set whether you want to retrieve the summary as a blockquote.
 For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 1697
 
 
-AutoTag_type          : Determines how the AutoTag function works.
-0 indicates it is using the original behaviour of the AutoTag function suggested by `oliver t` in https://greasyfork.org/en/scripts/467885/discussions/198028 that was present when AutoTag was first added to the userscript
+AutoTag_type                   : Determines how the word count portion of the AutoTag function works.
+0 indicates it is using the original behaviour suggested by `oliver t` in https://greasyfork.org/en/scripts/467885/discussions/198028 that was present when AutoTag was first added to the userscript
 1 indicates it is using the behaviour suggested by `prismbox` in https://greasyfork.org/en/scripts/467885/discussions/255399 where canonical AO3 Wordcount tags are used for the word count tagging
 
 
-splitSelect           : splitSelect changes which half of bookmarkNotes your initial bookmark is supposed to live in.
+splitSelect                    : splitSelect changes which half of bookmarkNotes your initial bookmark is supposed to live in.
 Valid values are 0 and 1.
 
 e.g.
@@ -191,45 +205,51 @@ Another way to explain it is that the script works by taking the current content
 
 	*/
 
-	// from https://stackoverflow.com/a/1414175/11750206 ; used to convert the 'true' & 'false' strings in localStorage to actual booleans
-	const stringToBoolean = (stringValue) => {
+	function localStorage2Boolean(key) {
+		const stringValue = localStorage.getItem(key);
+
+		// modified from https://stackoverflow.com/a/1414175/11750206 ; used to convert the 'true' & 'false' strings in localStorage to actual booleans
 		switch (stringValue?.toLowerCase()?.trim()) {
+			// The only values that are going to be in the localStorage keys that are being converted to booleans are true or false,
+			// so there is no need for a default case that isn't throwing an error, or any of the alternative cases of true or false
+
 			case "true":
-			case "yes":
-			case "1":
+			case true:
 				return true;
 
 			case "false":
-			case "no":
-			case "0":
+			case false:
 			case null:
 			case undefined:
 				return false;
 
 			default:
-				return JSON.parse(stringValue);
+				throw new Error(`Error in converting value [${stringValue}] (type : [${typeof stringValue}]) to boolean.`);
 		}
-	};
+	}
 
-	// Declare user-configurable variables
+	// Declare user-configurable variables with their default values in case localStorage is undefined.
+	// Doing it this way also adds some amount of type hinting
 	let
-		divider,
-		autoPrivate,
-		autoRecommend,
-		autoAutoTag,
-		autoCollections,
-		includeFandom,
-		includeMainRelationship,
-		includeWorkStatus,
-		showAutoTagButton,
-		seriesAutoTag,
-		bottomSummaryPage,
-		topSummaryPage,
-		simpleWorkSummary,
-		FWS_asBlockquote,
-		alwaysInjectBookmark,
-		AutoTag_type,
-		splitSelect,
+		divider = initial_settings_dict.divider,
+		autoPrivate = initial_settings_dict.autoPrivate,
+		autoRecommend = initial_settings_dict.autoRecommend,
+		showAutoTagButton = initial_settings_dict.showAutoTagButton,
+		autoAutoTag = initial_settings_dict.autoAutoTag,
+		autoCollections = initial_settings_dict.autoCollections,
+		seriesAutoTag = initial_settings_dict.seriesAutoTag,
+		includeWorkStatus = initial_settings_dict.includeWorkStatus,
+		includeFandom = initial_settings_dict.includeFandom,
+		includeMainRelationship = initial_settings_dict.includeMainRelationship,
+		includeMainRomRelationship = initial_settings_dict.includeMainRomRelationship,
+		includeMainPltRelationship = initial_settings_dict.includeMainPltRelationship,
+		bottomSummaryPage = initial_settings_dict.bottomSummaryPage,
+		topSummaryPage = initial_settings_dict.topSummaryPage,
+		simpleWorkSummary = initial_settings_dict.simpleWorkSummary,
+		FWS_asBlockquote = initial_settings_dict.FWS_asBlockquote,
+		alwaysInjectBookmark = initial_settings_dict.alwaysInjectBookmark,
+		AutoTag_type = initial_settings_dict.AutoTag_type,
+		splitSelect = initial_settings_dict.splitSelect,
 		workInfo;
 
 	// localStorage stuff
@@ -278,7 +298,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 233
+		// doing the same thing as the first if else on line 284
 		switch (Boolean(localStorage.getItem(`w4BM_autoPrivate`))) {
 			case false:
 				console.log(`
@@ -300,7 +320,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 'w4BM_autoPrivate' IS SET in the localStorage`
 				);
 
-				autoPrivate = stringToBoolean(localStorage.getItem(`w4BM_autoPrivate`));
+				autoPrivate = localStorage2Boolean(`w4BM_autoPrivate`);
 
 				break;
 
@@ -309,7 +329,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 233
+		// doing the same thing as the first if else on line 284
 		switch (Boolean(localStorage.getItem(`w4BM_autoRecommend`))) {
 			case false:
 				console.log(`
@@ -331,7 +351,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 'w4BM_autoRecommend' IS SET in the localStorage`
 				);
 
-				autoRecommend = stringToBoolean(localStorage.getItem(`w4BM_autoRecommend`));
+				autoRecommend = localStorage2Boolean(`w4BM_autoRecommend`);
 
 				break;
 
@@ -340,7 +360,38 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 233
+		// doing the same thing as the first if else on line 284
+		switch (Boolean(localStorage.getItem(`w4BM_showAutoTagButton`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_showAutoTagButton' is not set in the localStorage
+Now setting it to '${initial_settings_dict.showAutoTagButton}'`
+				);
+
+				showAutoTagButton = initial_settings_dict.showAutoTagButton;
+				localStorage.setItem(`w4BM_showAutoTagButton`, initial_settings_dict.showAutoTagButton);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_showAutoTagButton' IS SET in the localStorage`
+				);
+
+				showAutoTagButton = localStorage2Boolean(`w4BM_showAutoTagButton`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_showAutoTagButton`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 284
 		switch (Boolean(localStorage.getItem(`w4BM_autoAutoTag`))) {
 			case false:
 				console.log(`
@@ -362,7 +413,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 'w4BM_autoAutoTag' IS SET in the localStorage`
 				);
 
-				autoAutoTag = stringToBoolean(localStorage.getItem(`w4BM_autoAutoTag`));
+				autoAutoTag = localStorage2Boolean(`w4BM_autoAutoTag`);
 
 				break;
 
@@ -371,8 +422,8 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 233
-		switch (Boolean(localStorage.getItem(`w4BM_autoCollections`))) {
+		// doing the same thing as the first if else on line 284
+		switch (Boolean(localStorage.getItem(`w4BM_autoCollections`)) || localStorage.getItem(`w4BM_autoCollections`) == ``) { // Add special case for when the localStorage var is an empty string, since `Boolean('')` evals to false
 			case false:
 				console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
@@ -402,100 +453,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 233
-		switch (Boolean(localStorage.getItem(`w4BM_includeFandom`))) {
-			case false:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_includeFandom' is not set in the localStorage
-Now setting it to '${initial_settings_dict.includeFandom}'`
-				);
-
-				includeFandom = initial_settings_dict.includeFandom;
-				localStorage.setItem(`w4BM_includeFandom`, initial_settings_dict.includeFandom);
-
-				break;
-
-			case true:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_includeFandom' IS SET in the localStorage`
-				);
-
-				includeFandom = localStorage.getItem(`w4BM_includeFandom`);
-
-				break;
-
-			default:
-				console.log(`Error in retrieving localStorage variable w4BM_includeFandom`);
-				break;
-		}
-
-		// doing the same thing as the first if else on line 233
-		switch (Boolean(localStorage.getItem(`w4BM_includeWorkStatus`))) {
-			case false:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_includeWorkStatus' is not set in the localStorage
-Now setting it to '${initial_settings_dict.includeWorkStatus}'`
-				);
-
-				includeWorkStatus = initial_settings_dict.includeWorkStatus;
-				localStorage.setItem(`w4BM_includeWorkStatus`, initial_settings_dict.includeWorkStatus);
-
-				break;
-
-			case true:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_includeWorkStatus' IS SET in the localStorage`
-				);
-
-				includeWorkStatus = localStorage.getItem(`w4BM_includeWorkStatus`);
-
-				break;
-
-			default:
-				console.log(`Error in retrieving localStorage variable w4BM_includeWorkStatus`);
-				break;
-		}
-
-		// doing the same thing as the first if else on line 233
-		switch (Boolean(localStorage.getItem(`w4BM_showAutoTagButton`))) {
-			case false:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_showAutoTagButton' is not set in the localStorage
-Now setting it to '${initial_settings_dict.showAutoTagButton}'`
-				);
-
-				showAutoTagButton = initial_settings_dict.showAutoTagButton;
-				localStorage.setItem(`w4BM_showAutoTagButton`, initial_settings_dict.showAutoTagButton);
-
-				break;
-
-			case true:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_showAutoTagButton' IS SET in the localStorage`
-				);
-
-				showAutoTagButton = stringToBoolean(localStorage.getItem(`w4BM_showAutoTagButton`));
-
-				break;
-
-			default:
-				console.log(`Error in retrieving localStorage variable w4BM_showAutoTagButton`);
-				break;
-		}
-
-		// doing the same thing as the first if else on line 233
+		// doing the same thing as the first if else on line 284
 		switch (Boolean(localStorage.getItem(`w4BM_seriesAutoTag`))) {
 			case false:
 				console.log(`
@@ -517,7 +475,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 'w4BM_seriesAutoTag' IS SET in the localStorage`
 				);
 
-				seriesAutoTag = stringToBoolean(localStorage.getItem(`w4BM_seriesAutoTag`));
+				seriesAutoTag = localStorage2Boolean(`w4BM_seriesAutoTag`);
 
 				break;
 
@@ -526,7 +484,162 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 233
+		// doing the same thing as the first if else on line 284
+		switch (Boolean(localStorage.getItem(`w4BM_includeWorkStatus`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_includeWorkStatus' is not set in the localStorage
+Now setting it to '${initial_settings_dict.includeWorkStatus}'`
+				);
+
+				includeWorkStatus = initial_settings_dict.includeWorkStatus;
+				localStorage.setItem(`w4BM_includeWorkStatus`, initial_settings_dict.includeWorkStatus);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_includeWorkStatus' IS SET in the localStorage`
+				);
+
+				includeWorkStatus = localStorage2Boolean(`w4BM_includeWorkStatus`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_includeWorkStatus`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 284
+		switch (Boolean(localStorage.getItem(`w4BM_includeFandom`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_includeFandom' is not set in the localStorage
+Now setting it to '${initial_settings_dict.includeFandom}'`
+				);
+
+				includeFandom = initial_settings_dict.includeFandom;
+				localStorage.setItem(`w4BM_includeFandom`, initial_settings_dict.includeFandom);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_includeFandom' IS SET in the localStorage`
+				);
+
+				includeFandom = localStorage2Boolean(`w4BM_includeFandom`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_includeFandom`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 284
+		switch (Boolean(localStorage.getItem(`w4BM_includeMainRelationship`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_includeMainRelationship' is not set in the localStorage
+Now setting it to '${initial_settings_dict.includeMainRelationship}'`
+				);
+
+				includeMainRelationship = initial_settings_dict.includeMainRelationship;
+				localStorage.setItem(`w4BM_includeMainRelationship`, initial_settings_dict.includeMainRelationship);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_includeMainRelationship' IS SET in the localStorage`
+				);
+
+				includeMainRelationship = localStorage2Boolean(`w4BM_includeMainRelationship`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_includeMainRelationship`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 284
+		switch (Boolean(localStorage.getItem(`w4BM_includeMainRomRelationship`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_includeMainRomRelationship' is not set in the localStorage
+Now setting it to '${initial_settings_dict.includeMainRomRelationship}'`
+				);
+
+				includeMainRomRelationship = initial_settings_dict.includeMainRomRelationship;
+				localStorage.setItem(`w4BM_includeMainRomRelationship`, initial_settings_dict.includeMainRomRelationship);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_includeMainRomRelationship' IS SET in the localStorage`
+				);
+
+				includeMainRomRelationship = localStorage2Boolean(`w4BM_includeMainRomRelationship`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_includeMainRomRelationship`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 284
+		switch (Boolean(localStorage.getItem(`w4BM_includeMainPltRelationship`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_includeMainPltRelationship' is not set in the localStorage
+Now setting it to '${initial_settings_dict.includeMainPltRelationship}'`
+				);
+
+				includeMainPltRelationship = initial_settings_dict.includeMainPltRelationship;
+				localStorage.setItem(`w4BM_includeMainPltRelationship`, initial_settings_dict.includeMainPltRelationship);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_includeMainPltRelationship' IS SET in the localStorage`
+				);
+
+				includeMainPltRelationship = localStorage2Boolean(`w4BM_includeMainPltRelationship`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_includeMainPltRelationship`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 284
 		switch (Boolean(localStorage.getItem(`w4BM_bottomSummaryPage`))) {
 			case false:
 				console.log(`
@@ -548,7 +661,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 'w4BM_bottomSummaryPage' IS SET in the localStorage`
 				);
 
-				bottomSummaryPage = stringToBoolean(localStorage.getItem(`w4BM_bottomSummaryPage`));
+				bottomSummaryPage = localStorage2Boolean(`w4BM_bottomSummaryPage`);
 
 				break;
 
@@ -557,7 +670,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 233
+		// doing the same thing as the first if else on line 284
 		switch (Boolean(localStorage.getItem(`w4BM_topSummaryPage`))) {
 			case false:
 				console.log(`
@@ -579,7 +692,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 'w4BM_topSummaryPage' IS SET in the localStorage`
 				);
 
-				topSummaryPage = stringToBoolean(localStorage.getItem(`w4BM_topSummaryPage`));
+				topSummaryPage = localStorage2Boolean(`w4BM_topSummaryPage`);
 
 				break;
 
@@ -588,7 +701,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 233
+		// doing the same thing as the first if else on line 284
 		switch (Boolean(localStorage.getItem(`w4BM_simpleWorkSummary`))) {
 			case false:
 				console.log(`
@@ -610,7 +723,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 'w4BM_simpleWorkSummary' IS SET in the localStorage`
 				);
 
-				simpleWorkSummary = stringToBoolean(localStorage.getItem(`w4BM_simpleWorkSummary`));
+				simpleWorkSummary = localStorage2Boolean(`w4BM_simpleWorkSummary`);
 
 				break;
 
@@ -619,7 +732,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 233
+		// doing the same thing as the first if else on line 284
 		switch (Boolean(localStorage.getItem(`w4BM_FWS_asBlockquote`))) {
 			case false:
 				console.log(`
@@ -641,7 +754,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 'w4BM_FWS_asBlockquote' IS SET in the localStorage`
 				);
 
-				FWS_asBlockquote = stringToBoolean(localStorage.getItem(`w4BM_FWS_asBlockquote`));
+				FWS_asBlockquote = localStorage2Boolean(`w4BM_FWS_asBlockquote`);
 
 				break;
 
@@ -650,7 +763,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 233
+		// doing the same thing as the first if else on line 284
 		switch (Boolean(localStorage.getItem(`w4BM_alwaysInjectBookmark`))) {
 			case false:
 				console.log(`
@@ -672,7 +785,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 'w4BM_alwaysInjectBookmark' IS SET in the localStorage`
 				);
 
-				alwaysInjectBookmark = stringToBoolean(localStorage.getItem(`w4BM_alwaysInjectBookmark`));
+				alwaysInjectBookmark = localStorage2Boolean(`w4BM_alwaysInjectBookmark`);
 
 				break;
 
@@ -681,7 +794,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 233
+		// doing the same thing as the first if else on line 284
 		switch (Boolean(localStorage.getItem(`w4BM_AutoTag_type`))) {
 			case false:
 				console.log(`
@@ -712,7 +825,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 233
+		// doing the same thing as the first if else on line 284
 		switch (Boolean(localStorage.getItem(`w4BM_splitSelect`))) {
 			case false:
 				console.log(`
@@ -744,25 +857,6 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 		}
 
 	}
-	else { // if localStorage does not exist
-
-		divider = initial_settings_dict.divider;
-		autoPrivate = initial_settings_dict.autoPrivate;
-		autoRecommend = initial_settings_dict.autoRecommend;
-		autoAutoTag = initial_settings_dict.autoAutoTag;
-		autoCollections = initial_settings_dict.autoCollections;
-		includeFandom = initial_settings_dict.includeFandom;
-		includeWorkStatus = initial_settings_dict.includeWorkStatus;
-		showAutoTagButton = initial_settings_dict.showAutoTagButton;
-		seriesAutoTag = initial_settings_dict.seriesAutoTag;
-		bottomSummaryPage = initial_settings_dict.bottomSummaryPage;
-		topSummaryPage = initial_settings_dict.topSummaryPage;
-		simpleWorkSummary = initial_settings_dict.simpleWorkSummary;
-		FWS_asBlockquote = initial_settings_dict.FWS_asBlockquote;
-		AutoTag_type = initial_settings_dict.AutoTag_type;
-		splitSelect = initial_settings_dict.splitSelect;
-
-	}
 
 
 	// Log the current value of the vars in localStorage
@@ -788,22 +882,25 @@ localStorage vars:`;
 	log_string += `
 
 current script vars (list may be incomplete):
-divider              : ${divider.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}
-autoPrivate          : ${autoPrivate}
-autoRecommend        : ${autoRecommend}
-autoAutoTag          : ${autoAutoTag}
-autoCollections      : ${autoCollections}
-includeFandom        : ${includeFandom}
-includeWorkStatus    : ${includeWorkStatus}
-showAutoTagButton    : ${showAutoTagButton}
-seriesAutoTag        : ${seriesAutoTag}
-bottomSummaryPage    : ${bottomSummaryPage}
-topSummaryPage       : ${topSummaryPage}
-simpleWorkSummary    : ${simpleWorkSummary}
-FWS_asBlockquote     : ${FWS_asBlockquote}
-alwaysInjectBookmark : ${alwaysInjectBookmark}
-AutoTag_type         : ${AutoTag_type}
-splitSelect          : ${splitSelect}`;
+divider                    : ${divider.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}
+autoPrivate                : ${autoPrivate}
+autoRecommend              : ${autoRecommend}
+showAutoTagButton          : ${showAutoTagButton}
+autoAutoTag                : ${autoAutoTag}
+autoCollections            : ${autoCollections}
+seriesAutoTag              : ${seriesAutoTag}
+includeWorkStatus          : ${includeWorkStatus}
+includeFandom              : ${includeFandom}
+includeMainRelationship    : ${includeMainRelationship}
+includeMainRomRelationship : ${includeMainRomRelationship}
+includeMainPltRelationship : ${includeMainPltRelationship}
+bottomSummaryPage          : ${bottomSummaryPage}
+topSummaryPage             : ${topSummaryPage}
+simpleWorkSummary          : ${simpleWorkSummary}
+FWS_asBlockquote           : ${FWS_asBlockquote}
+alwaysInjectBookmark       : ${alwaysInjectBookmark}
+AutoTag_type               : ${AutoTag_type}
+splitSelect                : ${splitSelect}`;
 
 	console.log(log_string);
 
@@ -1036,28 +1133,6 @@ ${input_value}`
 			w4BM_autoRecommend_no.replaceWith(w4BM_autoRecommend_yes);
 		});
 
-		// create button - auto autotag bookmarks - yes
-		const w4BM_autoAutoTag_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_autoAutoTag_yes`,
-			id: `w4BM_autoAutoTag_yes`,
-			innerHTML: `<a>Auto-run AutoTag: YES</a>`
-		});
-		w4BM_autoAutoTag_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_autoAutoTag`, false);
-			w4BM_autoAutoTag_yes.replaceWith(w4BM_autoAutoTag_no);
-		});
-
-		// create button - auto autotag bookmarks - no
-		const w4BM_autoAutoTag_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_autoAutoTag_no`,
-			id: `w4BM_autoAutoTag_no`,
-			innerHTML: `<a>Auto-run AutoTag: NO</a>`
-		});
-		w4BM_autoAutoTag_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_autoAutoTag`, true);
-			w4BM_autoAutoTag_no.replaceWith(w4BM_autoAutoTag_yes);
-		});
-
 		// create button - show AutoTag button - yes
 		const w4BM_showAutoTagButton_yes = Object.assign(document.createElement(`li`), {
 			className: `w4BM_showAutoTagButton_yes`,
@@ -1080,7 +1155,29 @@ ${input_value}`
 			w4BM_showAutoTagButton_no.replaceWith(w4BM_showAutoTagButton_yes);
 		});
 
-		// create button - show AutoTag button - yes
+		// create button - auto autotag bookmarks - yes
+		const w4BM_autoAutoTag_yes = Object.assign(document.createElement(`li`), {
+			className: `w4BM_autoAutoTag_yes`,
+			id: `w4BM_autoAutoTag_yes`,
+			innerHTML: `<a>Auto-run AutoTag: YES</a>`
+		});
+		w4BM_autoAutoTag_yes.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_autoAutoTag`, false);
+			w4BM_autoAutoTag_yes.replaceWith(w4BM_autoAutoTag_no);
+		});
+
+		// create button - auto autotag bookmarks - no
+		const w4BM_autoAutoTag_no = Object.assign(document.createElement(`li`), {
+			className: `w4BM_autoAutoTag_no`,
+			id: `w4BM_autoAutoTag_no`,
+			innerHTML: `<a>Auto-run AutoTag: NO</a>`
+		});
+		w4BM_autoAutoTag_no.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_autoAutoTag`, true);
+			w4BM_autoAutoTag_no.replaceWith(w4BM_autoAutoTag_yes);
+		});
+
+		// create button - include whether bookmark is for a series or not in AutoTag - yes
 		const w4BM_seriesAutoTag_yes = Object.assign(document.createElement(`li`), {
 			className: `w4BM_seriesAutoTag_yes`,
 			id: `w4BM_seriesAutoTag_yes`,
@@ -1091,7 +1188,7 @@ ${input_value}`
 			w4BM_seriesAutoTag_yes.replaceWith(w4BM_seriesAutoTag_no);
 		});
 
-		// create button - show AutoTag button - no
+		// create button - include whether bookmark is for a series or not in AutoTag - no
 		const w4BM_seriesAutoTag_no = Object.assign(document.createElement(`li`), {
 			className: `w4BM_seriesAutoTag_no`,
 			id: `w4BM_seriesAutoTag_no`,
@@ -1100,6 +1197,28 @@ ${input_value}`
 		w4BM_seriesAutoTag_no.addEventListener(`click`, function (event) {
 			localStorage.setItem(`w4BM_seriesAutoTag`, true);
 			w4BM_seriesAutoTag_no.replaceWith(w4BM_seriesAutoTag_yes);
+		});
+
+		// create button - include work completion status in AutoTag - yes
+		const w4BM_includeWorkStatusButton_yes = Object.assign(document.createElement(`li`), {
+			className: `w4BM_includeWorkStatusButton_yes`,
+			id: `w4BM_includeWorkStatusButton_yes`,
+			innerHTML: `<a>Include Work Status in AutoTag: YES</a>`
+		});
+		w4BM_includeWorkStatusButton_yes.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_includeWorkStatus`, false);
+			w4BM_includeWorkStatusButton_yes.replaceWith(w4BM_includeWorkStatusButton_no);
+		});
+
+		// create button - include work status in AutoTag - no
+		const w4BM_includeWorkStatusButton_no = Object.assign(document.createElement(`li`), {
+			className: `w4BM_includeWorkStatusButton_no`,
+			id: `w4BM_includeWorkStatusButton_no`,
+			innerHTML: `<a>Include Work Status in AutoTag: NO</a>`
+		});
+		w4BM_includeWorkStatusButton_no.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_includeWorkStatus`, true);
+			w4BM_includeWorkStatusButton_no.replaceWith(w4BM_includeWorkStatusButton_yes);
 		});
 
 		// create button - include fandom in AutoTag - yes
@@ -1124,26 +1243,70 @@ ${input_value}`
 			w4BM_includeFandomButton_no.replaceWith(w4BM_includeFandomButton_yes);
 		});
 
-		// create button - include work completion status in AutoTag - yes
-		const w4BM_includeWorkStatusButton_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_includeWorkStatusButton_yes`,
-			id: `w4BM_includeWorkStatusButton_yes`,
-			innerHTML: `<a>Include Work Status in AutoTag: YES</a>`
+		// create button - include main relationship tag in AutoTag - yes
+		const w4BM_includeMainRelationshipButton_yes = Object.assign(document.createElement(`li`), {
+			className: `w4BM_includeMainRelationshipButton_yes`,
+			id: `w4BM_includeMainRelationshipButton_yes`,
+			innerHTML: `<a>Include Main Relationship in AutoTag: YES</a>`
 		});
-		w4BM_includeWorkStatusButton_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_includeWorkStatus`, false);
-			w4BM_includeWorkStatusButton_yes.replaceWith(w4BM_includeWorkStatusButton_no);
+		w4BM_includeMainRelationshipButton_yes.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_includeMainRelationship`, false);
+			w4BM_includeMainRelationshipButton_yes.replaceWith(w4BM_includeMainRelationshipButton_no);
 		});
 
-		// create button - include work status in AutoTag - no
-		const w4BM_includeWorkStatusButton_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_includeWorkStatusButton_no`,
-			id: `w4BM_includeWorkStatusButton_no`,
-			innerHTML: `<a>Include Work Status in AutoTag: NO</a>`
+		// create button - include main relationship tag in AutoTag - no
+		const w4BM_includeMainRelationshipButton_no = Object.assign(document.createElement(`li`), {
+			className: `w4BM_includeMainRelationshipButton_no`,
+			id: `w4BM_includeMainRelationshipButton_no`,
+			innerHTML: `<a>Include Main Relationship in AutoTag: NO</a>`
 		});
-		w4BM_includeWorkStatusButton_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_includeWorkStatus`, true);
-			w4BM_includeWorkStatusButton_no.replaceWith(w4BM_includeWorkStatusButton_yes);
+		w4BM_includeMainRelationshipButton_no.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_includeMainRelationship`, true);
+			w4BM_includeMainRelationshipButton_no.replaceWith(w4BM_includeMainRelationshipButton_yes);
+		});
+
+		// create button - include main romantic relationship tag in AutoTag - yes
+		const w4BM_includeMainRomRelationshipButton_yes = Object.assign(document.createElement(`li`), {
+			className: `w4BM_includeMainRomRelationshipButton_yes`,
+			id: `w4BM_includeMainRomRelationshipButton_yes`,
+			innerHTML: `<a>Include Main Romantic Relationship in AutoTag: YES</a>`
+		});
+		w4BM_includeMainRomRelationshipButton_yes.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_includeMainRomRelationship`, false);
+			w4BM_includeMainRomRelationshipButton_yes.replaceWith(w4BM_includeMainRomRelationshipButton_no);
+		});
+
+		// create button - include main romantic relationship tag in AutoTag - no
+		const w4BM_includeMainRomRelationshipButton_no = Object.assign(document.createElement(`li`), {
+			className: `w4BM_includeMainRomRelationshipButton_no`,
+			id: `w4BM_includeMainRomRelationshipButton_no`,
+			innerHTML: `<a>Include Main Romantic Relationship in AutoTag: NO</a>`
+		});
+		w4BM_includeMainRomRelationshipButton_no.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_includeMainRomRelationship`, true);
+			w4BM_includeMainRomRelationshipButton_no.replaceWith(w4BM_includeMainRomRelationshipButton_yes);
+		});
+
+		// create button - include main platonic relationship tag in AutoTag - yes
+		const w4BM_includeMainPltRelationshipButton_yes = Object.assign(document.createElement(`li`), {
+			className: `w4BM_includeMainPltRelationshipButton_yes`,
+			id: `w4BM_includeMainPltRelationshipButton_yes`,
+			innerHTML: `<a>Include Main Platonic Relationship in AutoTag: YES</a>`
+		});
+		w4BM_includeMainPltRelationshipButton_yes.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_includeMainPltRelationship`, false);
+			w4BM_includeMainPltRelationshipButton_yes.replaceWith(w4BM_includeMainPltRelationshipButton_no);
+		});
+
+		// create button - include main relationship tag in AutoTag - no
+		const w4BM_includeMainPltRelationshipButton_no = Object.assign(document.createElement(`li`), {
+			className: `w4BM_includeMainPltRelationshipButton_no`,
+			id: `w4BM_includeMainPltRelationshipButton_no`,
+			innerHTML: `<a>Include Main Platonic Relationship in AutoTag: NO</a>`
+		});
+		w4BM_includeMainPltRelationshipButton_no.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_includeMainPltRelationship`, true);
+			w4BM_includeMainPltRelationshipButton_no.replaceWith(w4BM_includeMainPltRelationshipButton_yes);
 		});
 
 		// create button - AutoTag type 0
@@ -1319,20 +1482,20 @@ ${input_value}`
 				w4BM_dropMenu.append(w4BM_autoRecommend_no);
 			}
 
-			// auto autotagging bookmarks
-			if (autoAutoTag == true || autoAutoTag == `true`) {
-				w4BM_dropMenu.append(w4BM_autoAutoTag_yes);
-			}
-			else {
-				w4BM_dropMenu.append(w4BM_autoAutoTag_no);
-			}
-
 			// showing AutoTag button
 			if (showAutoTagButton == true || showAutoTagButton == `true`) {
 				w4BM_dropMenu.append(w4BM_showAutoTagButton_yes);
 			}
 			else {
 				w4BM_dropMenu.append(w4BM_showAutoTagButton_no);
+			}
+
+			// auto autotagging bookmarks
+			if (autoAutoTag == true || autoAutoTag == `true`) {
+				w4BM_dropMenu.append(w4BM_autoAutoTag_yes);
+			}
+			else {
+				w4BM_dropMenu.append(w4BM_autoAutoTag_no);
 			}
 
 			// showing seriesAutoTag button
@@ -1343,6 +1506,13 @@ ${input_value}`
 				w4BM_dropMenu.append(w4BM_seriesAutoTag_no);
 			}
 
+			// including work completion status in AutoTag button
+			if (includeWorkStatus == true || includeWorkStatus == `true`) {
+				w4BM_dropMenu.append(w4BM_includeWorkStatusButton_yes);
+			} else {
+				w4BM_dropMenu.append(w4BM_includeWorkStatusButton_no);
+			}
+
 			// including fandom in AutoTag button
 			if (includeFandom == true || includeFandom == `true`) {
 				w4BM_dropMenu.append(w4BM_includeFandomButton_yes);
@@ -1350,11 +1520,25 @@ ${input_value}`
 				w4BM_dropMenu.append(w4BM_includeFandomButton_no);
 			}
 
-			// including work completion status in AutoTag button
-			if (includeWorkStatus == true || includeWorkStatus == `true`) {
-				w4BM_dropMenu.append(w4BM_includeWorkStatusButton_yes);
+			// including main relationship tag in AutoTag button
+			if (includeMainRelationship == true || includeMainRelationship == `true`) {
+				w4BM_dropMenu.append(w4BM_includeMainRelationshipButton_yes);
 			} else {
-				w4BM_dropMenu.append(w4BM_includeWorkStatusButton_no);
+				w4BM_dropMenu.append(w4BM_includeMainRelationshipButton_no);
+			}
+
+			// including main romantic relationship tag in AutoTag button
+			if (includeMainRomRelationship == true || includeMainRomRelationship == `true`) {
+				w4BM_dropMenu.append(w4BM_includeMainRomRelationshipButton_yes);
+			} else {
+				w4BM_dropMenu.append(w4BM_includeMainRomRelationshipButton_no);
+			}
+
+			// including main platonic relationship tag in AutoTag button
+			if (includeMainPltRelationship == true || includeMainPltRelationship == `true`) {
+				w4BM_dropMenu.append(w4BM_includeMainPltRelationshipButton_yes);
+			} else {
+				w4BM_dropMenu.append(w4BM_includeMainPltRelationshipButton_no);
 			}
 
 			// choosing AutoTag type button
@@ -1511,7 +1695,6 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		let output = Boolean(worksInURL || seriesInURL);
 
 		if (alwaysInjectBookmark == true) {
-			// output = Boolean(worksInURL || seriesInURL);
 			return output;
 		}
 		if (alwaysInjectBookmark == false) {
@@ -1888,6 +2071,26 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			return [tags_arr_ls_HTML, tags_arr_ls_TXT, tags_arr_comma_HTML, tags_arr_comma_TXT];
 		}
 
+		// Helper function to get all the relationship anchor (<a>) elements
+		function getRawRelsArr() {
+			let selector_string = ``;
+			if (IS_SERIES) {
+				selector_string = `ul.tags > li.relationships > a.tag`;
+			} else {
+				selector_string = `.relationship.tags ul a`;
+			}
+			return Array.from(document.querySelectorAll(selector_string));
+		}
+
+		// Helper function to get where the various main relationship tags are in the plaintext relationships array
+		function getMainRelationshipIndices(comma_TXT_arr) {
+			const
+				main_rel_idx = (!Array.isArray(comma_TXT_arr) || !comma_TXT_arr.length) ? -1 : 0,
+				main_rel_rom_idx = comma_TXT_arr.findIndex(elm => elm.includes(`/`)),
+				main_rel_plt_idx = comma_TXT_arr.findIndex(elm => elm.includes(`&`));
+			return [main_rel_idx, main_rel_rom_idx, main_rel_plt_idx];
+		}
+
 		const [
 			relationships_list_HTML,
 			relationships_list_TXT,
@@ -1902,10 +2105,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		] = (function () {
 			function getMainRelationships(comma_TXT_arr, comma_HTML_arr) {
 				// Get the indices for the main/primary relationship tags
-				const
-					main_rel_idx = 0,
-					main_rel_rom_idx = comma_TXT_arr.findIndex(elm => elm.includes(`/`)),
-					main_rel_plt_idx = comma_TXT_arr.findIndex(elm => elm.includes(`&`));
+				const [main_rel_idx, main_rel_rom_idx, main_rel_plt_idx] = getMainRelationshipIndices(comma_TXT_arr);
 
 				// Get the main/primary relationship tags
 				const main_rels_variants_arr = (() => {
@@ -1924,10 +2124,10 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 				return main_rels_variants_arr;
 			}
 
-			if (IS_SERIES) {
-				// Get all relationship tags present in series' works and add them to series bookmark
-				// Retrieve relationship tags element if it exists
-				const raw_rels_arr = Array.from(document.querySelectorAll(`ul.tags > li.relationships > a.tag`));
+			// Retrieve relationship tags element if it exists
+			const raw_rels_arr = getRawRelsArr();
+
+			if (IS_SERIES) {  // Get all relationship tags present in series' works and add them to series bookmark
 
 				// Check if rels_arr is empty, indicating no relationship tags
 				if (!Array.isArray(raw_rels_arr) || !raw_rels_arr.length) {
@@ -1956,9 +2156,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 					return [src_rels_lh, src_rels_lt, src_rels_ch, src_rels_ct, main_rel, main_rel_HTML, main_rom_rel, main_rom_rel_HTML, main_plt_rel, main_plt_rel_HTML];
 				}
 			}
-			else {
-				// Retrieve relationship tags
-				const raw_rels_arr = Array.from(document.querySelectorAll(`.relationship.tags ul a`));
+			else {  // Retrieve relationship tags for a work
 
 				// Check if rels_arr is empty, indicating no relationship tags
 				if (!Array.isArray(raw_rels_arr) || !raw_rels_arr.length) {
@@ -2412,7 +2610,7 @@ Date String Generated: ${(function () { if (date_string == ``) { return `No Date
 		};
 
 		// Print workInfo debug string to console
-		console.log(workInfoDebug(workInfoVariablesDict));
+		// console.log(workInfoDebug(workInfoVariablesDict));
 
 		function workInfoDebug(input_dict) {
 			let debug_str = `
@@ -2643,14 +2841,6 @@ ${date_string}</details>`;*/
 			// Make array of everything that will go into the aforementionedinput box
 			let tag_inputs = [];
 
-			// Add completion status only if include work status is true
-			if (includeWorkStatus) {
-				tag_inputs.push(autotag_status);
-			}
-
-			// Add the string "Series" to tag_inputs if work is a series
-			if (autotag_series && seriesAutoTag) { tag_inputs.push(`Series`); }
-
 			// Get word count of work/series
 			const AT_words = (function () {
 				let
@@ -2660,6 +2850,14 @@ ${date_string}</details>`;*/
 				AT_words = parseInt(AT_words);
 				return AT_words;
 			})();
+
+			// Add the string "Series" to tag_inputs if work is a series
+			if (autotag_series && seriesAutoTag) { tag_inputs.push(`Series`); }
+
+			// Add completion status only if include work status is true
+			if (includeWorkStatus) {
+				tag_inputs.push(autotag_status);
+			}
 
 			if (includeFandom === true || includeFandom === `true`) {
 				if (IS_SERIES) { // Check if current page is a series
@@ -2675,6 +2873,86 @@ ${date_string}</details>`;*/
 					});
 				}
 			}
+
+			// Including main relationship tag in AutoTag
+			const relationships_exist = (() => {
+				const raw_rels_arr = getRawRelsArr();
+				if (!Array.isArray(raw_rels_arr) || !raw_rels_arr.length) { return false; } else { return true; }
+			})();
+			if (relationships_exist) {
+				// In the case where both main romantic and main platonic tags are being added, 
+				// order them based on which is first in the array of relationship tags
+				let rom_first = true;
+				const [, rom_idx, plt_idx] = getMainRelationshipIndices(getTagsVariants(getRawRelsArr()).at(-1));
+				if (rom_idx >= 0 && plt_idx >= 0 && rom_idx > plt_idx) {
+					rom_first = false;
+				}
+
+				/*
+				Use bitwise operations (left shift and bitwise OR) to convert the boolean values of
+				includeMainRelationship, includeMainRomRelationship, and includeMainPltRelationship
+				into an integer that will be used to index into an array of values.
+				true is cast to 1 and false is cast to 0
+				includeMainRelationship    : 1 or 0
+				includeMainRomRelationship : 2 or 0
+				includeMainPltRelationship : 4 or 0
+				bitwise OR combines the individual ints into a single int from 0 to 7
+				*/
+				const autotag_main_rel_idx = (includeMainRelationship | (includeMainRomRelationship << 1) | (includeMainPltRelationship << 2));
+
+				/*
+				Use autotag_main_rel_idx to index into an array of ints which will determine what AutoTag does when it comes to putting
+				a main relationship tag in AutoTag.
+				Meaning of each int in autotag_main_rel_case:
+				0 : No main relationship tags are added
+				1 : Main relationship is added regardless of whether it is romantic or platonic (if said tag is present)
+				2 : Main romantic relationship is added (if said tag is present)
+				3 : Main platonic relationship is added (if said tag is present)
+				4 : Both main romantic relationship and main platonic relationship are added (if said tags are present)
+				*/
+				const autotag_main_rel_case = [
+					0, // binary equiv : 000 ; All are false
+					1, // binary equiv : 001 ; includeMainRelationship is true
+					2, // binary equiv : 010 ; includeMainRomRelationship is true
+					2, // binary equiv : 011 ; includeMainRomRelationship & includeMainRelationship are true, includeMainRelationship is disregarded
+					3, // binary equiv : 100 ; includeMainPltRelationship is true
+					3, // binary equiv : 101 ; includeMainPltRelationship & includeMainRelationship are true, includeMainRelationship is disregarded
+					4, // binary equiv : 110 ; includeMainRomRelationship & includeMainPltRelationship are true, includeMainRelationship is disregarded
+					4  // binary equiv : 111 ; All are true
+				][autotag_main_rel_idx];
+
+				// Add the correct tags to AutoTag depending on autotag_main_rel_case
+				switch (autotag_main_rel_case) {
+					case 0:
+						break;
+
+					case 1:
+						tag_inputs.push(main_relationship);
+						break;
+
+					case 2:
+						if (main_romantic_relationship != `None`) { tag_inputs.push(main_romantic_relationship); }
+						break;
+
+					case 3:
+						if (main_platonic_relationship != `None`) { tag_inputs.push(main_platonic_relationship); }
+						break;
+
+					case 4:
+						if (rom_first) {
+							if (main_romantic_relationship != `None`) { tag_inputs.push(main_romantic_relationship); }
+							if (main_platonic_relationship != `None`) { tag_inputs.push(main_platonic_relationship); }
+						} else {
+							if (main_platonic_relationship != `None`) { tag_inputs.push(main_platonic_relationship); }
+							if (main_romantic_relationship != `None`) { tag_inputs.push(main_romantic_relationship); }
+						}
+						break;
+
+					default:
+						throw new Error(`autotag_main_rel_case has value [${autotag_main_rel_case}], which is not an integer between 0 and 4`);
+				}
+			}
+
 
 			// Original AutoTag Behaviour
 			// As suggested by `oliver t` @ https://greasyfork.org/en/scripts/467885/discussions/198028
