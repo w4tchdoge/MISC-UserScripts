@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name           AO3: Go To to Latest Chapter
+// @name           AO3: Go To Latest Chapter
 // @namespace      https://github.com/w4tchdoge
-// @version        1.1.1-20250816_185442
+// @version        1.1.1-20251221_094646
 // @description    Adds a link to the chapter navigation bar to go to the latest chapter of a work. Alternative method is to add `/latest` to the end of an AO3 work URL. e.g. https://archiveofourown.org/works/{AO3_WORK_ID}/chapters/{AO3_CHAPTER_ID}/latest
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
