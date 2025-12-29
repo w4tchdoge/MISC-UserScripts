@@ -1,26 +1,29 @@
 // ==UserScript==
 // @name           SV/SB/QQ: Go To Latest Chapter
 // @namespace      https://github.com/w4tchdoge
-// @version        0.0.1
-// @description    Adds the ability to go to the latest threadmark or a specific threadmark of a thread by adding `/latest` or `/nav/{NUMBER}` respectively to the end of a URL to a SV/SB/QQ thread with threadmarks. The `/latest` or `/nav/{NUMBER}` must be added before the anchor (the # symbol). e.g. https://forums.spacebattles.com/threads/{THREAD_ID}/latest, https://forums.spacebattles.com/threads/{THREAD_ID}/page-268/nav/2, https://forums.spacebattles.com/threads/{THREAD_ID}/page-268/latest#post-118049474
+// @version        1.0.0-20251229_131822
+// @description    Adds the ability to go to the latest threadmark or a specific threadmark of a thread by adding `/latest` / `/ltst` (`/ltst/` is required for QQ) or `/nav/{NUMBER}` respectively to the end of a URL to a SV/SB/QQ thread with threadmarks. The `/latest` or `/nav/{NUMBER}` must be added before the anchor (the # symbol). e.g. https://forums.sufficientvelocity.com/threads/{THREAD_ID}/latest, https://forums.spacebattles.com/threads/{THREAD_ID}/page-268/nav/2, https://forum.questionablequesting.com/threads/{THREAD_ID}/page-268/ltst#post-118049474
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
-// @updateURL      
-// @downloadURL    
+// @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/CrW_Go_To_Latest_Chapter.user.js
+// @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/CrW_Go_To_Latest_Chapter.user.js
 // @match          *://forums.spacebattles.com/threads/*
 // @match          *://forums.spacebattles.com/threads/*/latest
+// @match          *://forums.spacebattles.com/threads/*/ltst
 // @match          *://forums.spacebattles.com/threads/*/nav
 // @match          *://forums.spacebattles.com/threads/*/nav/*
 // @match          *://forums.sufficientvelocity.com/threads/*
 // @match          *://forums.sufficientvelocity.com/threads/*/latest
+// @match          *://forums.sufficientvelocity.com/threads/*/ltst
 // @match          *://forums.sufficientvelocity.com/threads/*/nav
 // @match          *://forums.sufficientvelocity.com/threads/*/nav/*
 // @match          *://forum.questionablequesting.com/threads/*
-// @match          *://forum.questionablequesting.com/threads/*/latest
+// @match          *://forum.questionablequesting.com/threads/*/ltst
 // @match          *://forum.questionablequesting.com/threads/*/nav
 // @match          *://forum.questionablequesting.com/threads/*/nav/*
 // @license        AGPL-3.0-or-later
 // @run-at         document-start
+// @history        1.0.0 — Fix `/latest` not working and add more details about latest threadmark functionality to description, add updateURL and downloadURL, and make userscript ready to be published onto GreasyFork
 // @history        0.0.1 — Initial commit
 // ==/UserScript==
 
@@ -46,6 +49,12 @@
 	}
 
 	async function getThreadmarkURLsArr(thread_id = ``, base_url = ``, nav = -1, is_latest = false) {
+		// 		console.log(`
+		// thread_id : [${thread_id}]
+		// base_url : [${base_url}]
+		// nav : [${nav}]
+		// is_latest : [${is_latest}]
+		// `);
 		if (thread_id == ``) { throw new Error("thread_id must be passed to getThreadmarkURLsArr as a non-empty string"); }
 		if (base_url == ``) { throw new Error("base_url must be passed to getThreadmarkURLsArr as a non-empty string"); }
 
@@ -97,7 +106,7 @@
 
 	})();
 
-	const url_latest = curr_url.pathname.split(`/`).at(-1).toString().toLowerCase() == `latest`;
+	const url_latest = (curr_url_domain == `forum.questionablequesting.com`) ? (curr_url.pathname.split(`/`).at(-1).toString().toLowerCase() == `ltst`) : (curr_url.pathname.split(`/`).at(-1).toString().toLowerCase() == `latest` || curr_url.pathname.split(`/`).at(-1).toString().toLowerCase() == `ltst`);
 	const url_nav_end = curr_url.pathname.split(`/`).at(-1).toString().toLowerCase() == `nav`;
 	const url_nav = (() => {
 		const segments = curr_url.pathname.split(`/`);
@@ -114,7 +123,7 @@
 		window.stop();
 
 		// Get URL for the latest chapter
-		const latest_url = (await getThreadmarkURLsArr(thread_id, `https://${curr_url_domain}`), -1, true).at(-1);
+		const latest_url = (await getThreadmarkURLsArr(thread_id, `https://${curr_url_domain}`, -1, true)).at(-1);
 
 		// console.log(`latest`, curr_url, work_id, latest_url);
 
