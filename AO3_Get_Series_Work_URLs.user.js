@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name           AO3: Get URLs of Works from a Series page
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0-20240424_190219
+// @version        1.0.0-20260102_220051
 // @description    Gets the URLs of all the works displayed on a series page where each work URL is on a new line
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Get_Series_Work_URLs.user.js
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Get_Series_Work_URLs.user.js
 // @match          *://archiveofourown.org/series/*
+// @match          *://archiveofourown.gay/series/*
 // @grant          GM_setClipboard
 // @grant          GM.setClipboard
 // @grant          GM_registerMenuCommand

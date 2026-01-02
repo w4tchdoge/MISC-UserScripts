@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3 Formatted Copy
 // @namespace      https://github.com/w4tchdoge
-// @version        2.7.1-20250905_195836
+// @version        2.7.1-20260102_220051
 // @description    Copy the curretly open AO3 work in the folloring MarkDown format '- [work name](work url) – [author name](author url) — '
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -12,6 +12,11 @@
 // @match          *://archiveofourown.org/*series/*
 // @match          *://archiveofourown.org/*bookmarks/*
 // @match          *://archiveofourown.org/*works/*/bookmarks
+// @match          *://archiveofourown.gay/*works/*
+// @match          *://archiveofourown.gay/chapters/*
+// @match          *://archiveofourown.gay/*series/*
+// @match          *://archiveofourown.gay/*bookmarks/*
+// @match          *://archiveofourown.gay/*works/*/bookmarks
 // @icon           https://archiveofourown.org/favicon.ico
 // @grant          GM_setClipboard
 // @grant          GM.setClipboard

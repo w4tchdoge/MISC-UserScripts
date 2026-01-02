@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name           AO3: Bookmarks Button on Main Navbar
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.5-20240518_193303
+// @version        1.0.5-20260102_220051
 // @description    Adds a button called "Bookmarked Fics" to the main navbar (where the search bar is). Inspired by elli-lili-lunch's "Put Bookmarks Button on AO3 Home", which can be found at https://greasyfork.org/en/scripts/440048
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @match          *://archiveofourown.org/*
+// @match          *://archiveofourown.gay/*
 // @icon           https://archiveofourown.org/favicon.ico
 // @run-at         document-idle
 // @license        AGPL-3.0-or-later

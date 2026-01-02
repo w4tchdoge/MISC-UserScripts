@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3: Get Current Chapter Word Count
 // @namespace      https://github.com/w4tchdoge
-// @version        1.2.1-20240705_232304
+// @version        1.2.1-20260102_220051
 // @description    Counts and displays the number of words in the current chapter
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -9,8 +9,12 @@
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Current_Chapter_Word_Count.user.js
 // @match          *://archiveofourown.org/*chapters/*
 // @match          *://archiveofourown.org/*works/*
+// @match          *://archiveofourown.gay/*chapters/*
+// @match          *://archiveofourown.gay/*works/*
 // @exclude        *://archiveofourown.org/*works/*/bookmarks
 // @exclude        *://archiveofourown.org/*works/*/navigate
+// @exclude        *://archiveofourown.gay/*works/*/bookmarks
+// @exclude        *://archiveofourown.gay/*works/*/navigate
 // @icon           https://archiveofourown.org/favicon.ico
 // @license        AGPL-3.0-or-later
 // @history        1.2.1 — Prevent script from running on multi-chapter works which only have 1 chapter published.

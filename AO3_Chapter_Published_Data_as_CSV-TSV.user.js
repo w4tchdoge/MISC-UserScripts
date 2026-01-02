@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name           AO3: Chapter Published Data as CSV/TSV
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.0-20240616_193023
+// @version        1.0.0-20260102_220051
 // @description    Get the chapter title, chapter number, and chapter publish date—and a calculated days between chapter updates—as a CSV or TSV file which can be downloaded using a button added by the userscript
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Chapter_Published_Data_as_CSV-TSV.user.js
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Chapter_Published_Data_as_CSV-TSV.user.js
 // @match          *://archiveofourown.org/*works/*/navigate
+// @match          *://archiveofourown.gay/*works/*/navigate
 // @run-at         document-end
 // @license        AGPL-3.0-or-later
 // @history        1.0.0 — Initial publish

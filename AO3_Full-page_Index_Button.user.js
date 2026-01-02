@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3: Visible Full-page Index Button
 // @namespace      https://github.com/w4tchdoge
-// @version        1.3.5-20251106_084440
+// @version        1.3.5-20260102_220051
 // @description    Moves or copies (setting is user configurable) the "Full-page index" button to the main work navigation bar for ease of access
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -9,8 +9,12 @@
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Full-page_Index_Button.user.js
 // @match          *://archiveofourown.org/*chapters/*
 // @match          *://archiveofourown.org/*works/*
+// @match          *://archiveofourown.gay/*chapters/*
+// @match          *://archiveofourown.gay/*works/*
 // @exclude        *://archiveofourown.org/*works/*/bookmarks
 // @exclude        *://archiveofourown.org/*works/*/navigate
+// @exclude        *://archiveofourown.gay/*works/*/bookmarks
+// @exclude        *://archiveofourown.gay/*works/*/navigate
 // @icon           https://archiveofourown.org/favicon.ico
 // @license        AGPL-3.0-or-later
 // @history        1.3.5 — Change ini_fpi_btn to use querySelector with a hopefully more reliable CSS selector since the XPath broke
