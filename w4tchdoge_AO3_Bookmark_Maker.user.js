@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.17.0-20251115_113356
+// @version        2.17.0-20260102_220051
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -11,9 +11,16 @@
 // @match          *://archiveofourown.org/*works/*
 // @match          *://archiveofourown.org/*chapters/*
 // @match          *://archiveofourown.org/series/*
+// @match          *://archiveofourown.gay/users/*/preferences*
+// @match          *://archiveofourown.gay/*works/*
+// @match          *://archiveofourown.gay/*chapters/*
+// @match          *://archiveofourown.gay/series/*
 // @exclude        *://archiveofourown.org/*works/*/bookmarks
 // @exclude        *://archiveofourown.org/*works/*/navigate
 // @exclude        *://archiveofourown.org/*works/*/latest
+// @exclude        *://archiveofourown.gay/*works/*/bookmarks
+// @exclude        *://archiveofourown.gay/*works/*/navigate
+// @exclude        *://archiveofourown.gay/*works/*/latest
 // @icon           https://archiveofourown.org/favicon.ico
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @run-at         document-end
