@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           AO3: Add button to Show Bookmark
 // @namespace      https://github.com/w4tchdoge
-// @version        2.1.1-20260102_220051
+// @version        2.1.2-20260315_191138
 // @description    Adds a "Show Bookmark" button before the "Edit Bookmark" button on the page where you view a work's bookmarks
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -20,6 +20,7 @@
 // @exclude        *://archiveofourown.org/*works/*/navigate
 // @exclude        *://archiveofourown.gay/*works/*/navigate
 // @license        AGPL-3.0-or-later
+// @history        2.1.2 — Fix script breakage caused by the "bookmark_form_trigger" attribute of the bookmark button element being changed from id to class (https://github.com/otwcode/otwarchive/commit/0db14a5c82f3bba486d7b1738f332781503471b7)
 // @history        2.1.1 — Fix script not working on the user's bookmarks page
 // @history        2.1.0 — Add "User Bookmark" button to the series page
 // @history        2.0.2 — Move the detection of whether the work is bookmarked to the start of the script instead of making it part of what the bookmarks page fetch does. This is to make sure the bookmarks page is only fetched when the user has the work bookmarked
@@ -44,7 +45,7 @@
 		const html_parser = new DOMParser();
 		const html_bookmark_page_html = html_parser.parseFromString(resp, `text/html`);
 		// console.log(html_bookmark_page_html);
-		const edit_bookmark_elem = html_bookmark_page_html.querySelector(`a[id^="bookmark_form_trigger"]`).cloneNode();
+		const edit_bookmark_elem = html_bookmark_page_html.querySelector(`a[class^="bookmark_form_trigger"]`).cloneNode();
 		const show_bookmark_href = edit_bookmark_elem.getAttribute(`href`).split(/\/edit/i).at(0);
 		return show_bookmark_href;
 	}
@@ -94,10 +95,10 @@
 	})();
 
 
-	if (!is_pg_srs && bkmrk_page_check && Boolean(document.querySelector(`a[id^="bookmark_form_trigger"]`))) {
+	if (!is_pg_srs && bkmrk_page_check && Boolean(document.querySelector(`a[class^="bookmark_form_trigger"]`))) {
 
 		// create array of the parent elements of the li element that makes up the native edit bookmark buttons
-		const existing_edit_btns = Array.from(document.querySelectorAll(`*:has(> li > [id^="bookmark_form_trigger"][href*="edit"])`));
+		const existing_edit_btns = Array.from(document.querySelectorAll(`*:has(> li > [class^="bookmark_form_trigger"][href*="edit"])`));
 
 		// Check if the array exists and has elements
 		if (Array.isArray(existing_edit_btns) && Boolean(existing_edit_btns.length)) {
@@ -124,7 +125,7 @@ Proceeding to add "Show Bookmark" buttons next to them.`
 				a_elm.removeAttribute(`data-remote`);
 
 				// get the original a element id and change it for the new one
-				const a_elm_id = a_elm.getAttribute(`id`).replace(`bookmark_form`, `show_bookmark`);
+				const a_elm_id = a_elm.getAttribute(`class`).replace(`bookmark_form`, `show_bookmark`);
 
 				// get the original a element href and change it for the new one
 				const a_elm_link_href = a_elm.getAttribute(`href`).replace(`/edit`, ``);
