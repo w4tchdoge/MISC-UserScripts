@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.18.0-20260317_011628
+// @version        2.18.1-20260318_035613
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -25,6 +25,7 @@
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @run-at         document-end
 // @license        GNU GPLv3
+// @history        2.18.1 — Make sure to convert the localStorage values of includeFandom, includeWordCount, and includeReadDate to boolean values when retrieving them from localStorage
 // @history        2.18.0 — Added 6 new options for AutoTag and changed the "Work is Part of Series" AutoTag option to add "Part of Series" instead of "Series". Also reworded the `seriesAutoTag` variable to `partOfSeriesAutoTag` to better reflect what it does, which is adding "Part of Series" to user tags when the work being bookmarked is a part of a series. (Feature request by `Mimi123123` https://greasyfork.org/en/scripts/467885/discussions/323356)
 // @history        2.17.0 — (Pull request by PrincessGrouchy) Added/changed multiple `workInfo` variables. Changed `relationships` into 4 separate variants like fform_tags. Added `bkmrks_count` & `bkmrks_count_HTML` to indicate how many bookmarks a work/series has. Added `bookmark_type` to indicate whether it's a work or series bookmark. Added a workInfo variable for character tags with variants the same as for relationships and freeform tags.
 // @history        2.16.3 — Fix the XPath for getting the button on the bottom nav actions bar that takes you to top of the page
@@ -475,7 +476,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 'w4BM_includeFandom' IS SET in the localStorage`
 				);
 
-				includeFandom = localStorage.getItem(`w4BM_includeFandom`);
+				includeFandom = stringToBoolean(localStorage.getItem(`w4BM_includeFandom`));
 
 				break;
 
@@ -506,7 +507,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 'w4BM_includeWordCount' IS SET in the localStorage`
 				);
 
-				includeWordCount = localStorage.getItem(`w4BM_includeWordCount`);
+				includeWordCount = stringToBoolean(localStorage.getItem(`w4BM_includeWordCount`));
 
 				break;
 
@@ -537,7 +538,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 'w4BM_includeReadDate' IS SET in the localStorage`
 				);
 
-				includeReadDate = localStorage.getItem(`w4BM_includeReadDate`);
+				includeReadDate = stringToBoolean(localStorage.getItem(`w4BM_includeReadDate`));
 
 				break;
 
