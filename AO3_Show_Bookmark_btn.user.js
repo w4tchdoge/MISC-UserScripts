@@ -1,25 +1,26 @@
 // ==UserScript==
 // @name           AO3: Add button to Show Bookmark
 // @namespace      https://github.com/w4tchdoge
-// @version        2.1.2-20260315_191138
+// @version        2.1.3-20260320_115941
 // @description    Adds a "Show Bookmark" button before the "Edit Bookmark" button on the page where you view a work's bookmarks
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Show_Bookmark_btn.user.js
 // @downloadURL    https://github.com/w4tchdoge/MISC-UserScripts/raw/main/AO3_Show_Bookmark_btn.user.js
-// @match          *://archiveofourown.org/*chapters/*
 // @match          *://archiveofourown.org/*works/*
-// @match          *://archiveofourown.org/*series/*
-// @match          *://archiveofourown.org/*/bookmarks
-// @match          *://archiveofourown.org/bookmarks*
-// @match          *://archiveofourown.gay/*chapters/*
 // @match          *://archiveofourown.gay/*works/*
+// @match          *://archiveofourown.org/*chapters/*
+// @match          *://archiveofourown.gay/*chapters/*
+// @match          *://archiveofourown.org/*series/*
 // @match          *://archiveofourown.gay/*series/*
+// @match          *://archiveofourown.org/*/bookmarks
 // @match          *://archiveofourown.gay/*/bookmarks
+// @match          *://archiveofourown.org/bookmarks*
 // @match          *://archiveofourown.gay/bookmarks*
 // @exclude        *://archiveofourown.org/*works/*/navigate
 // @exclude        *://archiveofourown.gay/*works/*/navigate
 // @license        AGPL-3.0-or-later
+// @history        2.1.3 — Use the `#bookmark-form` div element and it's `form` child element whose `action` attribute starts with "/bookmarks" to both determine whether a work is bookmarked or not, and to get the URL to the bookmark if it is. This gets rid of the slow fetch requests
 // @history        2.1.2 — Fix script breakage caused by the "bookmark_form_trigger" attribute of the bookmark button element being changed from id to class (https://github.com/otwcode/otwarchive/commit/0db14a5c82f3bba486d7b1738f332781503471b7)
 // @history        2.1.1 — Fix script not working on the user's bookmarks page
 // @history        2.1.0 — Add "User Bookmark" button to the series page
@@ -32,22 +33,13 @@
 // @history        1.0.0 — Initial commit
 // ==/UserScript==
 
-(async function () {
+(function () {
 	`use strict`;
 
-	async function respText(url) {
-		const fetch_resp = await fetch(url);
-		const resp_text = await fetch_resp.text();
-		return resp_text;
-	}
-
-	function respText2bkmrkUrl(resp) {
-		const html_parser = new DOMParser();
-		const html_bookmark_page_html = html_parser.parseFromString(resp, `text/html`);
-		// console.log(html_bookmark_page_html);
-		const edit_bookmark_elem = html_bookmark_page_html.querySelector(`a[class^="bookmark_form_trigger"]`).cloneNode();
-		const show_bookmark_href = edit_bookmark_elem.getAttribute(`href`).split(/\/edit/i).at(0);
-		return show_bookmark_href;
+	function bkmrkRelHref2AbsHref(curr_pg, bkmrk_form_elm) {
+		const bkmrk_href = bkmrk_form_elm.getAttribute(`action`);
+		const out_str = `https://${curr_pg.hostname}${bkmrk_href}`;
+		return out_str;
 	}
 
 	function genUserBookmarkElms(bkmrk_href) {
@@ -77,22 +69,12 @@
 	const current_page_url = new URL(window.location);
 
 	const
-		is_pg_srs = current_page_url.pathname.includes(`series`);
+		is_pg_srs = current_page_url.pathname.includes(`series`),
+		bkmrk_page_check = current_page_url.pathname.includes(`bookmarks`);
 
-	const bkmrk_page_check = current_page_url.pathname.includes(`bookmarks`);
-
-	const is_work_bookmarked = (() => {
-		try {
-
-			const element_iwb = document.querySelector(`a.bookmark_form_placement_open`).textContent.toLowerCase().includes(`edit`);
-			return element_iwb;
-
-		} catch (error) {
-
-			return false;
-
-		}
-	})();
+	const
+		bookmark_form_elm = document.querySelector(`div#bookmark_form_placement form[action^="/bookmarks"]`),
+		is_work_bookmarked = Boolean(bookmark_form_elm);
 
 
 	if (!is_pg_srs && bkmrk_page_check && Boolean(document.querySelector(`a[class^="bookmark_form_trigger"]`))) {
@@ -164,17 +146,13 @@ User does not have the work bookmarked.`
 
 		// console.log(`branch A`);
 
-		const bookmark_page_href = document.querySelector(`dd.bookmarks a`).getAttribute(`href`);
-		const bkmrk_fetch_resp_txt = await respText(bookmark_page_href);
-		// console.log(bkmrk_fetch_resp_txt);
-
 		console.log(`
 Add "Show Bookmark" Button userscript:
 User has the work bookmarked.`
 		);
 
 		const
-			show_bookmark_href = respText2bkmrkUrl(bkmrk_fetch_resp_txt),
+			show_bookmark_href = bkmrkRelHref2AbsHref(current_page_url, bookmark_form_elm),
 			all_public_bkmrks_link = document.querySelector(`.work.meta.group dl.stats dd[class^="bookmark"]:has(>a)`);
 
 		// console.log(show_bookmark_href);
@@ -194,17 +172,13 @@ User does not have the series bookmarked.`
 
 	if (is_pg_srs && Boolean(document.querySelector(`dl.series.meta.group > dd.stats dd.bookmarks > a`)) && is_work_bookmarked) {
 
-		const bookmark_page_href = document.querySelector(`dl.series.meta.group > dd.stats dd.bookmarks > a`).getAttribute(`href`);
-		const bkmrk_fetch_resp_txt = await respText(bookmark_page_href);
-		// console.log(bkmrk_fetch_resp_txt);
-
 		console.log(`
 Add "Show Bookmark" Button userscript:
 User has the work bookmarked.`
 		);
 
 		const
-			show_bookmark_href = respText2bkmrkUrl(bkmrk_fetch_resp_txt),
+			show_bookmark_href = bkmrkRelHref2AbsHref(current_page_url, bookmark_form_elm),
 			all_public_bkmrks_link = document.querySelector(`dl.series.meta.group dl.stats > dd[class^="bookmark"]:has(>a)`);
 
 		// console.log(show_bookmark_href);
