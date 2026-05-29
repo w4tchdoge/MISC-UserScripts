@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Copy Wardle Guesses
 // @namespace      https://github.com/w4tchdoge
-// @version        1.0.1-20250616_022536
+// @version        1.0.2-20260529_142556
 // @description    Copies a list of your Wardle guesses (spoilered for Discord) to your clipboard
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -44,7 +44,7 @@
 		});
 	}
 
-	function MAINfunk() {
+	function get_guesses() {
 		const guess_table = (() => {
 
 			const elm_xp = `.//div[contains(concat(" ",normalize-space(@class)," ")," mb-2 ")]/parent::div[contains(concat(" ",normalize-space(@class)," ")," mt-2 ")][contains(@class,"w-11/12")]`;
@@ -56,7 +56,7 @@
 		// guess_table;
 
 		// let names_elm_arr = Array.from(guess_table.querySelectorAll(`div.vehicle-name`)).reverse();
-		const names_txt_arr = Array.from(guess_table.querySelectorAll(`div[tooltip-data]:has(img[alt="Guessed vehicle"])`), elm => elm.getAttribute(`tooltip-data`).trim()).reverse();
+		const names_txt_arr = Array.from(guess_table.querySelectorAll(`div[data-tooltip]:has(img[alt="Guessed vehicle"])`), elm => elm.getAttribute(`data-tooltip`).trim()).reverse();
 
 		const nations_txt_arr = (() => {
 
@@ -149,7 +149,7 @@
 
 	function DiscordSpoilerGuessesToClipboard() {
 
-		const guesses_arr = MAINfunk();
+		const guesses_arr = get_guesses();
 		const guesses_spoilers = (() => {
 
 			let output_arr = [];
