@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           CrW Forum (SB/SV/QQ) Formatted Copy
 // @namespace      https://github.com/w4tchdoge
-// @version        2.3.1-20240806_114900
+// @version        2.3.2-20260820_025909
 // @description    Copy the curretly open CrW Forum work in the folloring MarkDown format '- [work name](work url) – [author name](author url) — '
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
@@ -16,6 +16,7 @@
 // @grant          GM.registerMenuCommand
 // @require        https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
 // @license        AGPL-3.0-or-later
+// @history        2.3.2 — Fix getting author name. Make the re-read formatting function work with only 1 chapter being re-read
 // @history        2.3.1 — Fix the already read chapters input in re-read function not being padded correctly
 // @history        2.3.0 — Add re-read functionality
 // @history        2.2.1 — Make sure page num is not captured when getting the normalised thread url. Move regexs and variables into the functions they are used in. Get auth name and url from the thread header area which is on every page of the thread as opposed to the first message of the thread
@@ -95,7 +96,7 @@ ${performance.now() - s_t} ms
 	function CrW_gen_Auth_Copy(s_t) {
 
 		// Get element containing auth name and url
-		const auth_details = document.querySelector(`.p-body-header .p-description li:has(> i[title*="Thread starter"]) a.username`);
+		const auth_details = document.evaluate(`.//*[contains(concat(" ",normalize-space(@class)," ")," p-body-header ")]//*[contains(concat(" ",normalize-space(@class)," ")," p-description ")]//li[count(//span[contains(normalize-space(),"Thread starter")]) > 0]//a[contains(concat(" ",normalize-space(@class)," ")," username ")]`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
 
 		// Get Author Name and Author URL
 		const auth_name = auth_details.textContent.trim();
@@ -138,7 +139,7 @@ ${performance.now() - s_t} ms
 			}
 		})();
 
-		if ((chp_cnt == (rr_end - rr_sta + 1)) || (chp_cnt == 1)) {
+		if ((chp_cnt == (rr_end - rr_sta + 1)) || (chp_cnt == 1) || Object.is(rr_end, null)) {
 			console.log(
 				`
 # of Chapters to Re-read = # of Chapters Published
@@ -329,7 +330,9 @@ ${performance.now() - s_t} ms
 ———————————————————————————`
 			);
 
-			const { word_count, cr_dt } = generic_rr_frmt(s_t, rr_sta, rr_end);
+			const rr_ch = parseInt(rr_start_end);
+
+			const { word_count, cr_dt } = generic_rr_frmt(s_t, rr_ch, null);
 
 			// Debug Line
 			// console.log(`\n${wrk_title}\n${wrk_url.slice(0, -1)}\n${auth_name}\n${auth_url.slice(0, -1)}`);
