@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
-// @version        2.18.0-20260317_011628
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
+// @version        2.18.114-20260905_182154
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/w4tchdoge_AO3_Bookmark_Maker.user.js
@@ -25,6 +25,7 @@
 // @require        https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js
 // @run-at         document-end
 // @license        GNU GPLv3
+// @history        2.18.1 — Make sure to convert the localStorage values of includeFandom, includeWordCount, and includeReadDate to boolean values when retrieving them from localStorage
 // @history        2.18.0 — Added 6 new options for AutoTag and changed the "Work is Part of Series" AutoTag option to add "Part of Series" instead of "Series". Also reworded the `seriesAutoTag` variable to `partOfSeriesAutoTag` to better reflect what it does, which is adding "Part of Series" to user tags when the work being bookmarked is a part of a series. (Feature request by `Mimi123123` https://greasyfork.org/en/scripts/467885/discussions/323356)
 // @history        2.17.0 — (Pull request by PrincessGrouchy) Added/changed multiple `workInfo` variables. Changed `relationships` into 4 separate variants like fform_tags. Added `bkmrks_count` & `bkmrks_count_HTML` to indicate how many bookmarks a work/series has. Added `bookmark_type` to indicate whether it's a work or series bookmark. Added a workInfo variable for character tags with variants the same as for relationships and freeform tags.
 // @history        2.16.3 — Fix the XPath for getting the button on the bottom nav actions bar that takes you to top of the page
@@ -120,114 +121,121 @@
 		autoPrivate: false,
 		autoRecommend: false,
 		showAutoTagButton: true,
-		autoAutoTag: false,
+		autoAutoTag: true,
 		autoCollections: ``,
-		includeFandom: false,
-		includeWordCount: true,
-		includeReadDate: false,
-		showAutoTagButton: true,
-		partOfSeriesAutoTag: false,
+		includeWorkStatus: false,
+		partOfSeriesAutoTag: true,
 		partOfSeriesAutoTagCustom: false,
 		partOfSeriesAutoTagCustomValue: `N/A`,
-		seriesAutoTag: false,
+		seriesAutoTag: true,
 		seriesAutoTagCustom: false,
 		seriesAutoTagCustomValue: `N/A`,
-		includeWorkStatus: true,
-		addSeriesStatsToWorkBookmark: false,
+		addSeriesStatusToWorkBookmark: false,
+		addSeriesWordCountToWorkBookmark: false,
 		includeFandom: false,
-		includeMainRelationship: false,
-		includeMainRomRelationship: false,
+		includeMainRelationship: true,
+		includeMainRomRelationship: true,
 		includeMainPltRelationship: false,
+		excludeRelationshipAutoTaggingWorks: ``,
+		excludeRelationshipAutoTaggingSeries: ``,
+		includeWordCount: true,
+		AutoTag_wordcount_type: 1,
+		includeReadDate: false,
 		bottomSummaryPage: true,
-		topSummaryPage: false,
+		topSummaryPage: true,
 		simpleWorkSummary: false,
 		FWS_asBlockquote: true,
 		alwaysInjectBookmark: true,
-		AutoTag_wordcount_type: 0,
 		splitSelect: 1,
 	};
 
 	/* EXPLANATION OF THE "CONSTANTS" THAT CAN BE CHANGED BY THE END USER
 
-divider                        : String which is used to indicate where the bookmark should be split in half
+divider                              : String which is used to indicate where the bookmark should be split in half
 
 
-autoPrivate                    : If true, automatically checks the checkbox to private the bookmark
+autoPrivate                          : If true, automatically checks the checkbox to private the bookmark
 
 
-autoRecommend                  : If true, automatically checks the checkbox to mark the bookmark as a recommend
+autoRecommend                        : If true, automatically checks the checkbox to mark the bookmark as a recommend
 
 
-autoAutoTag                    : If true, attempts to automatically run the Auto Tag function. Will NOT work if showAutoTagButton is false as it just automatically clicks the button provided by the showAutoTagButton
+showAutoTagButton                    : If true, shows the "Auto Tag" button when bookmarking a work
 
 
-showAutoTagButton              : If true, shows the "Auto Tag" button when bookmarking a work
+autoAutoTag                          : If true, attempts to automatically run the Auto Tag function. Will NOT work if showAutoTagButton is false as it just automatically clicks the button provided by the showAutoTagButton
 
 
-autoCollections                : A comma seperated list of names of collections you would like to add to the bookmark
+autoCollections                      : A comma seperated list of names of collections you would like to add to the bookmark
 
 
-partOfSeriesAutoTag            : If true, if the work is a part of a series adds the string "Part of Series" to the user tags when running the Auto Tag function
+includeWorkStatus                    : If true, include the completion status ("Complete" or "Work In Progress") of the work/series as a user tag when running the Auto Tag function
 
 
-partOfSeriesAutoTagCustom      : If true, use a custom user-defined string for partOfSeriesAutoTag
+partOfSeriesAutoTag                  : If true, if the work is a part of a series adds the string "Part of Series" to the user tags when running the Auto Tag function
 
 
-partOfSeriesAutoTagCustomValue : Variable that stores the custom user-defined string to be user in partOfSeriesAutoTag if partOfSeriesAutoTagCustom is true
+partOfSeriesAutoTagCustom            : If true, use a custom user-defined string for partOfSeriesAutoTag
 
 
-seriesAutoTag                  : If true, if the bookmark is for a series adds the string "Series" to the user tags when running the Auto Tag function
+partOfSeriesAutoTagCustomValue       : Variable that stores the custom user-defined string to be user in partOfSeriesAutoTag if partOfSeriesAutoTagCustom is true
 
 
-seriesAutoTagCustom            : If true, use a custom user-defined string for seriesAutoTag
+seriesAutoTag                        : If true, if the bookmark is for a series adds the string "Series" to the user tags when running the Auto Tag function
 
 
-seriesAutoTagCustomValue       : Variable that stores the custom user-defined string to be user in seriesAutoTag if seriesAutoTagCustom is true
+seriesAutoTagCustom                  : If true, use a custom user-defined string for seriesAutoTag
 
 
-includeFandom                  : If true, include the fandom(s) of the work/series as user tags when running the Auto Tag function
+seriesAutoTagCustomValue             : Variable that stores the custom user-defined string to be user in seriesAutoTag if seriesAutoTagCustom is true
 
 
-includeWordCount               : If true, include word count tag(s) for the work/series as user tags when running the Auto Tag function
+includeFandom                        : If true, include the fandom(s) of the work/series as user tags when running the Auto Tag function
 
 
-includeReadDate                : If true, include tags for the month and year the work/series was lat read as user tags when running the Auto Tag function (as suggested by `Mimi123123` in https://greasyfork.org/en/scripts/467885/discussions/323356)
+includeMainRelationship              : If true, adds the first relationship tag (regardless of romantic or platonic) present in the work/series as a user tag when running the Auto Tag function
 
 
-includeWorkStatus              : If true, adds the completion status of the work/series as a user tag when running the Auto Tag function
+includeMainRomRelationship           : If true, adds the first romantic relationship tag present in the work/series as a user tag when running the Auto Tag function
 
 
-includeMainRelationship        : If true, adds the first relationship tag (regardless of romantic or platonic) present in the work/series as a user tag when running the Auto Tag function
+includeMainPltRelationship           : If true, adds the first platonic relationship tag present in the work/series as a user tag when running the Auto Tag function
 
 
-includeMainRomRelationship     : If true, adds the first romantic relationship tag present in the work/series as a user tag when running the Auto Tag function
+excludeRelationshipAutoTaggingWorks  : A comma or whitespace seperated list of work IDs you would like to exclude from having the main relationship tag included in AutoTag
 
 
-includeMainPltRelationship     : If true, adds the first platonic relationship tag present in the work/series as a user tag when running the Auto Tag function
+excludeRelationshipAutoTaggingSeries : A comma or whitespace seperated list of work IDs you would like to exclude from having the main relationship tag included in AutoTag
 
 
-bottomSummaryPage              : If true, checks if the current page is an entire work page or a work page that is not on the first chapter.
-If the aforementioned checks are passed, Adds a "Summary Page" button to the bottom nav bar to easily navigate to a page where the summary exists so it can be picked up by the userscript.
-This is done due to the fact that the last read date will not update when updating a bookmark from the latest chapter.
+includeWordCount                     : If true, include word count tag(s) for the work/series as user tags when running the Auto Tag function
 
 
-topSummaryPage                 : If true, also adds a Summary Page button to the top nav bar next to the "Entire Work" button
-
-
-simpleWorkSummary              : If true, uses the original method to retrieve the work summary (least hassle, but includes the 'Summary' heading element which some users may find annoying).
-If false, retrieves the work summary in a way (which I call the fancy way) that allows more flexibility when customising newBookmarkNotes
-
-
-FWS_asBlockquote               : If using the fancy work summary method, set whether you want to retrieve the summary as a blockquote.
-For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 1697
-
-
-AutoTag_wordcount_type         : Determines how the Word Count section of AutoTag function works.
+AutoTag_wordcount_type               : Determines how the Word Count section of AutoTag function works.
 0 indicates it is using the original behaviour of AutoTag's Word Count as suggested by `oliver t` in https://greasyfork.org/en/scripts/467885/discussions/198028 that was present when AutoTag was first added to the userscript
 1 indicates it is using the behaviour suggested by `prismbox` in https://greasyfork.org/en/scripts/467885/discussions/255399 where canonical AO3 Wordcount tags are used for the word count tagging
 
 
-splitSelect                    : splitSelect changes which half of bookmarkNotes your initial bookmark is supposed to live in.
+includeReadDate                      : If true, include tags for the month and year the work/series was lat read as user tags when running the Auto Tag function (as suggested by `Mimi123123` in https://greasyfork.org/en/scripts/467885/discussions/323356)
+
+
+bottomSummaryPage                    : If true, checks if the current page is an entire work page or a work page that is not on the first chapter.
+If the aforementioned checks are passed, Adds a "Summary Page" button to the bottom nav bar to easily navigate to a page where the summary exists so it can be picked up by the userscript.
+This is done due to the fact that the last read date will not update when updating a bookmark from the latest chapter.
+
+
+topSummaryPage                       : If true, also adds a Summary Page button to the top nav bar next to the "Entire Work" button
+
+
+simpleWorkSummary                    : If true, uses the original method to retrieve the work summary (least hassle, but includes the 'Summary' heading element which some users may find annoying).
+If false, retrieves the work summary in a way (which I call the fancy way) that allows more flexibility when customising newBookmarkNotes
+
+
+FWS_asBlockquote                     : If using the fancy work summary method, set whether you want to retrieve the summary as a blockquote.
+For more information on the effects of changing simpleWorkSummary and FWS_asBlockquote, please look at where simpleWorkSummary is first used in the script, it should be around line 1697
+
+
+splitSelect                          : splitSelect changes which half of bookmarkNotes your initial bookmark is supposed to live in.
 Valid values are 0 and 1.
 
 e.g.
@@ -236,7 +244,7 @@ If you want the final bookmark (after pasting of autogenerated text) to look lik
 {bookmarkNotes}
 <hr />
 {title} by {author}<br />
-{AO3_status}<br />
+{date_last_updated}<br />
 {summary}<br />
 
 Then you can set divider = '<hr />' and splitSelect = 0
@@ -245,7 +253,7 @@ What this does is it replaces anything AFTER the <hr /> with the autogenerated b
 If you instead want something like the following:
 
 {title} by {author}<br />
-{AO3_status}<br />
+{date_last_updated}<br />
 {summary}<br />
 <hr />
 {bookmarkNotes}
@@ -256,7 +264,7 @@ Another way to explain it is that the script works by taking the current content
 
 	*/
 
-	function localStorage2Boolean(key) {
+	const localStorage2Boolean = (key) => {
 		const stringValue = localStorage.getItem(key);
 
 		// modified from https://stackoverflow.com/a/1414175/11750206 ; used to convert the 'true' & 'false' strings in localStorage to actual booleans
@@ -277,37 +285,40 @@ Another way to explain it is that the script works by taking the current content
 			default:
 				throw new Error(`Error in converting value [${stringValue}] (type : [${typeof stringValue}]) to boolean.`);
 		}
-	}
+	};
 
-	// Declare user-configurable variables with their default values in case localStorage is undefined.
-	// Doing it this way also adds some amount of type hinting
+	// Declare user-configurable variables
+	// and init them with values from initial_settings_dict
 	let
 		divider = initial_settings_dict.divider,
 		autoPrivate = initial_settings_dict.autoPrivate,
 		autoRecommend = initial_settings_dict.autoRecommend,
-		autoAutoTag = initial_settings_dict.autoAutoTag,
 		showAutoTagButton = initial_settings_dict.showAutoTagButton,
+		autoAutoTag = initial_settings_dict.autoAutoTag,
 		autoCollections = initial_settings_dict.autoCollections,
+		includeWorkStatus = initial_settings_dict.includeWorkStatus,
 		partOfSeriesAutoTag = initial_settings_dict.partOfSeriesAutoTag,
 		partOfSeriesAutoTagCustom = initial_settings_dict.partOfSeriesAutoTagCustom,
 		partOfSeriesAutoTagCustomValue = initial_settings_dict.partOfSeriesAutoTagCustomValue,
 		seriesAutoTag = initial_settings_dict.seriesAutoTag,
 		seriesAutoTagCustom = initial_settings_dict.seriesAutoTagCustom,
 		seriesAutoTagCustomValue = initial_settings_dict.seriesAutoTagCustomValue,
+		addSeriesStatusToWorkBookmark = initial_settings_dict.addSeriesStatusToWorkBookmark,
+		addSeriesWordCountToWorkBookmark = initial_settings_dict.addSeriesWordCountToWorkBookmark,
 		includeFandom = initial_settings_dict.includeFandom,
-		includeWordCount = initial_settings_dict.includeWordCount,
-		includeReadDate = initial_settings_dict.includeReadDate,
-		includeWorkStatus = initial_settings_dict.includeWorkStatus,
-		addSeriesStatsToWorkBookmark = initial_settings_dict.addSeriesStatsToWorkBookmark,
 		includeMainRelationship = initial_settings_dict.includeMainRelationship,
 		includeMainRomRelationship = initial_settings_dict.includeMainRomRelationship,
 		includeMainPltRelationship = initial_settings_dict.includeMainPltRelationship,
+		excludeRelationshipAutoTaggingWorks = initial_settings_dict.excludeRelationshipAutoTaggingWorks,
+		excludeRelationshipAutoTaggingSeries = initial_settings_dict.excludeRelationshipAutoTaggingSeries,
+		includeWordCount = initial_settings_dict.includeWordCount,
+		AutoTag_wordcount_type = initial_settings_dict.AutoTag_wordcount_type,
+		includeReadDate = initial_settings_dict.includeReadDate,
 		bottomSummaryPage = initial_settings_dict.bottomSummaryPage,
 		topSummaryPage = initial_settings_dict.topSummaryPage,
 		simpleWorkSummary = initial_settings_dict.simpleWorkSummary,
 		FWS_asBlockquote = initial_settings_dict.FWS_asBlockquote,
 		alwaysInjectBookmark = initial_settings_dict.alwaysInjectBookmark,
-		AutoTag_wordcount_type = initial_settings_dict.AutoTag_wordcount_type,
 		splitSelect = initial_settings_dict.splitSelect,
 		workInfo;
 
@@ -357,7 +368,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 284
+		// doing the same thing as the first if else on line 233
 		switch (Boolean(localStorage.getItem(`w4BM_autoPrivate`))) {
 			case false:
 				console.log(`
@@ -388,7 +399,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 284
+		// doing the same thing as the first if else on line 233
 		switch (Boolean(localStorage.getItem(`w4BM_autoRecommend`))) {
 			case false:
 				console.log(`
@@ -419,38 +430,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 284
-		switch (Boolean(localStorage.getItem(`w4BM_showAutoTagButton`))) {
-			case false:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_showAutoTagButton' is not set in the localStorage
-Now setting it to '${initial_settings_dict.showAutoTagButton}'`
-				);
-
-				showAutoTagButton = initial_settings_dict.showAutoTagButton;
-				localStorage.setItem(`w4BM_showAutoTagButton`, initial_settings_dict.showAutoTagButton);
-
-				break;
-
-			case true:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_showAutoTagButton' IS SET in the localStorage`
-				);
-
-				showAutoTagButton = localStorage2Boolean(`w4BM_showAutoTagButton`);
-
-				break;
-
-			default:
-				console.log(`Error in retrieving localStorage variable w4BM_showAutoTagButton`);
-				break;
-		}
-
-		// doing the same thing as the first if else on line 284
+		// doing the same thing as the first if else on line 233
 		switch (Boolean(localStorage.getItem(`w4BM_autoAutoTag`))) {
 			case false:
 				console.log(`
@@ -481,8 +461,8 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 284
-		switch (Boolean(localStorage.getItem(`w4BM_autoCollections`)) || localStorage.getItem(`w4BM_autoCollections`) == ``) { // Add special case for when the localStorage var is an empty string, since `Boolean('')` evals to false
+		// doing the same thing as the first if else on line 233
+		switch (Boolean(localStorage.getItem(`w4BM_autoCollections`))) {
 			case false:
 				console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
@@ -544,310 +524,6 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 		}
 
 		// doing the same thing as the first if else on line 233
-		switch (Boolean(localStorage.getItem(`w4BM_partOfSeriesAutoTag`))) {
-			case false:
-				const old_localStorage_var = localStorage.getItem(`w4BM_seriesAutoTag`);
-
-				if (Boolean(old_localStorage_var)) {
-
-					const log_str = `
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_partOfSeriesAutoTag' is not set in the localStorage
-Now setting it to '${old_localStorage_var}'`;
-					console.log(log_str);
-
-					partOfSeriesAutoTag = old_localStorage_var;
-					localStorage.setItem(`w4BM_partOfSeriesAutoTag`, old_localStorage_var);
-
-					if (old_localStorage_var == true || old_localStorage_var == `true`) {
-						localStorage.setItem(`w4BM_partOfSeriesAutoTagCustom`, true);
-						localStorage.setItem(`w4BM_partOfSeriesAutoTagCustomValue`, `Series`);
-					}
-
-					localStorage.removeItem(`w4BM_seriesAutoTag`);
-
-				} else {
-
-					const log_str = `
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_partOfSeriesAutoTag' is not set in the localStorage
-Now setting it to '${initial_settings_dict.partOfSeriesAutoTag}'`;
-					console.log(log_str);
-
-					partOfSeriesAutoTag = initial_settings_dict.partOfSeriesAutoTag;
-					localStorage.setItem(`w4BM_partOfSeriesAutoTag`, initial_settings_dict.partOfSeriesAutoTag);
-
-				}
-
-				break;
-
-			case true:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_partOfSeriesAutoTag' IS SET in the localStorage`
-				);
-
-				partOfSeriesAutoTag = stringToBoolean(localStorage.getItem(`w4BM_partOfSeriesAutoTag`));
-
-				break;
-
-			default:
-				console.log(`Error in retrieving localStorage variable w4BM_partOfSeriesAutoTag`);
-				break;
-		}
-
-		// doing the same thing as the first if else on line 233
-		switch (Boolean(localStorage.getItem(`w4BM_partOfSeriesAutoTagCustom`))) {
-			case false:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_partOfSeriesAutoTagCustom' is not set in the localStorage
-Now setting it to '${initial_settings_dict.partOfSeriesAutoTagCustom}'`
-				);
-
-				partOfSeriesAutoTagCustom = initial_settings_dict.partOfSeriesAutoTagCustom;
-				localStorage.setItem(`w4BM_partOfSeriesAutoTagCustom`, initial_settings_dict.partOfSeriesAutoTagCustom);
-
-				break;
-
-			case true:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_partOfSeriesAutoTagCustom' IS SET in the localStorage`
-				);
-
-				partOfSeriesAutoTagCustom = stringToBoolean(localStorage.getItem(`w4BM_partOfSeriesAutoTagCustom`));
-
-				break;
-
-			default:
-				console.log(`Error in retrieving localStorage variable w4BM_partOfSeriesAutoTagCustom`);
-				break;
-		}
-
-		// doing the same thing as the first if else on line 233
-		switch (Boolean(localStorage.getItem(`w4BM_partOfSeriesAutoTagCustomValue`))) {
-			case false:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_partOfSeriesAutoTagCustomValue' is not set in the localStorage
-Now setting it to '${initial_settings_dict.partOfSeriesAutoTagCustomValue.replace(/\n/gi, '').replace(/\t/gi, '').replace(/\r/gi, '')}'`
-				);
-
-				partOfSeriesAutoTagCustomValue = initial_settings_dict.partOfSeriesAutoTagCustomValue;
-				localStorage.setItem(`w4BM_partOfSeriesAutoTagCustomValue`, initial_settings_dict.partOfSeriesAutoTagCustomValue);
-
-				break;
-
-			case true:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_partOfSeriesAutoTagCustomValue' IS SET in the localStorage`
-				);
-
-				partOfSeriesAutoTagCustomValue = localStorage.getItem(`w4BM_partOfSeriesAutoTagCustomValue`);
-
-				break;
-
-			default:
-				console.log(`Error in retrieving localStorage variable w4BM_partOfSeriesAutoTagCustomValue`);
-				break;
-		}
-
-		// doing the same thing as the first if else on line 233
-		switch (Boolean(localStorage.getItem(`w4BM_seriesAutoTag`))) {
-			case false:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_seriesAutoTag' is not set in the localStorage
-Now setting it to '${initial_settings_dict.seriesAutoTag}'`
-				);
-
-				seriesAutoTag = initial_settings_dict.seriesAutoTag;
-				localStorage.setItem(`w4BM_seriesAutoTag`, initial_settings_dict.seriesAutoTag);
-
-				break;
-
-			case true:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_seriesAutoTag' IS SET in the localStorage`
-				);
-
-				seriesAutoTag = localStorage2Boolean(`w4BM_seriesAutoTag`);
-
-				break;
-
-			default:
-				console.log(`Error in retrieving localStorage variable w4BM_seriesAutoTag`);
-				break;
-		}
-
-		// doing the same thing as the first if else on line 284
-		switch (Boolean(localStorage.getItem(`w4BM_seriesAutoTagCustom`))) {
-			case false:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_seriesAutoTagCustom' is not set in the localStorage
-Now setting it to '${initial_settings_dict.seriesAutoTagCustom}'`
-				);
-
-				seriesAutoTagCustom = initial_settings_dict.seriesAutoTagCustom;
-				localStorage.setItem(`w4BM_seriesAutoTagCustom`, initial_settings_dict.seriesAutoTagCustom);
-
-				break;
-
-			case true:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_seriesAutoTagCustom' IS SET in the localStorage`
-				);
-
-				seriesAutoTagCustom = stringToBoolean(localStorage.getItem(`w4BM_seriesAutoTagCustom`));
-
-				break;
-
-			default:
-				console.log(`Error in retrieving localStorage variable w4BM_seriesAutoTagCustom`);
-				break;
-		}
-
-		// doing the same thing as the first if else on line 233
-		switch (Boolean(localStorage.getItem(`w4BM_seriesAutoTagCustomValue`))) {
-			case false:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_seriesAutoTagCustomValue' is not set in the localStorage
-Now setting it to '${initial_settings_dict.seriesAutoTagCustomValue.replace(/\n/gi, '').replace(/\t/gi, '').replace(/\r/gi, '')}'`
-				);
-
-				seriesAutoTagCustomValue = initial_settings_dict.seriesAutoTagCustomValue;
-				localStorage.setItem(`w4BM_seriesAutoTagCustomValue`, initial_settings_dict.seriesAutoTagCustomValue);
-
-				break;
-
-			case true:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_seriesAutoTagCustomValue' IS SET in the localStorage`
-				);
-
-				seriesAutoTagCustomValue = localStorage.getItem(`w4BM_seriesAutoTagCustomValue`);
-
-				break;
-
-			default:
-				console.log(`Error in retrieving localStorage variable w4BM_seriesAutoTagCustomValue`);
-				break;
-		}
-
-		// doing the same thing as the first if else on line 284
-		switch (Boolean(localStorage.getItem(`w4BM_includeFandom`))) {
-			case false:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_includeFandom' is not set in the localStorage
-Now setting it to '${initial_settings_dict.includeFandom}'`
-				);
-
-				includeFandom = initial_settings_dict.includeFandom;
-				localStorage.setItem(`w4BM_includeFandom`, initial_settings_dict.includeFandom);
-
-				break;
-
-			case true:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_includeFandom' IS SET in the localStorage`
-				);
-
-				includeFandom = localStorage.getItem(`w4BM_includeFandom`);
-
-				break;
-
-			default:
-				console.log(`Error in retrieving localStorage variable w4BM_includeFandom`);
-				break;
-		}
-
-		// doing the same thing as the first if else on line 233
-		switch (Boolean(localStorage.getItem(`w4BM_includeWordCount`))) {
-			case false:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_includeWordCount' is not set in the localStorage
-Now setting it to '${initial_settings_dict.includeWordCount}'`
-				);
-
-				includeWordCount = initial_settings_dict.includeWordCount;
-				localStorage.setItem(`w4BM_includeWordCount`, initial_settings_dict.includeWordCount);
-
-				break;
-
-			case true:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_includeWordCount' IS SET in the localStorage`
-				);
-
-				includeWordCount = localStorage.getItem(`w4BM_includeWordCount`);
-
-				break;
-
-			default:
-				console.log(`Error in retrieving localStorage variable w4BM_includeWordCount`);
-				break;
-		}
-
-		// doing the same thing as the first if else on line 233
-		switch (Boolean(localStorage.getItem(`w4BM_includeReadDate`))) {
-			case false:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_includeReadDate' is not set in the localStorage
-Now setting it to '${initial_settings_dict.includeReadDate}'`
-				);
-
-				includeReadDate = initial_settings_dict.includeReadDate;
-				localStorage.setItem(`w4BM_includeReadDate`, initial_settings_dict.includeReadDate);
-
-				break;
-
-			case true:
-				console.log(`
-w4tchdoge's AO3 Bookmark Maker UserScript – Log
---------------------
-'w4BM_includeReadDate' IS SET in the localStorage`
-				);
-
-				includeReadDate = localStorage.getItem(`w4BM_includeReadDate`);
-
-				break;
-
-			default:
-				console.log(`Error in retrieving localStorage variable w4BM_includeReadDate`);
-				break;
-		}
-
-		// doing the same thing as the first if else on line 284
 		switch (Boolean(localStorage.getItem(`w4BM_includeFandom`))) {
 			case false:
 				console.log(`
@@ -971,18 +647,18 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 284
-		switch (Boolean(localStorage.getItem(`w4BM_addSeriesStatsToWorkBookmark`))) {
+		// doing the same thing as the first if else on line 233
+		switch (Boolean(localStorage.getItem(`w4BM_excludeRelationshipAutoTaggingWorks`))) {
 			case false:
 				console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
-'w4BM_addSeriesStatsToWorkBookmark' is not set in the localStorage
-Now setting it to '${initial_settings_dict.addSeriesStatsToWorkBookmark}'`
+'w4BM_excludeRelationshipAutoTaggingWorks' is not set in the localStorage
+Now setting it to '${initial_settings_dict.excludeRelationshipAutoTaggingWorks}'`
 				);
 
-				addSeriesStatsToWorkBookmark = initial_settings_dict.addSeriesStatsToWorkBookmark;
-				localStorage.setItem(`w4BM_addSeriesStatsToWorkBookmark`, initial_settings_dict.addSeriesStatsToWorkBookmark);
+				excludeRelationshipAutoTaggingWorks = initial_settings_dict.excludeRelationshipAutoTaggingWorks;
+				localStorage.setItem(`w4BM_excludeRelationshipAutoTaggingWorks`, initial_settings_dict.excludeRelationshipAutoTaggingWorks);
 
 				break;
 
@@ -990,15 +666,412 @@ Now setting it to '${initial_settings_dict.addSeriesStatsToWorkBookmark}'`
 				console.log(`
 w4tchdoge's AO3 Bookmark Maker UserScript – Log
 --------------------
-'w4BM_addSeriesStatsToWorkBookmark' IS SET in the localStorage`
+'w4BM_excludeRelationshipAutoTaggingWorks' IS SET in the localStorage`
 				);
 
-				addSeriesStatsToWorkBookmark = localStorage2Boolean(`w4BM_addSeriesStatsToWorkBookmark`);
+				excludeRelationshipAutoTaggingWorks = localStorage.getItem(`w4BM_excludeRelationshipAutoTaggingWorks`);
 
 				break;
 
 			default:
-				console.log(`Error in retrieving localStorage variable w4BM_addSeriesStatsToWorkBookmark`);
+				console.log(`Error in retrieving localStorage variable w4BM_excludeRelationshipAutoTaggingWorks`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 233
+		switch (Boolean(localStorage.getItem(`w4BM_excludeRelationshipAutoTaggingSeries`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_excludeRelationshipAutoTaggingSeries' is not set in the localStorage
+Now setting it to '${initial_settings_dict.excludeRelationshipAutoTaggingSeries}'`
+				);
+
+				excludeRelationshipAutoTaggingSeries = initial_settings_dict.excludeRelationshipAutoTaggingSeries;
+				localStorage.setItem(`w4BM_excludeRelationshipAutoTaggingSeries`, initial_settings_dict.excludeRelationshipAutoTaggingSeries);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_excludeRelationshipAutoTaggingSeries' IS SET in the localStorage`
+				);
+
+				excludeRelationshipAutoTaggingSeries = localStorage.getItem(`w4BM_excludeRelationshipAutoTaggingSeries`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_excludeRelationshipAutoTaggingSeries`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 233
+		switch (Boolean(localStorage.getItem(`w4BM_includeWordCount`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_includeWordCount' is not set in the localStorage
+Now setting it to '${initial_settings_dict.includeWordCount}'`
+				);
+
+				includeWordCount = initial_settings_dict.includeWordCount;
+				localStorage.setItem(`w4BM_includeWordCount`, initial_settings_dict.includeWordCount);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_includeWordCount' IS SET in the localStorage`
+				);
+
+				includeWordCount = localStorage2Boolean(`w4BM_includeWordCount`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_includeWordCount`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 233
+		switch (Boolean(localStorage.getItem(`w4BM_includeReadDate`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_includeReadDate' is not set in the localStorage
+Now setting it to '${initial_settings_dict.includeReadDate}'`
+				);
+
+				includeReadDate = initial_settings_dict.includeReadDate;
+				localStorage.setItem(`w4BM_includeReadDate`, initial_settings_dict.includeReadDate);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_includeReadDate' IS SET in the localStorage`
+				);
+
+				includeReadDate = localStorage2Boolean(`w4BM_includeReadDate`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_includeReadDate`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 233
+		switch (Boolean(localStorage.getItem(`w4BM_showAutoTagButton`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_showAutoTagButton' is not set in the localStorage
+Now setting it to '${initial_settings_dict.showAutoTagButton}'`
+				);
+
+				showAutoTagButton = initial_settings_dict.showAutoTagButton;
+				localStorage.setItem(`w4BM_showAutoTagButton`, initial_settings_dict.showAutoTagButton);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_showAutoTagButton' IS SET in the localStorage`
+				);
+
+				showAutoTagButton = localStorage2Boolean(`w4BM_showAutoTagButton`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_showAutoTagButton`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 233
+		switch (Boolean(localStorage.getItem(`w4BM_partOfSeriesAutoTag`))) {
+			case false:
+				const old_localStorage_var = localStorage.getItem(`w4BM_seriesAutoTag`);
+
+				if (Boolean(old_localStorage_var)) {
+
+					const log_str = `
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_partOfSeriesAutoTag' is not set in the localStorage
+Now setting it to '${old_localStorage_var}'`;
+					console.log(log_str);
+
+					partOfSeriesAutoTag = old_localStorage_var;
+					localStorage.setItem(`w4BM_partOfSeriesAutoTag`, old_localStorage_var);
+
+					if (old_localStorage_var == true || old_localStorage_var == `true`) {
+						localStorage.setItem(`w4BM_partOfSeriesAutoTagCustom`, true);
+						localStorage.setItem(`w4BM_partOfSeriesAutoTagCustomValue`, `Series`);
+					}
+
+					localStorage.removeItem(`w4BM_seriesAutoTag`);
+
+				} else {
+
+					const log_str = `
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_partOfSeriesAutoTag' is not set in the localStorage
+Now setting it to '${initial_settings_dict.partOfSeriesAutoTag}'`;
+					console.log(log_str);
+
+					partOfSeriesAutoTag = initial_settings_dict.partOfSeriesAutoTag;
+					localStorage.setItem(`w4BM_partOfSeriesAutoTag`, initial_settings_dict.partOfSeriesAutoTag);
+
+				}
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_partOfSeriesAutoTag' IS SET in the localStorage`
+				);
+
+				partOfSeriesAutoTag = localStorage2Boolean(`w4BM_partOfSeriesAutoTag`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_partOfSeriesAutoTag`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 233
+		switch (Boolean(localStorage.getItem(`w4BM_partOfSeriesAutoTagCustom`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_partOfSeriesAutoTagCustom' is not set in the localStorage
+Now setting it to '${initial_settings_dict.partOfSeriesAutoTagCustom}'`
+				);
+
+				partOfSeriesAutoTagCustom = initial_settings_dict.partOfSeriesAutoTagCustom;
+				localStorage.setItem(`w4BM_partOfSeriesAutoTagCustom`, initial_settings_dict.partOfSeriesAutoTagCustom);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_partOfSeriesAutoTagCustom' IS SET in the localStorage`
+				);
+
+				partOfSeriesAutoTagCustom = localStorage2Boolean(`w4BM_partOfSeriesAutoTagCustom`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_partOfSeriesAutoTagCustom`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 233
+		switch (Boolean(localStorage.getItem(`w4BM_partOfSeriesAutoTagCustomValue`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_partOfSeriesAutoTagCustomValue' is not set in the localStorage
+Now setting it to '${initial_settings_dict.partOfSeriesAutoTagCustomValue.replace(/\n/gi, '').replace(/\t/gi, '').replace(/\r/gi, '')}'`
+				);
+
+				partOfSeriesAutoTagCustomValue = initial_settings_dict.partOfSeriesAutoTagCustomValue;
+				localStorage.setItem(`w4BM_partOfSeriesAutoTagCustomValue`, initial_settings_dict.partOfSeriesAutoTagCustomValue);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_partOfSeriesAutoTagCustomValue' IS SET in the localStorage`
+				);
+
+				partOfSeriesAutoTagCustomValue = localStorage.getItem(`w4BM_partOfSeriesAutoTagCustomValue`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_partOfSeriesAutoTagCustomValue`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 233
+		switch (Boolean(localStorage.getItem(`w4BM_seriesAutoTag`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_seriesAutoTag' is not set in the localStorage
+Now setting it to '${initial_settings_dict.seriesAutoTag}'`
+				);
+
+				seriesAutoTag = initial_settings_dict.seriesAutoTag;
+				localStorage.setItem(`w4BM_seriesAutoTag`, initial_settings_dict.seriesAutoTag);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_seriesAutoTag' IS SET in the localStorage`
+				);
+
+				seriesAutoTag = localStorage2Boolean(`w4BM_seriesAutoTag`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_seriesAutoTag`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 233
+		switch (Boolean(localStorage.getItem(`w4BM_seriesAutoTagCustom`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_seriesAutoTagCustom' is not set in the localStorage
+Now setting it to '${initial_settings_dict.seriesAutoTagCustom}'`
+				);
+
+				seriesAutoTagCustom = initial_settings_dict.seriesAutoTagCustom;
+				localStorage.setItem(`w4BM_seriesAutoTagCustom`, initial_settings_dict.seriesAutoTagCustom);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_seriesAutoTagCustom' IS SET in the localStorage`
+				);
+
+				seriesAutoTagCustom = localStorage2Boolean(`w4BM_seriesAutoTagCustom`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_seriesAutoTagCustom`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 233
+		switch (Boolean(localStorage.getItem(`w4BM_seriesAutoTagCustomValue`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_seriesAutoTagCustomValue' is not set in the localStorage
+Now setting it to '${initial_settings_dict.seriesAutoTagCustomValue.replace(/\n/gi, '').replace(/\t/gi, '').replace(/\r/gi, '')}'`
+				);
+
+				seriesAutoTagCustomValue = initial_settings_dict.seriesAutoTagCustomValue;
+				localStorage.setItem(`w4BM_seriesAutoTagCustomValue`, initial_settings_dict.seriesAutoTagCustomValue);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_seriesAutoTagCustomValue' IS SET in the localStorage`
+				);
+
+				seriesAutoTagCustomValue = localStorage.getItem(`w4BM_seriesAutoTagCustomValue`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_seriesAutoTagCustomValue`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 284
+		switch (Boolean(localStorage.getItem(`w4BM_addSeriesStatusToWorkBookmark`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_addSeriesStatusToWorkBookmark' is not set in the localStorage
+Now setting it to '${initial_settings_dict.addSeriesStatusToWorkBookmark}'`
+				);
+
+				addSeriesStatusToWorkBookmark = initial_settings_dict.addSeriesStatusToWorkBookmark;
+				localStorage.setItem(`w4BM_addSeriesStatusToWorkBookmark`, initial_settings_dict.addSeriesStatusToWorkBookmark);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_addSeriesStatusToWorkBookmark' IS SET in the localStorage`
+				);
+
+				addSeriesStatusToWorkBookmark = localStorage2Boolean(`w4BM_addSeriesStatusToWorkBookmark`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_addSeriesStatusToWorkBookmark`);
+				break;
+		}
+
+		// doing the same thing as the first if else on line 284
+		switch (Boolean(localStorage.getItem(`w4BM_addSeriesWordCountToWorkBookmark`))) {
+			case false:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_addSeriesWordCountToWorkBookmark' is not set in the localStorage
+Now setting it to '${initial_settings_dict.addSeriesWordCountToWorkBookmark}'`
+				);
+
+				addSeriesWordCountToWorkBookmark = initial_settings_dict.addSeriesWordCountToWorkBookmark;
+				localStorage.setItem(`w4BM_addSeriesWordCountToWorkBookmark`, initial_settings_dict.addSeriesWordCountToWorkBookmark);
+
+				break;
+
+			case true:
+				console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+'w4BM_addSeriesWordCountToWorkBookmark' IS SET in the localStorage`
+				);
+
+				addSeriesWordCountToWorkBookmark = localStorage2Boolean(`w4BM_addSeriesWordCountToWorkBookmark`);
+
+				break;
+
+			default:
+				console.log(`Error in retrieving localStorage variable w4BM_addSeriesWordCountToWorkBookmark`);
 				break;
 		}
 
@@ -1033,7 +1106,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 284
+		// doing the same thing as the first if else on line 233
 		switch (Boolean(localStorage.getItem(`w4BM_topSummaryPage`))) {
 			case false:
 				console.log(`
@@ -1064,7 +1137,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 284
+		// doing the same thing as the first if else on line 233
 		switch (Boolean(localStorage.getItem(`w4BM_simpleWorkSummary`))) {
 			case false:
 				console.log(`
@@ -1095,7 +1168,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 284
+		// doing the same thing as the first if else on line 233
 		switch (Boolean(localStorage.getItem(`w4BM_FWS_asBlockquote`))) {
 			case false:
 				console.log(`
@@ -1126,7 +1199,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 284
+		// doing the same thing as the first if else on line 233
 		switch (Boolean(localStorage.getItem(`w4BM_alwaysInjectBookmark`))) {
 			case false:
 				console.log(`
@@ -1208,7 +1281,7 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 				break;
 		}
 
-		// doing the same thing as the first if else on line 284
+		// doing the same thing as the first if else on line 233
 		switch (Boolean(localStorage.getItem(`w4BM_splitSelect`))) {
 			case false:
 				console.log(`
@@ -1245,28 +1318,32 @@ w4tchdoge's AO3 Bookmark Maker UserScript – Log
 		divider = initial_settings_dict.divider;
 		autoPrivate = initial_settings_dict.autoPrivate;
 		autoRecommend = initial_settings_dict.autoRecommend;
-		autoAutoTag = initial_settings_dict.autoAutoTag;
 		showAutoTagButton = initial_settings_dict.showAutoTagButton;
+		autoAutoTag = initial_settings_dict.autoAutoTag;
 		autoCollections = initial_settings_dict.autoCollections;
+		includeWorkStatus = initial_settings_dict.includeFandom;
 		partOfSeriesAutoTag = initial_settings_dict.partOfSeriesAutoTag;
 		partOfSeriesAutoTagCustom = initial_settings_dict.partOfSeriesAutoTagCustom;
 		partOfSeriesAutoTagCustomValue = initial_settings_dict.partOfSeriesAutoTagCustomValue;
 		seriesAutoTag = initial_settings_dict.seriesAutoTag;
 		seriesAutoTagCustom = initial_settings_dict.seriesAutoTagCustom;
 		seriesAutoTagCustomValue = initial_settings_dict.seriesAutoTagCustomValue;
+		addSeriesStatusToWorkBookmark = initial_settings_dict.addSeriesStatusToWorkBookmark;
+		addSeriesWordCountToWorkBookmark = initial_settings_dict.addSeriesWordCountToWorkBookmark;
 		includeFandom = initial_settings_dict.includeFandom;
-		includeWordCount = initial_settings_dict.includeWordCount,
-			includeReadDate = initial_settings_dict.includeReadDate,
-			includeWorkStatus = initial_settings_dict.includeWorkStatus,
-			addSeriesStatsToWorkBookmark = initial_settings_dict.addSeriesStatsToWorkBookmark,
-			includeMainRelationship = initial_settings_dict.includeMainRelationship,
-			includeMainRomRelationship = initial_settings_dict.includeMainRomRelationship,
-			includeMainPltRelationship = initial_settings_dict.includeMainPltRelationship,
-			bottomSummaryPage = initial_settings_dict.bottomSummaryPage,
-			topSummaryPage = initial_settings_dict.topSummaryPage;
+		includeMainRelationship = initial_settings_dict.includeMainRelationship;
+		includeMainRomRelationship = initial_settings_dict.includeMainRomRelationship;
+		includeMainPltRelationship = initial_settings_dict.includeMainPltRelationship;
+		excludeRelationshipAutoTaggingWorks = initial_settings_dict.excludeRelationshipAutoTaggingWorks;
+		excludeRelationshipAutoTaggingSeries = initial_settings_dict.excludeRelationshipAutoTaggingSeries;
+		includeWordCount = initial_settings_dict.includeWordCount;
+		AutoTag_wordcount_type = initial_settings_dict.AutoTag_wordcount_type;
+		includeReadDate = initial_settings_dict.includeReadDate;
+		bottomSummaryPage = initial_settings_dict.bottomSummaryPage;
+		topSummaryPage = initial_settings_dict.topSummaryPage;
 		simpleWorkSummary = initial_settings_dict.simpleWorkSummary;
 		FWS_asBlockquote = initial_settings_dict.FWS_asBlockquote;
-		AutoTag_wordcount_type = initial_settings_dict.AutoTag_wordcount_type;
+		alwaysInjectBookmark = initial_settings_dict.alwaysInjectBookmark;
 		splitSelect = initial_settings_dict.splitSelect;
 
 	}
@@ -1295,33 +1372,36 @@ localStorage vars:`;
 	log_string += `
 
 current script vars (list may be incomplete):
-divider                        : ${divider.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}
-autoPrivate                    : ${autoPrivate}
-autoRecommend                  : ${autoRecommend}
-autoAutoTag                    : ${autoAutoTag}
-showAutoTagButton              : ${showAutoTagButton}
-autoCollections                : ${autoCollections}
-partOfSeriesAutoTag            : ${partOfSeriesAutoTag}
-partOfSeriesAutoTagCustom      : ${partOfSeriesAutoTagCustom}
-partOfSeriesAutoTagCustomValue : ${partOfSeriesAutoTagCustomValue.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}
-seriesAutoTag                  : ${seriesAutoTag}
-seriesAutoTagCustom            : ${seriesAutoTagCustom}
-seriesAutoTagCustomValue       : ${seriesAutoTagCustomValue.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}
-includeFandom                  : ${includeFandom}
-includeWordCount               : ${includeWordCount}
-includeReadDate                : ${includeReadDate}
-includeWorkStatus              : ${includeWorkStatus}
-addSeriesStatsToWorkBookmark   : ${addSeriesStatsToWorkBookmark}
-includeMainRelationship        : ${includeMainRelationship}
-includeMainRomRelationship     : ${includeMainRomRelationship}
-includeMainPltRelationship     : ${includeMainPltRelationship}
-bottomSummaryPage              : ${bottomSummaryPage}
-topSummaryPage                 : ${topSummaryPage}
-simpleWorkSummary              : ${simpleWorkSummary}
-FWS_asBlockquote               : ${FWS_asBlockquote}
-alwaysInjectBookmark           : ${alwaysInjectBookmark}
-AutoTag_wordcount_type         : ${AutoTag_wordcount_type}
-splitSelect                    : ${splitSelect}`;
+divider                              : ${divider.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}
+autoPrivate                          : ${autoPrivate}
+autoRecommend                        : ${autoRecommend}
+showAutoTagButton                    : ${showAutoTagButton}
+autoAutoTag                          : ${autoAutoTag}
+autoCollections                      : ${autoCollections}
+includeWorkStatus                    : ${includeWorkStatus}
+partOfSeriesAutoTag                  : ${partOfSeriesAutoTag}
+partOfSeriesAutoTagCustom            : ${partOfSeriesAutoTagCustom}
+partOfSeriesAutoTagCustomValue       : ${partOfSeriesAutoTagCustomValue.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}
+seriesAutoTag                        : ${seriesAutoTag}
+seriesAutoTagCustom                  : ${seriesAutoTagCustom}
+seriesAutoTagCustomValue             : ${seriesAutoTagCustomValue.replace(/\n/gi, `\\n`).replace(/\t/gi, `\\t`).replace(/\r/gi, `\\r`)}
+addSeriesStatusToWorkBookmark        : ${addSeriesStatusToWorkBookmark}
+addSeriesWordCountToWorkBookmark     : ${addSeriesWordCountToWorkBookmark}
+includeFandom                        : ${includeFandom}
+includeMainRelationship              : ${includeMainRelationship}
+includeMainRomRelationship           : ${includeMainRomRelationship}
+includeMainPltRelationship           : ${includeMainPltRelationship}
+excludeRelationshipAutoTaggingWorks  : ${excludeRelationshipAutoTaggingWorks}
+excludeRelationshipAutoTaggingSeries : ${excludeRelationshipAutoTaggingSeries}
+includeWordCount                     : ${includeWordCount}
+AutoTag_wordcount_type               : ${AutoTag_wordcount_type}
+includeReadDate                      : ${includeReadDate}
+bottomSummaryPage                    : ${bottomSummaryPage}
+topSummaryPage                       : ${topSummaryPage}
+simpleWorkSummary                    : ${simpleWorkSummary}
+FWS_asBlockquote                     : ${FWS_asBlockquote}
+alwaysInjectBookmark                 : ${alwaysInjectBookmark}
+splitSelect                          : ${splitSelect}`;
 
 	console.log(log_string);
 
@@ -1722,7 +1802,7 @@ ${input_value}`
 		// create the input area for partOfSeriesAutoTagCustomValue
 		const w4BM_partOfSeriesAutoTagCustomValue_input_area = createAutoTagCustomValueInputArea('w4BM_partOfSeriesAutoTagCustomValue', 'Custom tag text for "Autotag: Work is Part of Series":');
 
-		// create button - AutoTag: Add tag for when bookmark is for a series - yes
+		// create button - show AutoTag button - yes
 		const w4BM_seriesAutoTag_yes = Object.assign(document.createElement(`li`), {
 			className: `w4BM_seriesAutoTag_yes`,
 			id: `w4BM_seriesAutoTag_yes`,
@@ -1768,6 +1848,46 @@ ${input_value}`
 
 		// create the input area for seriesAutoTagCustomValue
 		const w4BM_seriesAutoTagCustomValue_input_area = createAutoTagCustomValueInputArea('w4BM_seriesAutoTagCustomValue', 'Custom tag text for "Autotag, Bookmark is a Series":');
+
+		const w4BM_addSeriesStatusToWorkBookmark_yes = Object.assign(document.createElement(`li`), {
+			className: `w4BM_addSeriesStatusToWorkBookmark_yes`,
+			id: `w4BM_addSeriesStatusToWorkBookmark_yes`,
+			innerHTML: `<a>Autotag, Add Series Completion Status: YES</a>`
+		});
+		w4BM_addSeriesStatusToWorkBookmark_yes.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_addSeriesStatusToWorkBookmark`, false);
+			w4BM_addSeriesStatusToWorkBookmark_yes.replaceWith(w4BM_addSeriesStatusToWorkBookmark_no);
+		});
+
+		const w4BM_addSeriesStatusToWorkBookmark_no = Object.assign(document.createElement(`li`), {
+			className: `w4BM_addSeriesStatusToWorkBookmark_no`,
+			id: `w4BM_addSeriesStatusToWorkBookmark_no`,
+			innerHTML: `<a>Autotag, Add Series Completion Status: NO</a>`
+		});
+		w4BM_addSeriesStatusToWorkBookmark_no.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_addSeriesStatusToWorkBookmark`, true);
+			w4BM_addSeriesStatusToWorkBookmark_no.replaceWith(w4BM_addSeriesStatusToWorkBookmark_yes);
+		});
+
+		const w4BM_addSeriesWordCountToWorkBookmark_yes = Object.assign(document.createElement(`li`), {
+			className: `w4BM_addSeriesWordCountToWorkBookmark_yes`,
+			id: `w4BM_addSeriesWordCountToWorkBookmark_yes`,
+			innerHTML: `<a>Autotag, Add Series Word Count Status: YES</a>`
+		});
+		w4BM_addSeriesWordCountToWorkBookmark_yes.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_addSeriesWordCountToWorkBookmark`, false);
+			w4BM_addSeriesWordCountToWorkBookmark_yes.replaceWith(w4BM_addSeriesWordCountToWorkBookmark_no);
+		});
+
+		const w4BM_addSeriesWordCountToWorkBookmark_no = Object.assign(document.createElement(`li`), {
+			className: `w4BM_addSeriesWordCountToWorkBookmark_no`,
+			id: `w4BM_addSeriesWordCountToWorkBookmark_no`,
+			innerHTML: `<a>Autotag, Add Series Word Count Status: NO</a>`
+		});
+		w4BM_addSeriesWordCountToWorkBookmark_no.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_addSeriesWordCountToWorkBookmark`, true);
+			w4BM_addSeriesWordCountToWorkBookmark_no.replaceWith(w4BM_addSeriesWordCountToWorkBookmark_yes);
+		});
 
 		// create button - include fandom in AutoTag - yes
 		const w4BM_includeFandomButton_yes = Object.assign(document.createElement(`li`), {
@@ -1856,6 +1976,10 @@ ${input_value}`
 			localStorage.setItem(`w4BM_includeMainPltRelationship`, true);
 			w4BM_includeMainPltRelationshipButton_no.replaceWith(w4BM_includeMainPltRelationshipButton_yes);
 		});
+
+		// create the input area for excludeRelationshipAutoTaggingWorks & excludeRelationshipAutoTaggingSeries
+		const w4BM_excludeRelationshipAutoTaggingWorks_input_area = createAutoTagCustomValueInputArea('w4BM_excludeRelationshipAutoTaggingWorks', 'Work IDs to exclude from Relationship AutoTagging:');
+		const w4BM_excludeRelationshipAutoTaggingSeries_input_area = createAutoTagCustomValueInputArea('w4BM_excludeRelationshipAutoTaggingSeries', 'Series IDs to exclude from Relationship AutoTagging:');
 
 		// create button - include word count in AutoTag - yes
 		const w4BM_includeWordCountButton_yes = Object.assign(document.createElement(`li`), {
@@ -1989,28 +2113,6 @@ ${input_value}`
 			w4BM_simpleWorkSummary_no.replaceWith(w4BM_simpleWorkSummary_yes);
 		});
 
-		// create button - always overwrite bookmark notes
-		const w4BM_alwaysInjectBookmark_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_alwaysInjectBookmark_no`,
-			id: `w4BM_alwaysInjectBookmark_no`,
-			innerHTML: `<a>Always run script on valid pages: NO</a>`
-		});
-		w4BM_alwaysInjectBookmark_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_alwaysInjectBookmark`, true);
-			w4BM_alwaysInjectBookmark_no.replaceWith(w4BM_alwaysInjectBookmark_yes);
-		});
-
-		// create button - don't always overwrite bookmark notes
-		const w4BM_alwaysInjectBookmark_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_alwaysInjectBookmark_yes`,
-			id: `w4BM_alwaysInjectBookmark_yes`,
-			innerHTML: `<a>Always run script on valid pages: YES</a>`
-		});
-		w4BM_alwaysInjectBookmark_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_alwaysInjectBookmark`, false);
-			w4BM_alwaysInjectBookmark_yes.replaceWith(w4BM_alwaysInjectBookmark_no);
-		});
-
 		// create button - use blockquotes when using fancy work summary
 		const w4BM_FWS_asBlockquote_yes = Object.assign(document.createElement(`li`), {
 			className: `w4BM_FWS_asBlockquote_yes`,
@@ -2031,6 +2133,28 @@ ${input_value}`
 		w4BM_FWS_asBlockquote_no.addEventListener(`click`, function (event) {
 			localStorage.setItem(`w4BM_FWS_asBlockquote`, true);
 			w4BM_FWS_asBlockquote_no.replaceWith(w4BM_FWS_asBlockquote_yes);
+		});
+
+		// create button - always overwrite bookmark notes
+		const w4BM_alwaysInjectBookmark_no = Object.assign(document.createElement(`li`), {
+			className: `w4BM_alwaysInjectBookmark_no`,
+			id: `w4BM_alwaysInjectBookmark_no`,
+			innerHTML: `<a>Always run script on valid pages: NO</a>`
+		});
+		w4BM_alwaysInjectBookmark_no.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_alwaysInjectBookmark`, true);
+			w4BM_alwaysInjectBookmark_no.replaceWith(w4BM_alwaysInjectBookmark_yes);
+		});
+
+		// create button - don't always overwrite bookmark notes
+		const w4BM_alwaysInjectBookmark_yes = Object.assign(document.createElement(`li`), {
+			className: `w4BM_alwaysInjectBookmark_yes`,
+			id: `w4BM_alwaysInjectBookmark_yes`,
+			innerHTML: `<a>Always run script on valid pages: YES</a>`
+		});
+		w4BM_alwaysInjectBookmark_yes.addEventListener(`click`, function (event) {
+			localStorage.setItem(`w4BM_alwaysInjectBookmark`, false);
+			w4BM_alwaysInjectBookmark_yes.replaceWith(w4BM_alwaysInjectBookmark_no);
 		});
 
 		// create button - set splitSelect to 1
@@ -2135,6 +2259,22 @@ ${input_value}`
 			// showing seriesAutoTagCustomValue input area
 			w4BM_dropMenu.append(w4BM_seriesAutoTagCustomValue_input_area);
 
+			// 
+			if (addSeriesStatusToWorkBookmark == true || addSeriesStatusToWorkBookmark == `true`) {
+				w4BM_dropMenu.append(w4BM_addSeriesStatusToWorkBookmark_yes);
+			}
+			else {
+				w4BM_dropMenu.append(w4BM_addSeriesStatusToWorkBookmark_no);
+			}
+
+			// 
+			if (addSeriesWordCountToWorkBookmark == true || addSeriesWordCountToWorkBookmark == `true`) {
+				w4BM_dropMenu.append(w4BM_addSeriesWordCountToWorkBookmark_yes);
+			}
+			else {
+				w4BM_dropMenu.append(w4BM_addSeriesWordCountToWorkBookmark_no);
+			}
+
 			// including fandom in AutoTag button
 			if (includeFandom == true || includeFandom == `true`) {
 				w4BM_dropMenu.append(w4BM_includeFandomButton_yes);
@@ -2162,6 +2302,10 @@ ${input_value}`
 			} else {
 				w4BM_dropMenu.append(w4BM_includeMainPltRelationshipButton_no);
 			}
+
+			// showing excludeRelationshipAutoTaggingWorks input area & excludeRelationshipAutoTaggingSeries input area
+			w4BM_dropMenu.append(w4BM_excludeRelationshipAutoTaggingWorks_input_area);
+			w4BM_dropMenu.append(w4BM_excludeRelationshipAutoTaggingSeries_input_area);
 
 			// showing includeWordCount button
 			if (includeWordCount == true || includeWordCount == `true`) {
@@ -2361,13 +2505,17 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		}
 
 		// Define variables used in date configuration
-		const
-			currdate = new Date(),
-			dd = String(currdate.getDate()).padStart(2, `0`),
-			mm = String(currdate.getMonth() + 1).padStart(2, `0`),  // January is the 0th month in a JS date object
-			yyyy = currdate.getFullYear(),
-			hh = String(currdate.getHours()).padStart(2, `0`),
-			mins = String(currdate.getMinutes()).padStart(2, `0`);
+		const [dd, mm, yyyy, hh, mins] = (() => {
+			const
+				currdate = new Date(),
+				dd = String(currdate.getDate()).padStart(2, `0`),
+				mm = String(currdate.getMonth() + 1).padStart(2, `0`),  // January is the 0th month in a JS date object
+				yyyy = currdate.getFullYear(),
+				hh = String(currdate.getHours()).padStart(2, `0`),
+				mins = String(currdate.getMinutes()).padStart(2, `0`);
+
+			return [dd, mm, yyyy, hh, mins];
+		})();
 
 		// Get already existing bookmark notes
 		const curr_notes = main.querySelector(`#bookmark_notes`).textContent.split(divider).at(`-${splitSelect}`);
@@ -2421,6 +2569,23 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 
 			const out_id = currPg_pathname_arr.at(parseInt(pathname_index + 1)).toString();
 			return out_id;
+		}
+
+		function AnonCheck(input) {
+			const array = Array.from(input.querySelectorAll(`a`));
+			return (!Array.isArray(array) || !array.length);
+		}
+
+		function generateAuthorsHTMLstr(author_element) {
+			let auth_str_arr = [];
+			Array.from(author_element.querySelectorAll(`a`)).forEach(elm => {
+				let elm_c = elm.cloneNode(true);
+				elm_c.removeAttribute(`rel`);
+				auth_str_arr.push(elm_c.outerHTML.trim());
+			});
+
+			const authors_HTML = auth_str_arr.join(`, `);
+			return authors_HTML;
 		}
 
 		// Make the button used in Auto Tag
@@ -2486,6 +2651,13 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			}
 		})();
 
+		const IS_BOOKMARKED = (() => {
+			try {
+				const bkmrk_chk = document.querySelector(`a.bookmark_form_placement_open`).textContent.toLowerCase().includes(`edit`);
+				return bkmrk_chk;
+			} catch (error) { return false; }
+		})();
+
 
 		// Extract all details used in bookmark configuration and assign them to variables
 
@@ -2511,10 +2683,6 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 		})();
 
 		const [author, author_HTML] = (function () {
-			function AnonCheck(input) {
-				const array = Array.from(input.querySelectorAll(`a`));
-				return (!Array.isArray(array) || !array.length);
-			}
 
 			if (IS_SERIES) {
 				// Retrieve series author
@@ -2530,13 +2698,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 					const srs_authors_HTML = srs_authors;
 					return [srs_authors, srs_authors_HTML];
 				} else {
-					let auth_str_arr = [];
-					Array.from(series_author_element.querySelectorAll(`a`)).forEach(function (el) {
-						const el_c = el.cloneNode(true);
-						el_c.removeAttribute(`rel`);
-						auth_str_arr.push(el_c.outerHTML.trim());
-					});
-					const srs_authors_HTML = auth_str_arr.join(`, `);
+					const srs_authors_HTML = generateAuthorsHTMLstr(series_author_element);
 					return [srs_authors, srs_authors_HTML];
 				}
 			}
@@ -2552,139 +2714,53 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 					const wrk_authors_HTML = wrk_authors;
 					return [wrk_authors, wrk_authors_HTML];
 				} else {
-					let auth_str_arr = [];
-					Array.from(work_author_element.querySelectorAll(`a`)).forEach(function (el) {
-						const el_c = el.cloneNode(true);
-						el_c.removeAttribute(`rel`);
-						auth_str_arr.push(el_c.outerHTML.trim());
-					});
-					const wrk_authors_HTML = auth_str_arr.join(`, `);
+					const wrk_authors_HTML = generateAuthorsHTMLstr(work_author_element);
 					return [wrk_authors, wrk_authors_HTML];
 				}
 			}
 		})();
 
-		const AO3_status = (function () {
+		const [ws_id, IS_EXCLUDED_FRM_REL_AUTOTAG] = (function () {
 			if (IS_SERIES) {
-				// Get the last updated date of the series
-				const updated = main.querySelectorAll(`.series.meta.group dd`)[2].textContent;
-
-				// Retrieve series completion status
-				const pub_xp = `//dl[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[contains(text(), "Complete")]/following-sibling::*[1]`;
-				const complete = document.evaluate(pub_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.toLowerCase();
-
-				if (complete == `no`) {
-					const srs_AO3_status = `Updated: ${updated}`;
-					return srs_AO3_status;
-				}
-				if (complete == `yes`) {
-					const srs_AO3_status = `Completed: ${updated}`;
-					return srs_AO3_status;
-				}
-
-			}
-			else {
-				// Retrieve work status
-				if (Boolean(main.querySelector(`.status`))) {
-					// Retrieval method for multi-chapter works
-					const wrk_AO3_status = `${main.querySelector(`dt.status`).textContent} ${main.querySelector(`dd.status`).textContent}`;
-					return wrk_AO3_status;
-				}
-				else {
-					// Retrieval method for single chapter works
-					const wrk_AO3_status = `${main.querySelector(`dt.published`).textContent} ${main.querySelector(`dd.published`).textContent}`;
-					return wrk_AO3_status;
-				}
-
-			}
-		})();
-
-		const part_of_series = (function () {
-			if (IS_SERIES) { return ``; }
-			else {
-				const series_pos = main.querySelector(`dl.work.meta.group > dd.series span.position`);
-				if (Boolean(series_pos)) {
-					const series_pos_str = series_pos.innerHTML.toString();
-					return series_pos_str;
+				const srs_AO3_id = FindIDfromURL(`series`);
+				const ids_arr = excludeRelationshipAutoTaggingSeries.split(/\D/gi)
+					.filter(str => str.trim() !== ``); // Remove empty/whitespace-only elements from array
+				if (ids_arr.length > 0 && ids_arr.includes(srs_AO3_id)) {
+					console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+Current series is going to be excluded from Relationship AutoTagging`);
+					return [srs_AO3_id, true];
 				} else {
-					return ``;
+					return [srs_AO3_id, false];
+				}
+			}
+			else {
+				const wrk_AO3_id = FindIDfromURL(`works`);
+				const ids_arr = excludeRelationshipAutoTaggingWorks.split(/\D/gi)
+					.filter(str => str.trim() !== ``); // Remove empty/whitespace-only elements from array
+				if (ids_arr.length > 0 && ids_arr.includes(wrk_AO3_id)) {
+					console.log(`
+w4tchdoge's AO3 Bookmark Maker UserScript – Log
+--------------------
+Current work is going to be excluded from Relationship AutoTagging`);
+					return [wrk_AO3_id, true];
+				} else {
+					return [wrk_AO3_id, false];
 				}
 			}
 		})();
 
-		const [bkmrks_count, bkmrks_count_HTML] = (function () {
-			const selector = (() => {
-				if (IS_SERIES) { return `dl.series.meta.group dl.stats > dd.bookmarks > a`; }
-				else { return `dl.work.meta.group dl.stats > dd.bookmarks > a`; }
-			})();
-
-			// Retrieve work/series bookmark count count
-			const bkmrk_cnt = main.querySelector(selector);
-			// The bookmark count element doesn't exist if the series has no bookmarks, which means bkmrk_cnt will be undefined
-			if (bkmrk_cnt != undefined) {
-				return [bkmrk_cnt.textContent.trim(), bkmrk_cnt.outerHTML.trim()];
-			} else { return [`None`, `None`]; }
-		})();
-
-		// workInfo variables related to the series a work is a part of
-		const [wrks_series_desc_blockquote, wrks_series_desc_text, wrks_series_word_count, wrks_series_work_count, wrks_series_bkmrk_count_txt, wrks_series_bkmrk_count_html, wrks_series_status, wrks_series_id] = await (async () => {
-			if (IS_SERIES_PART) {
-				const series_url = new URL(main.querySelector(`.work.meta.group > dd.series span.position > a`).getAttribute(`href`), `https://archiveofourown.org`);
-				const series_id = FindIDfromURL(`series`, series_url);
-				const series_pg_resp_txt = await (async () => {
-					const fetch_resp = await fetch(series_url);
-					const resp_text = await fetch_resp.text();
-					return resp_text;
-				})();
-				const series_pg_html = (() => {
-					const html_parser = new DOMParser();
-					const parsed_html = html_parser.parseFromString(series_pg_resp_txt, `text/html`);
-					return parsed_html;
-				})();
-				const [series_desc_blockquote, series_desc_text] = (() => {
-					const intermediate_elm = series_pg_html.querySelector(`div#outer`).cloneNode(true);
-					const importedNode = document.importNode(intermediate_elm, true);
-					const xpath_expr = `.//*[@id="main"]//*[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]/dd[count(preceding::dt[contains(normalize-space(),"Description:")]) > 0]`;
-					const xpath_result = document.evaluate(xpath_expr, importedNode, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-					if (Boolean(xpath_result)) {
-						const blockquote = xpath_result.querySelector(`blockquote`).outerHTML.trim();
-						const text = xpath_result.textContent.trim();
-						return [blockquote, text];
-					} else {
-						return [`<blockquote><p><em><strong>NO DESCRIPTION</strong></em></p></blockquote>`, `<em><strong>NO DESCRIPTION</strong></em>`];
-					}
-				})();
-
-				const series_stats = (() => {
-					const intermediate_elm = series_pg_html.querySelector(`div#outer`).cloneNode(true);
-					const importedNode = document.importNode(intermediate_elm, true);
-					const series_stats = importedNode.querySelector(`#main .series.meta.group dl.stats`);
-					return series_stats;
-				})();
-				// The first two are NOT duplicate lines do not delete one of them like I tried to do
-				const
-					series_word_count = series_stats.querySelector(`dd.words`).textContent.trim(),
-					series_work_count = series_stats.querySelector(`dd.works`).textContent.trim(),
-					[series_bkmrk_count_txt, series_bkmrk_count_html] = (() => {
-						const srs_bkmrk_cnt = series_stats.querySelector(`dd.bookmarks > a`);
-
-						// The bookmark count element doesn't exist if the series has no bookmarks, which means srs_bkmrk_cnt will be undefined
-						if (srs_bkmrk_cnt != undefined) {
-							return [srs_bkmrk_cnt.textContent.trim(), srs_bkmrk_cnt.outerHTML.trim()];
-						} else { return [`None`, `None`]; }
-					})(),
-					series_status = (() => {
-						// const srs_sts_xpth_expr = `.//*[@id="main"]//*[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dd[count(preceding::dt[contains(normalize-space(),"Complete:")]) > 0]`;
-						const srs_sts_xpth_expr = `.//dd[count(preceding::dt[contains(normalize-space(),"Complete:")]) > 0]`;
-						const srs_sts_xpth_res = document.evaluate(srs_sts_xpth_expr, series_stats, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-						return srs_sts_xpth_res.textContent.trim();
-					})();
-
-				return [series_desc_blockquote, series_desc_text, series_word_count, series_work_count, series_bkmrk_count_txt, series_bkmrk_count_html, series_status, series_id];
+		// Helper function to get all the relationship anchor (<a>) elements
+		function getRawRelsArr() {
+			let selector_string = ``;
+			if (IS_SERIES) {
+				selector_string = `ul.tags > li.relationships > a.tag`;
 			} else {
-				return [``, ``, ``, ``, ``, ``, ``, ``];
+				selector_string = `.relationship.tags ul a`;
 			}
-		})();
+			return Array.from(document.querySelectorAll(selector_string));
+		}
 
 		// Helper function for getting the variant tags for relationships, characters, and freeform tags
 		function getTagsVariants(input_arr) {
@@ -2694,7 +2770,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 				tags_arr_comma_HTML = [],
 				tags_arr_comma_TXT = [];
 
-			input_arr.forEach(function (element) {
+			input_arr.forEach(element => {
 				const element_clone = element.cloneNode(true);
 				element_clone.removeAttribute(`class`);
 
@@ -2712,17 +2788,6 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			});
 
 			return [tags_arr_ls_HTML, tags_arr_ls_TXT, tags_arr_comma_HTML, tags_arr_comma_TXT];
-		}
-
-		// Helper function to get all the relationship anchor (<a>) elements
-		function getRawRelsArr() {
-			let selector_string = ``;
-			if (IS_SERIES) {
-				selector_string = `ul.tags > li.relationships > a.tag`;
-			} else {
-				selector_string = `.relationship.tags ul a`;
-			}
-			return Array.from(document.querySelectorAll(selector_string));
 		}
 
 		// Helper function to get where the various main relationship tags are in the plaintext relationships array
@@ -2824,34 +2889,6 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			}
 		})();
 
-		const [fform_tags_list_HTML, fform_tags_list_TXT, fform_tags_comma_HTML, fform_tags_comma_TXT] = (function () {
-			if (IS_SERIES) { return [``, ``, ``, ``]; }
-			else {
-				// Retrieve relationship tags
-				const raw_fform_arr = Array.from(document.querySelectorAll(`.freeform.tags > ul a`));
-
-				// Check if rels_arr is empty, indicating no relationship tags
-				if (!Array.isArray(raw_fform_arr) || !raw_fform_arr.length) {
-					// If empty, set 'relationships' var to indicate no relationship tags
-					const wrk_fforms = `<details><summary>Additional Tags:</summary>\n• <em><strong>No Additional Tags</strong></em></details>`;
-					return [wrk_fforms, wrk_fforms, wrk_fforms, wrk_fforms];
-				} else {
-					// If not empty, get the freeform tags
-					const [fform_arr_ls_HTML, fform_arr_ls_TXT, fform_arr_comma_HTML, fform_arr_comma_TXT] = getTagsVariants(raw_fform_arr);
-
-					// Use values in the freeform arrays to set the freeform vars
-					const wrk_fforms_lh = `<details><summary>Additional Tags:</summary>\n${fform_arr_ls_HTML.join(`\n`)}</details>`;
-					const wrk_fforms_lt = `<details><summary>Additional Tags:</summary>\n${fform_arr_ls_TXT.join(`\n`)}</details>`;
-					const wrk_fforms_ch = `<details><summary>Additional Tags:</summary>\n${fform_arr_comma_HTML.join(`, `)}</details>`;
-					const wrk_fforms_ct = `<details><summary>Additional Tags:</summary>\n${fform_arr_comma_TXT.join(`, `)}</details>`;
-
-					return [wrk_fforms_lh, wrk_fforms_lt, wrk_fforms_ch, wrk_fforms_ct];
-				}
-			}
-		})();
-
-		// console.log([fform_tags_list_HTML, fform_tags_list_TXT, fform_tags_comma_HTML, fform_tags_comma_TXT]);
-
 		const [characters_list_HTML, characters_list_TXT, characters_comma_HTML, characters_comma_TXT] = (function () {
 			if (IS_SERIES) { return [``, ``, ``, ``]; }
 			else {
@@ -2877,6 +2914,34 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 				}
 			}
 		})();
+
+		const [fform_tags_list_HTML, fform_tags_list_TXT, fform_tags_comma_HTML, fform_tags_comma_TXT] = (function () {
+			if (IS_SERIES) { return [``, ``, ``, ``]; }
+			else {
+				// Retrieve freeform tags for the work
+				const raw_fform_arr = Array.from(document.querySelectorAll(`.freeform.tags > ul a`));
+
+				// Check if raw_fform_arr is empty, indicating no freeform tags
+				if (!Array.isArray(raw_fform_arr) || !raw_fform_arr.length) {
+					// If empty, set 'wrk_fforms' var to indicate no freeform tags
+					const wrk_fforms = `<details><summary>Additional Tags:</summary>\n• <em><strong>No Additional Tags</strong></em></details>`;
+					return [wrk_fforms, wrk_fforms, wrk_fforms, wrk_fforms];
+				} else {
+					// If not empty, get the freeform tags
+					const [fform_arr_ls_HTML, fform_arr_ls_TXT, fform_arr_comma_HTML, fform_arr_comma_TXT] = getTagsVariants(raw_fform_arr);
+
+					// Use values in the freeform arrays to set the freeform vars
+					const wrk_fforms_lh = `<details><summary>Additional Tags:</summary>\n${fform_arr_ls_HTML.join(`\n`)}</details>`;
+					const wrk_fforms_lt = `<details><summary>Additional Tags:</summary>\n${fform_arr_ls_TXT.join(`\n`)}</details>`;
+					const wrk_fforms_ch = `<details><summary>Additional Tags:</summary>\n${fform_arr_comma_HTML.join(`, `)}</details>`;
+					const wrk_fforms_ct = `<details><summary>Additional Tags:</summary>\n${fform_arr_comma_TXT.join(`, `)}</details>`;
+
+					return [wrk_fforms_lh, wrk_fforms_lt, wrk_fforms_ch, wrk_fforms_ct];
+				}
+			}
+		})();
+
+		// console.log([fform_tags_list_HTML, fform_tags_list_TXT, fform_tags_comma_HTML, fform_tags_comma_TXT]);
 
 		const summary_default_value = `<em><strong>NO SUMMARY</strong></em>`;
 
@@ -2924,7 +2989,7 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			}
 			else {
 				// Retrieve work summary
-				if (simpleWorkSummary) { // the original methos to retrieve the work's summary
+				if (simpleWorkSummary) { // the original method to retrieve the work's summary
 					const wrk_summary = main.querySelector(`.summary`).innerHTML;
 					return wrk_summary;
 
@@ -2951,8 +3016,299 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 					// '<p>Lorem ipsum dolor...</p>'
 
 				}
+				else { return false; }
 			}
 		})() || summary_default_value);
+
+		const date_published = (function () {
+			if (IS_SERIES) {
+				// Get the first published date of the series
+				const begun = main.querySelectorAll(`.series.meta.group dd`)[1].textContent.trim();
+
+				const srs_begun = `Published: ${begun}`;
+				return srs_begun;
+			}
+			else {
+				const wrk_begun = `${main.querySelector(`dt.published`).textContent.trim()} ${main.querySelector(`dd.published`).textContent.trim()}`;
+				return wrk_begun;
+			}
+		})();
+
+		const date_last_updated = (function () {
+			if (IS_SERIES) {
+				// Get the last updated date of the series
+				const updated = main.querySelectorAll(`.series.meta.group dd`)[2].textContent.trim();
+
+				// Retrieve series completion status
+				const pub_xp = `//dl[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[contains(text(), "Complete")]/following-sibling::*[1]`;
+				const complete = document.evaluate(pub_xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.toLowerCase();
+
+				if (complete == `no`) {
+					const srs_last_updated = `Updated: ${updated}`;
+					return srs_last_updated;
+				}
+				if (complete == `yes`) {
+					const srs_last_updated = `Completed: ${updated}`;
+					return srs_last_updated;
+				}
+			}
+			else {
+				// Retrieve work status
+				if (Boolean(main.querySelector(`dt.status`))) {
+					// Retrieval method for multi-chapter works
+					const wrk_last_updated = `${main.querySelector(`dt.status`).textContent.trim()} ${main.querySelector(`dd.status`).textContent.trim()}`;
+					return wrk_last_updated;
+				}
+				else {
+					// Retrieval method for single chapter works
+					const wrk_last_updated = `${main.querySelector(`dt.published`).textContent.trim()} ${main.querySelector(`dd.published`).textContent.trim()}`;
+					return wrk_last_updated;
+				}
+			}
+		})();
+
+		const completion_status_yes_no = (function () {
+			if (IS_SERIES) {
+				const series_stat_block = main.querySelector(`dl.series.meta.group dl.stats`);
+				const
+					cmpl_yn_xpath = `.//dd[count(preceding::dt[starts-with(normalize-space(),"Complete")]) > 0]`,
+					cmpl_yn_str = document.evaluate(cmpl_yn_xpath, series_stat_block, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.trim();
+
+				return cmpl_yn_str;
+			}
+			else {
+				const status_check = main.querySelector(`.work.meta.group dl.stats dt.status`);
+				if (Boolean(status_check) == false) {
+					return `Yes`;
+				}
+				else {
+					switch (status_check.textContent.trim()) {
+						case `Completed:`:
+							return `Yes`;
+
+						case `Updated:`:
+							return `No`;
+
+						default:
+							return `No`;
+					}
+				}
+			}
+		})();
+
+		const words = (function () {
+			if (IS_SERIES) {
+				// Retrieve series word count
+				const srs_words = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
+				return srs_words;
+			}
+			else {
+				// Retrieve work work count
+				const wrk_words = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
+				return wrk_words;
+			}
+		})();
+
+		const bookmark_url = (function () {
+			if (IS_BOOKMARKED) {
+				const bkmrk_rel_url_str = main.querySelector(`#bookmark_form_placement form[action^="/bookmarks/"]`).getAttribute(`action`);
+				const out_url = new URL(bkmrk_rel_url_str, `https://${currPgURL.hostname}`);
+
+				return out_url.toString();
+			} else { return ``; }
+		})();
+
+		const lastChapter = (function () {
+			if (IS_SERIES) {
+				// Have lastChapter be an empty string for series
+				const srs_lastChapter = ``;
+				return srs_lastChapter;
+			}
+			else {
+
+				const latest_chapter_number = (function () {
+					// XPath for the chapter count element
+					const chapter_count_elem_XPath = `.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Chapters:"]/following-sibling::*[1]/self::dd`;
+
+					const chapter_count_elem_Text = document.evaluate(chapter_count_elem_XPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.trim();
+
+					const latest_chapter_num = chapter_count_elem_Text.split(`/`).at(0);
+
+					return latest_chapter_num;
+				})();
+
+
+				// Calculate appropriate padding count for lastChapter
+				const chapNumPadCount = (function () {
+					if (latest_chapter_number.length >= 3) {
+						return 3;
+					} else {
+						return 2;
+					}
+				})();
+
+
+				// Retrieve last chapter of work
+				const wrk_lastChapter = `Chapter ${latest_chapter_number.padStart(chapNumPadCount, `0`)}`;
+
+				return wrk_lastChapter;
+
+			}
+		})();
+
+		const [bkmrks_count, bkmrks_count_HTML] = (function () {
+			const selector = (() => {
+				if (IS_SERIES) { return `dl.series.meta.group dl.stats > dd.bookmarks > a`; }
+				else { return `dl.work.meta.group dl.stats > dd.bookmarks > a`; }
+			})();
+
+			// Retrieve work/series bookmark count count
+			const bkmrk_cnt = main.querySelector(selector);
+			// The bookmark count element doesn't exist if the series has no bookmarks, which means bkmrk_cnt will be undefined
+			if (bkmrk_cnt != undefined) {
+				return [bkmrk_cnt.textContent.trim(), bkmrk_cnt.outerHTML.trim()];
+			} else { return [`None`, `None`]; }
+		})();
+
+		const series_link = (function () {
+			if (IS_SERIES) { // blank for series pages
+				return '';
+			}
+			else {
+				// Get series text elem
+				const work_series_info =
+					Array
+						.from(main.querySelectorAll(`dl.work.meta.group > dd.series > span.series > span.position`))
+						.map(elm => `• ${elm.innerHTML}`);
+				if (work_series_info.length > 0) {
+					const output = `<details><summary>Work's Series</summary>
+${work_series_info.join(`\n`)}
+</details>`;
+					return output;
+				} else {
+					return '';
+				}
+			}
+		})();
+
+		const part_of_series_arr = (function () {
+			if (IS_SERIES) { return ``; }
+			else {
+				const series_pos_elms = main.querySelectorAll(`dl.work.meta.group > dd.series span.position`);
+				if (Boolean(series_pos_elms)) {
+					const series_pos_strs_arr = Array.from(series_pos_elms).map(elm => elm.cloneNode(true).innerHTML.toString().trim());
+					return series_pos_strs_arr;
+				} else {
+					return ``;
+				}
+			}
+		})();
+
+		// workInfo variables related to the series a work is a part of
+		const [wrks_series_id, wrks_series_title, wrks_series_author, wrks_series_author_html, wrks_series_begun, wrks_series_updated, wrks_series_word_count, wrks_series_work_count, wrks_series_status, wrks_series_bkmrk_count_txt, wrks_series_bkmrk_count_html, wrks_series_desc_blockquote, wrks_series_desc_text] = await (async () => {
+			if (IS_SERIES_PART) {
+				const series_url = new URL(main.querySelector(`.work.meta.group > dd.series span.position > a`).getAttribute(`href`), `https://archiveofourown.org`);
+				const series_id = FindIDfromURL(`series`, series_url);
+				const series_pg_resp_txt = await (async () => {
+					const fetch_resp = await fetch(series_url);
+					const resp_text = await fetch_resp.text();
+					return resp_text;
+				})();
+				const series_pg_html = (() => {
+					const html_parser = new DOMParser();
+					const parsed_html = html_parser.parseFromString(series_pg_resp_txt, `text/html`);
+					return parsed_html;
+				})();
+				const series_pg_html_imported = (() => {
+					const intermediate_elm = series_pg_html.querySelector(`div#outer`).cloneNode(true);
+					const importedNode = document.importNode(intermediate_elm, true);
+					return importedNode;
+				})();
+
+				const series_info_block = series_pg_html_imported.querySelector(`#main > .wrapper > .series.meta.group`);
+
+				const series_title = series_pg_html_imported.querySelector(`#main > h2.heading`).textContent.trim();
+
+				const [series_author, series_author_html] = (() => {
+					const
+						xpath_expr = `.//dd[count(preceding::dt[starts-with(normalize-space(),"Creator")]) > 0]`,
+						srs_auth_elm = document.evaluate(xpath_expr, series_info_block, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+					const srs_auths = srs_auth_elm.textContent.trim();
+
+					if (AnonCheck(srs_auth_elm)) {
+						const srs_auths_html = srs_auths;
+						return [srs_auths, srs_auths_html];
+					} else {
+						const srs_auths_html = generateAuthorsHTMLstr(srs_auth_elm);
+						return [srs_auths, srs_auths_html];
+					}
+				})();
+
+				const [series_begun, series_updated] = (() => {
+					const genXPath = function (input_str) { return `.//dd[count(preceding::dt[contains(normalize-space(),"Series ${input_str}:")]) > 0]`; };
+
+					const begun = document.evaluate(genXPath(`Begun`), series_info_block, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+					const updated = document.evaluate(genXPath(`Updated`), series_info_block, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+
+					return [begun.textContent.trim(), updated.textContent.trim()];
+				})();
+
+				const [series_desc_blockquote, series_desc_text] = (() => {
+					const
+						xpath_expr = `.//dd[count(preceding::dt[contains(normalize-space(),"Description:")]) > 0]`,
+						xpath_result = document.evaluate(xpath_expr, series_info_block, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+					if (Boolean(xpath_result)) {
+						const blockquote = xpath_result.querySelector(`blockquote`).outerHTML.trim();
+						const text = xpath_result.textContent.trim();
+						return [blockquote, text];
+					} else {
+						return [`<blockquote><p><em><strong>NO DESCRIPTION</strong></em></p></blockquote>`, `<em><strong>NO DESCRIPTION</strong></em>`];
+					}
+				})();
+
+				const series_stats = series_info_block.querySelector(`dl.stats`);
+
+				// The first two are NOT duplicate lines do not delete one of them like I tried to do
+				const
+					series_word_count = series_stats.querySelector(`dd.words`).textContent.trim(),
+					series_work_count = series_stats.querySelector(`dd.works`).textContent.trim(),
+					[series_bkmrk_count_txt, series_bkmrk_count_html] = (() => {
+						const srs_bkmrk_cnt = series_stats.querySelector(`dd.bookmarks > a`);
+
+						// The bookmark count element doesn't exist if the series has no bookmarks, which means srs_bkmrk_cnt will be undefined
+						if (srs_bkmrk_cnt != undefined) {
+							return [srs_bkmrk_cnt.textContent.trim(), srs_bkmrk_cnt.outerHTML.trim()];
+						} else { return [`None`, `None`]; }
+					})(),
+					series_status = (() => {
+						// const srs_sts_xpth_expr = `.//*[@id="main"]//*[contains(concat(" ",normalize-space(@class)," ")," series ")][contains(concat(" ",normalize-space(@class)," ")," meta ")][contains(concat(" ",normalize-space(@class)," ")," group ")]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dd[count(preceding::dt[contains(normalize-space(),"Complete:")]) > 0]`;
+						const srs_sts_xpth_expr = `.//dd[count(preceding::dt[contains(normalize-space(),"Complete:")]) > 0]`;
+						const srs_sts_xpth_res = document.evaluate(srs_sts_xpth_expr, series_stats, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+						return srs_sts_xpth_res.textContent.trim();
+					})();
+
+				return [series_id, series_title, series_author, series_author_html, series_begun, series_updated, series_word_count, series_work_count, series_status, series_bkmrk_count_txt, series_bkmrk_count_html, series_desc_blockquote, series_desc_text];
+			} else {
+				return [``, ``, ``, ``, ``, ``, ``, ``, ``, ``, ``, ``, ``];
+			}
+		})();
+
+		const series_num_works = (function () {
+			if (IS_SERIES) {
+				const series_stat_block = main.querySelector(`dl.series.meta.group dl.stats`);
+				const
+					srs_works_cnt_xpath = `.//dd[count(preceding::dt[starts-with(normalize-space(),"Works")]) > 0]`,
+					srs_works_cnt_str = document.evaluate(srs_works_cnt_xpath, series_stat_block, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.trim();
+
+				return srs_works_cnt_str;
+			} else { // This doesn't exist for works so return an empty string
+				return ``;
+			}
+		})();
+
+		const series_bkmrks_of_works = (function () {
+			// TODO: Add a setting in the pref dropdown for fetching work bookmarks which will enable this option
+		})();
 
 		const series_works_titles_summaries = (function () {
 			function GetPadAmount(input_array) {
@@ -3016,89 +3372,6 @@ All conditions met for "Summary Page" button in the top nav bar?: ${TSP_conditio
 			}
 		})();
 
-		const words = (function () {
-			if (IS_SERIES) {
-				// Retrieve series word count
-				const srs_words = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
-				return srs_words;
-			}
-			else {
-				// Retrieve work work count
-				const wrk_words = document.evaluate(`.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Words:"]/following-sibling::*[1]/self::dd`, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
-				return wrk_words;
-			}
-		})();
-
-		const series_link = (function () {
-			if (IS_SERIES) { // blank for series pages
-				return '';
-			}
-			else {
-				// Get series text elem
-				const work_series_info =
-					Array
-						.from(main.querySelectorAll(`dl.work.meta.group > dd.series > span.series > span.position`))
-						.map(elm => `• ${elm.innerHTML}`);
-				if (work_series_info.length > 0) {
-					const output = `<details><summary>Work's Series</summary>
-${work_series_info.join(`\n`)}
-</details>`;
-					return output;
-				} else {
-					return '';
-				}
-			}
-		})();
-
-		const ws_id = (function () {
-			if (IS_SERIES) {
-				const srs_AO3_id = FindIDfromURL(`series`);
-				return srs_AO3_id;
-			}
-			else {
-				const wrk_AO3_id = FindIDfromURL(`works`);
-				return wrk_AO3_id;
-			}
-		})();
-
-		const lastChapter = (function () {
-			if (IS_SERIES) {
-				// Have lastChapter be an empty string for series
-				const srs_lastChapter = ``;
-				return srs_lastChapter;
-			}
-			else {
-
-				const latest_chapter_number = (function () {
-					// XPath for the chapter count element
-					const chapter_count_elem_XPath = `.//*[@id="main"]//dl[contains(concat(" ",normalize-space(@class)," ")," stats ")]//dt[text()="Chapters:"]/following-sibling::*[1]/self::dd`;
-
-					const chapter_count_elem_Text = document.evaluate(chapter_count_elem_XPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.trim();
-
-					const latest_chapter_num = chapter_count_elem_Text.split(`/`).at(0);
-
-					return latest_chapter_num;
-				})();
-
-
-				// Calculate appropriate padding count for lastChapter
-				const chapNumPadCount = (function () {
-					if (latest_chapter_number.length >= 3) {
-						return 3;
-					} else {
-						return 2;
-					}
-				})();
-
-
-				// Retrieve last chapter of work
-				const wrk_lastChapter = `Chapter ${latest_chapter_number.padStart(chapNumPadCount, `0`)}`;
-
-				return wrk_lastChapter;
-
-			}
-		})();
-
 
 		// define autotag_status for use in AutoTag()
 		const autotag_status = StatusForAutoTag();
@@ -3121,11 +3394,13 @@ ${work_series_info.join(`\n`)}
 			// Find User Tags input box
 			let tag_input_box = document.querySelector('.input #bookmark_tag_string_autocomplete');
 
-			// Make array of everything that will go into the aforementionedinput box
+			// Make array of everything that will go into the aforementioned input box
 			let tag_inputs = [];
 
 			// Add completion status only if include work status is true
-			if (includeWorkStatus) { tag_inputs.push(autotag_status); }
+			if (includeWorkStatus) {
+				tag_inputs.push(autotag_status);
+			}
 
 			// Add the string "Part of Series" or the user defined custom value to tag_inputs if work is a series
 			if (IS_SERIES_PART && partOfSeriesAutoTag) {
@@ -3147,8 +3422,35 @@ ${work_series_info.join(`\n`)}
 
 			// Add series completion status if pref is set and work is part of a series
 			// Note that this will only add the stats for the 1st series the work is a part of
-			if (IS_SERIES_PART && addSeriesStatsToWorkBookmark) {
+			if (IS_SERIES_PART && addSeriesStatusToWorkBookmark) {
 				tag_inputs.push(`Series ${wrks_series_status.replace(/Yes/i, `Complete`).replace(/No/i, `In Progress`)}`);
+			}
+
+			// Add series word count if pref is set and work is part of a series
+			// Note that this will only add the word count for the 1st series the work is a part of
+			if (IS_SERIES_PART && addSeriesWordCountToWorkBookmark) {
+				let word_count_tag = ``;
+
+				const AT_words = parseInt(wrks_series_word_count.textContent.trim().replace(/[^\d\.]/g, ''));
+
+				// Define Word Count Tag
+				// In case you want to add more tags or change the word count range for each tag,
+				// here are some recourses on how comparators work in JavaScript:
+				// StackOverflow answer that shows you how equalities work: https://stackoverflow.com/a/14718577/11750206
+				// An overview of JavaScript's Comparison and Logical Operators: https://www.w3schools.com/js/js_comparisons.asp
+				if (AT_words < 1000) { word_count_tag = 'Word Count: -1k'; }
+				if (AT_words < 7000 && AT_words >= 1000) { word_count_tag = 'Word Count: 1k-7k'; }
+				if (AT_words < 15000 && AT_words >= 7000) { word_count_tag = 'Word Count: 7k-15k'; }
+				if (AT_words < 35000 && AT_words >= 15000) { word_count_tag = 'Word Count: 15k-35k'; }
+				if (AT_words < 70000 && AT_words >= 35000) { word_count_tag = 'Word Count: 35k-70k'; }
+				if (AT_words < 130000 && AT_words >= 70000) { word_count_tag = 'Word Count: 70k-130k'; }
+				if (AT_words < 250000 && AT_words >= 130000) { word_count_tag = 'Word Count: 130k-250k'; }
+				if (AT_words < 500000 && AT_words >= 250000) { word_count_tag = 'Word Count: 250k-500k'; }
+				if (AT_words < 1000000 && AT_words >= 500000) { word_count_tag = 'Word Count: 500k-1M'; }
+				if (AT_words >= 1000000) { word_count_tag = 'Word Count: 1M+'; }
+
+				// Add the autotag to the array of inputs
+				tag_inputs.push(word_count_tag);
 			}
 
 			if (includeFandom === true || includeFandom === `true`) {
@@ -3167,17 +3469,14 @@ ${work_series_info.join(`\n`)}
 			}
 
 			// Including main relationship tag in AutoTag
-			const relationships_exist = (() => {
-				const raw_rels_arr = getRawRelsArr();
-				if (!Array.isArray(raw_rels_arr) || !raw_rels_arr.length) { return false; } else { return true; }
-			})();
-			if (relationships_exist) {
-				// In the case where both main romantic and main platonic tags are being added, 
+			const relationships_exist = (() => { const raw_rels_arr = getRawRelsArr(); if (!Array.isArray(raw_rels_arr) || !raw_rels_arr.length) { return false; } else { return true; } })();
+			if (relationships_exist && !IS_EXCLUDED_FRM_REL_AUTOTAG) {
+				// In the case where both main romantic and main platonic tags are being added,
 				// order them based on which is first in the array of relationship tags
-				let rom_first = true;
+				let rom_rel_tagged_first = true;
 				const [, rom_idx, plt_idx] = getMainRelationshipIndices(getTagsVariants(getRawRelsArr()).at(-1));
 				if (rom_idx >= 0 && plt_idx >= 0 && rom_idx > plt_idx) {
-					rom_first = false;
+					rom_rel_tagged_first = false;
 				}
 
 				/*
@@ -3190,31 +3489,33 @@ ${work_series_info.join(`\n`)}
 				includeMainPltRelationship : 4 or 0
 				bitwise OR combines the individual ints into a single int from 0 to 7
 				*/
-				const autotag_main_rel_idx = (includeMainRelationship | (includeMainRomRelationship << 1) | (includeMainPltRelationship << 2));
+				const main_rel_idx = (includeMainRelationship | (includeMainRomRelationship << 1) | (includeMainPltRelationship << 2));
 
 				/*
-				Use autotag_main_rel_idx to index into an array of ints which will determine what AutoTag does when it comes to putting
+				Use main_rel_idx to index into an array of ints which will determine what AutoTag does when it comes to putting
 				a main relationship tag in AutoTag.
 				Meaning of each int in autotag_main_rel_case:
 				0 : No main relationship tags are added
 				1 : Main relationship is added regardless of whether it is romantic or platonic (if said tag is present)
-				2 : Main romantic relationship is added (if said tag is present)
-				3 : Main platonic relationship is added (if said tag is present)
-				4 : Both main romantic relationship and main platonic relationship are added (if said tags are present)
+				2 : Main romantic relationship is added, if said tag is present
+				3 : Main romantic relationship is added, if said tag is present. Otherwise the main relationship tag is added, whether it be romantic or platonic
+				4 : Main platonic relationship is added, if said tag is present
+				5 : Main platonic relationship is added, if said tag is present. Otherwise the main relationship tag is added, whether it be romantic or platonic
+				6 : Both main romantic relationship and main platonic relationship are added (if said tags are present)
 				*/
-				const autotag_main_rel_case = [
-					0, // binary equiv : 000 ; All are false
-					1, // binary equiv : 001 ; includeMainRelationship is true
-					2, // binary equiv : 010 ; includeMainRomRelationship is true
-					2, // binary equiv : 011 ; includeMainRomRelationship & includeMainRelationship are true, includeMainRelationship is disregarded
-					3, // binary equiv : 100 ; includeMainPltRelationship is true
-					3, // binary equiv : 101 ; includeMainPltRelationship & includeMainRelationship are true, includeMainRelationship is disregarded
-					4, // binary equiv : 110 ; includeMainRomRelationship & includeMainPltRelationship are true, includeMainRelationship is disregarded
-					4  // binary equiv : 111 ; All are true
-				][autotag_main_rel_idx];
+				const main_rel_case = [
+					0, // binary val from main_rel_idx : 000 ; All are false
+					1, // binary val from main_rel_idx : 001 ; includeMainRelationship is true
+					2, // binary val from main_rel_idx : 010 ; includeMainRomRelationship is true
+					3, // binary val from main_rel_idx : 011 ; includeMainRomRelationship & includeMainRelationship are true
+					4, // binary val from main_rel_idx : 100 ; includeMainPltRelationship is true
+					5, // binary val from main_rel_idx : 101 ; includeMainPltRelationship & includeMainRelationship are true
+					6, // binary val from main_rel_idx : 110 ; includeMainRomRelationship & includeMainPltRelationship are true, includeMainRelationship is ignored
+					6  // binary val from main_rel_idx : 111 ; All are true
+				][main_rel_idx];
 
 				// Add the correct tags to AutoTag depending on autotag_main_rel_case
-				switch (autotag_main_rel_case) {
+				switch (main_rel_case) {
 					case 0:
 						break;
 
@@ -3227,11 +3528,19 @@ ${work_series_info.join(`\n`)}
 						break;
 
 					case 3:
-						if (main_platonic_relationship != `None`) { tag_inputs.push(main_platonic_relationship); }
+						if (main_romantic_relationship != `None`) { tag_inputs.push(main_romantic_relationship); } else { tag_inputs.push(main_relationship); }
 						break;
 
 					case 4:
-						if (rom_first) {
+						if (main_platonic_relationship != `None`) { tag_inputs.push(main_platonic_relationship); }
+						break;
+
+					case 5:
+						if (main_platonic_relationship != `None`) { tag_inputs.push(main_platonic_relationship); } else { tag_inputs.push(main_relationship); }
+						break;
+
+					case 6:
+						if (rom_rel_tagged_first) {
 							if (main_romantic_relationship != `None`) { tag_inputs.push(main_romantic_relationship); }
 							if (main_platonic_relationship != `None`) { tag_inputs.push(main_platonic_relationship); }
 						} else {
@@ -3241,7 +3550,7 @@ ${work_series_info.join(`\n`)}
 						break;
 
 					default:
-						throw new Error(`autotag_main_rel_case has value [${autotag_main_rel_case}], which is not an integer between 0 and 4`);
+						throw new Error(`main_rel_case has value [${main_rel_case}], which is not an integer between 0 and 6`);
 				}
 			}
 
@@ -3377,7 +3686,7 @@ ${work_series_info.join(`\n`)}
 		- title_URL                        // The URL of the work/series being bookmarked as plaintext
 		- author                           // Author of the work or series
 		- author_HTML                      // Author of the work or series, as an HTML <a> element (a link). e.g. the author_HTML string for AO3 work 54769867 would be '<a rel="author" href="/users/nescias/pseuds/nescias">nescias</a>'
-		- AO3_status                       // Status of the work or series. i.e. Completed: 2020-08-23, Updated: 2022-05-08, Published: 2015-06-29
+		- date_last_updated                // Last updated date of the work or series. i.e. Completed: 2020-08-23, Updated: 2022-05-08, Published: 2015-06-29
 		- relationships_list_HTML          // The relationship tags of a work/series as links in a bulleted list
 		- relationships_list_TXT           // The relationship tags of a work/series as plaintext (so you don't run into the character limit) in a list similar to that in the relationships variable
 		- relationships_comma_HTML         // The relationship tags of a work/series as comma separated links
@@ -3393,7 +3702,7 @@ ${work_series_info.join(`\n`)}
 		- series_works_titles_summaries    // Adds all of the summaries of the works in the series to the series bookmark
 
 		Variables specific to works:
-		- part_of_series                   // Adds AO3's part of series indicator to the bookmark. i.e. a string in the vein of "Part X of Y" where Y is a hyperlink to the series on AO3
+		- part_of_series_arr               // Adds AO3's part of series indicator to the bookmark. i.e. a string in the vein of "Part X of Y" where Y is a hyperlink to the series on AO3
 		- lastChapter                      // Last published chapter of the work or series
 		- series_link                      // Info about the series' the work belongs to
 		- fform_tags_list_HTML             // The freeform tags of a work as links in a list similar to that in the relationships variable
@@ -3453,10 +3762,9 @@ Date Generated: ${date}
 Date String Generated: ${(function () { if (date_string == ``) { return `No Date String Generated`; } else { return date_string; } })()}`
 		);
 
-		/* /////////////// USER CONFIGURABLE SETTINGS END /////////////// */
-
-
 		const workInfoVariablesDict = {
+			date_string: date_string,
+			bookmark_type: bookmark_type,
 			title: title,
 			title_HTML: title_HTML,
 			title_URL: title_URL,
@@ -3467,12 +3775,6 @@ Date String Generated: ${(function () { if (date_string == ``) { return `No Date
 			relationships_list_TXT: relationships_list_TXT,
 			relationships_comma_HTML: relationships_comma_HTML,
 			relationships_comma_TXT: relationships_comma_TXT,
-			main_relationship: main_relationship,
-			main_relationship_HTML: main_relationship_HTML,
-			main_romantic_relationship: main_romantic_relationship,
-			main_romantic_relationship_HTML: main_romantic_relationship_HTML,
-			main_platonic_relationship: main_platonic_relationship,
-			main_platonic_relationship_HTML: main_platonic_relationship_HTML,
 			characters_list_HTML: characters_list_HTML,
 			characters_list_TXT: characters_list_TXT,
 			characters_comma_HTML: characters_comma_HTML,
@@ -3482,28 +3784,32 @@ Date String Generated: ${(function () { if (date_string == ``) { return `No Date
 			fform_tags_comma_HTML: fform_tags_comma_HTML,
 			fform_tags_comma_TXT: fform_tags_comma_TXT,
 			summary: summary,
-			AO3_status: AO3_status,
+			date_last_updated: date_last_updated,
 			words: words,
 			lastChapter: lastChapter,
-			bkmrks_count: bkmrks_count,
+			bookmark_url: bookmark_url,
 			bkmrks_count_HTML: bkmrks_count_HTML,
-			series_works_titles_summaries: series_works_titles_summaries,
+			bkmrks_count: bkmrks_count,
 			series_link: series_link,
-			part_of_series: part_of_series,
+			part_of_series_arr: part_of_series_arr,
 			wrks_series_id: wrks_series_id,
-			wrks_series_status: wrks_series_status,
+			wrks_series_title: wrks_series_title,
+			wrks_series_author_html: wrks_series_author_html,
+			wrks_series_author: wrks_series_author,
+			wrks_series_begun: wrks_series_begun,
+			wrks_series_updated: wrks_series_updated,
 			wrks_series_word_count: wrks_series_word_count,
 			wrks_series_work_count: wrks_series_work_count,
+			wrks_series_status: wrks_series_status,
 			wrks_series_bkmrk_count_html: wrks_series_bkmrk_count_html,
 			wrks_series_bkmrk_count_txt: wrks_series_bkmrk_count_txt,
 			wrks_series_desc_blockquote: wrks_series_desc_blockquote,
 			wrks_series_desc_text: wrks_series_desc_text,
-			date_string: date_string,
-			bookmark_type: bookmark_type,
+			series_works_titles_summaries: series_works_titles_summaries,
 		};
 
 		// Print workInfo debug string to console
-		// console.log(workInfoDebug(workInfoVariablesDict));
+		console.log(workInfoDebug(workInfoVariablesDict));
 
 		function workInfoDebug(input_dict) {
 			let debug_str = `
@@ -3539,14 +3845,14 @@ workInfo vars:
 		workInfo = `<details><summary>${bookmark_type} Details</summary>
 \t${title_HTML} by ${author_HTML}${(function () {
 
-				if (part_of_series != ``) { return `\n\t${part_of_series}`; }
+				if (part_of_series_arr != ``) { return `\n\t${part_of_series_arr.join(`, `)}`; }
 				else { return ``; }
 
 			})()}${(function () {
 
 				if (IS_SERIES_PART) {
 					const out_str = `
-\t<details><summary>Series Information:</summary>
+\t<details><summary>Main Series Information:</summary>
 \tID: ${wrks_series_id}
 \tWords: ${wrks_series_word_count} | Works: ${wrks_series_work_count} | Complete: ${wrks_series_status} | Bookmarks: ${wrks_series_bkmrk_count_html}
 \tDescription:
@@ -3559,7 +3865,7 @@ ${wrks_series_desc_blockquote}</details>`;
 
 			})()}
 
-\t${AO3_status}
+\t${date_last_updated}
 \t${bookmark_type} ID: ${ws_id}
 \t${relationships_list_HTML}
 \t<details><summary>${bookmark_type} Summary:</summary>
@@ -3577,7 +3883,7 @@ ${date_string}</details>`;
 		/* workInfo = `<details><summary>${bookmark_type} Details</summary>
 \t${title_HTML} by ${author_HTML}${(function () {
 
-				if (part_of_series != ``) { return `\n\t${part_of_series}`; }
+				if (part_of_series_arr != ``) { return `\n\t${part_of_series_arr}`; }
 				else { return ``; }
 
 			})()}${(function () {
@@ -3597,7 +3903,7 @@ ${wrks_series_desc_blockquote}</details>`;
 
 			})()}
 
-\t${AO3_status}
+\t${date_last_updated}
 \t${bookmark_type} ID: ${ws_id}
 \t${relationships_list_HTML}
 \t<details><summary>${bookmark_type} Summary:</summary>
@@ -3628,7 +3934,7 @@ ${wrks_series_desc_blockquote}</details>`;
 		/* workInfo = `<details><summary>${bookmark_type} Details</summary>
 \t${title_HTML} by ${author_HTML}${(function () {
 
-				if (part_of_series != ``) { return `\n\t${part_of_series}`; }
+				if (part_of_series_arr != ``) { return `\n\t${part_of_series_arr}`; }
 				else { return ``; }
 
 			})()}${(function () {
@@ -3648,7 +3954,7 @@ ${wrks_series_desc_blockquote}</details>`;
 
 			})()}
 
-\t${AO3_status}
+\t${date_last_updated}
 \t${bookmark_type} ID: ${ws_id}
 \t${relationships_list_HTML}
 \t<details><summary>${bookmark_type} Summary:</summary>
@@ -3679,7 +3985,7 @@ ${date_string}</details>`; */
 		/* workInfo = `<details><summary>${bookmark_type} Details</summary>
 \t${title_HTML} by ${author_HTML}${(function () {
 
-				if (part_of_series != ``) { return `\n\t${part_of_series}`; }
+				if (part_of_series_arr != ``) { return `\n\t${part_of_series_arr}`; }
 				else { return ``; }
 
 			})()}${(function () {
@@ -3699,7 +4005,7 @@ ${wrks_series_desc_blockquote}</details>`;
 
 			})()}
 
-\t${AO3_status}
+\t${date_last_updated}
 \t${bookmark_type} ID: ${ws_id}
 \t${relationships_list_HTML}
 \t<details><summary>${bookmark_type} Summary:</summary>
@@ -3714,10 +4020,10 @@ ${wrks_series_desc_blockquote}</details>`;
 
 		/* workInfo = `<details><summary>${bookmark_type} Details</summary>
 \t${title_HTML} by ${author_HTML}
-\tWords: ${words} | ${bookmark_type} ID: ${ws_id} | ${AO3_status} | Bookmarks: ${bkmrks_count_HTML} | Last Chapter: ${lastChapter}
+\tWords: ${words} | ${bookmark_type} ID: ${ws_id} | ${date_last_updated} | Bookmarks: ${bkmrks_count_HTML} | Last Chapter: ${lastChapter}
 ${(function () {
 
-				if (part_of_series != ``) { return `\n\t${part_of_series}`; }
+				if (part_of_series_arr != ``) { return `\n\t${part_of_series_arr}`; }
 				else { return ``; }
 
 			})()}${(function () {
