@@ -2,7 +2,7 @@
 // @name           w4tchdoge's AO3 Bookmark Maker
 // @namespace      https://github.com/w4tchdoge
 // @description    Modified/Forked from "Ellililunch AO3 Bookmark Maker" (https://greasyfork.org/en/scripts/458631). Script is out-of-the-box setup to automatically add title, author, status, summary, and last read date to the description in an "collapsible" section so as to not clutter the bookmark.
-// @version        2.18.114-20260905_182154
+// @version        2.18.115-20260906_170008
 // @author         w4tchdoge
 // @homepage       https://github.com/w4tchdoge/MISC-UserScripts
 // @updateURL      https://github.com/w4tchdoge/MISC-UserScripts/raw/main/w4tchdoge_AO3_Bookmark_Maker.user.js
@@ -121,7 +121,7 @@
 		autoPrivate: false,
 		autoRecommend: false,
 		showAutoTagButton: true,
-		autoAutoTag: true,
+		autoAutoTag: false,
 		autoCollections: ``,
 		includeWorkStatus: false,
 		partOfSeriesAutoTag: true,
@@ -1494,6 +1494,67 @@ New value: '${input_value.replace(/\n/gi, '').replace(/\t/gi, '').replace(/\r/gi
 			return input_area;
 		}
 
+		function CreateBooleanPrefButtonPair(
+			pref_localStorage_name,
+			innerHTML_str,
+			use_int = false,
+			custom_yesno_val = null,
+			tag_name = `li`
+		) {
+			const [yes_or_one_suffix, no_or_zero_suffix] = (() => {
+				let
+					yesout = `YES`,
+					noout = `NO`;
+				if (!(Object.is(custom_yesno_val, null))) {
+					yesout = custom_yesno_val.yes_val || `YES`;
+					noout = custom_yesno_val.no_val || `NO`;
+				}
+				return [yesout, noout];
+			})();
+			const [
+				yes_or_one_id,
+				no_or_zero_id,
+				yes_or_one_LSval,
+				no_or_zero_LSval
+			] = (() => {
+				let yes_id, no_id, yes_lsv, no_lsv;
+				if (Boolean(use_int)) {
+					[yes_id, no_lsv] = new Array(2).fill(1);
+					[no_id, yes_lsv] = new Array(2).fill(0);
+				} else {
+					yes_id = `yes`;
+					no_id = `no`;
+					yes_lsv = false;
+					no_lsv = true;
+				}
+				return [yes_id, no_id, yes_lsv, no_lsv];
+			})();
+
+			const yes_or_one_btn = Object.assign(document.createElement(tag_name), {
+				className: `${pref_localStorage_name}_${yes_or_one_id}`,
+				id: `${pref_localStorage_name}_${yes_or_one_id}`,
+				innerHTML: `<a>${innerHTML_str}: ${yes_or_one_suffix}</a>`
+			});
+
+			yes_or_one_btn.addEventListener(`click`, function (event) {
+				localStorage.setItem(pref_localStorage_name, yes_or_one_LSval);
+				yes_or_one_btn.replaceWith(no_or_zero_btn);
+			});
+
+			const no_or_zero_btn = Object.assign(document.createElement(tag_name), {
+				className: `${pref_localStorage_name}_${no_or_zero_id}`,
+				id: `${pref_localStorage_name}_${no_or_zero_id}`,
+				innerHTML: `<a>${innerHTML_str}: ${no_or_zero_suffix}</a>`
+			});
+
+			no_or_zero_btn.addEventListener(`click`, function (event) {
+				localStorage.setItem(pref_localStorage_name, no_or_zero_LSval);
+				no_or_zero_btn.replaceWith(yes_or_one_btn);
+			});
+
+			return [yes_or_one_btn, no_or_zero_btn];
+		}
+
 		// get the header menu
 		const header_menu = document.querySelector(`ul.primary.navigation.actions`);
 
@@ -1645,539 +1706,169 @@ ${input_value}`
 		w4BM_divider_input_area.after(w4BM_autoCollections_input_area);
 
 
-		// create button - auto private bookmarks - yes
-		const w4BM_autoPrivate_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_autoPrivate_yes`,
-			id: `w4BM_autoPrivate_yes`,
-			innerHTML: `<a>Auto Private Bookmarks: YES</a>`
-		});
-		w4BM_autoPrivate_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_autoPrivate`, false);
-			w4BM_autoPrivate_yes.replaceWith(w4BM_autoPrivate_no);
-		});
+		// create buttons for auto privating bookmarks
+		const [
+			w4BM_autoPrivate_yes,
+			w4BM_autoPrivate_no
+		] = CreateBooleanPrefButtonPair(`w4BM_autoPrivate`, `Auto Private Bookmarks`);
 
-		// create button - auto private bookmarks - no
-		const w4BM_autoPrivate_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_autoPrivate_no`,
-			id: `w4BM_autoPrivate_no`,
-			innerHTML: `<a>Auto Private Bookmarks: NO</a>`
-		});
-		w4BM_autoPrivate_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_autoPrivate`, true);
-			w4BM_autoPrivate_no.replaceWith(w4BM_autoPrivate_yes);
-		});
+		// create buttons for auto recommending bookmarks
+		const [
+			w4BM_autoRecommend_yes,
+			w4BM_autoRecommend_no
+		] = CreateBooleanPrefButtonPair(`w4BM_autoRecommend`, `Auto Recommend Bookmarks`);
 
-		// create button - auto recommend bookmarks - yes
-		const w4BM_autoRecommend_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_autoRecommend_yes`,
-			id: `w4BM_autoRecommend_yes`,
-			innerHTML: `<a>Auto Recommend Bookmarks: YES</a>`
-		});
-		w4BM_autoRecommend_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_autoRecommend`, false);
-			w4BM_autoRecommend_yes.replaceWith(w4BM_autoRecommend_no);
-		});
+		// create buttons for showing the AutoTag button
+		const [
+			w4BM_showAutoTagButton_yes,
+			w4BM_showAutoTagButton_no
+		] = CreateBooleanPrefButtonPair(`w4BM_showAutoTagButton`, `Show AutoTag Button`);
 
-		// create button - auto recommend bookmarks - no
-		const w4BM_autoRecommend_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_autoRecommend_no`,
-			id: `w4BM_autoRecommend_no`,
-			innerHTML: `<a>Auto Recommend Bookmarks: NO</a>`
-		});
-		w4BM_autoRecommend_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_autoRecommend`, true);
-			w4BM_autoRecommend_no.replaceWith(w4BM_autoRecommend_yes);
-		});
+		// create buttons for auto autotagging bookmarks
+		const [
+			w4BM_autoAutoTag_yes,
+			w4BM_autoAutoTag_no
+		] = CreateBooleanPrefButtonPair(`w4BM_autoAutoTag`, `Auto-run AutoTag`);
 
-		// create button - show AutoTag button - yes
-		const w4BM_showAutoTagButton_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_showAutoTagButton_yes`,
-			id: `w4BM_showAutoTagButton_yes`,
-			innerHTML: `<a>Show AutoTag Button: YES</a>`
-		});
-		w4BM_showAutoTagButton_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_showAutoTagButton`, false);
-			w4BM_showAutoTagButton_yes.replaceWith(w4BM_showAutoTagButton_no);
-		});
+		// create buttons for including work completion status in AutoTag
+		const [
+			w4BM_includeWorkStatusButton_yes,
+			w4BM_includeWorkStatusButton_no
+		] = CreateBooleanPrefButtonPair(`w4BM_includeWorkStatus`, `Include Work Status in AutoTag`);
 
-		// create button - show AutoTag button - no
-		const w4BM_showAutoTagButton_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_showAutoTagButton_no`,
-			id: `w4BM_showAutoTagButton_no`,
-			innerHTML: `<a>Show AutoTag Button: NO</a>`
-		});
-		w4BM_showAutoTagButton_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_showAutoTagButton`, true);
-			w4BM_showAutoTagButton_no.replaceWith(w4BM_showAutoTagButton_yes);
-		});
+		// create buttons - AutoTag: Add tag for when work is part of series
+		const [
+			w4BM_partOfSeriesAutoTag_yes,
+			w4BM_partOfSeriesAutoTag_no
+		] = CreateBooleanPrefButtonPair(`w4BM_partOfSeriesAutoTag`, `Autotag, Work is Part of Series`);
 
-		// create button - auto autotag bookmarks - yes
-		const w4BM_autoAutoTag_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_autoAutoTag_yes`,
-			id: `w4BM_autoAutoTag_yes`,
-			innerHTML: `<a>Auto-run AutoTag: YES</a>`
-		});
-		w4BM_autoAutoTag_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_autoAutoTag`, false);
-			w4BM_autoAutoTag_yes.replaceWith(w4BM_autoAutoTag_no);
-		});
-
-		// create button - auto autotag bookmarks - no
-		const w4BM_autoAutoTag_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_autoAutoTag_no`,
-			id: `w4BM_autoAutoTag_no`,
-			innerHTML: `<a>Auto-run AutoTag: NO</a>`
-		});
-		w4BM_autoAutoTag_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_autoAutoTag`, true);
-			w4BM_autoAutoTag_no.replaceWith(w4BM_autoAutoTag_yes);
-		});
-
-		// create button - include work completion status in AutoTag - yes
-		const w4BM_includeWorkStatusButton_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_includeWorkStatusButton_yes`,
-			id: `w4BM_includeWorkStatusButton_yes`,
-			innerHTML: `<a>Include Work Status in AutoTag: YES</a>`
-		});
-		w4BM_includeWorkStatusButton_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_includeWorkStatus`, false);
-			w4BM_includeWorkStatusButton_yes.replaceWith(w4BM_includeWorkStatusButton_no);
-		});
-
-		// create button - include work status in AutoTag - no
-		const w4BM_includeWorkStatusButton_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_includeWorkStatusButton_no`,
-			id: `w4BM_includeWorkStatusButton_no`,
-			innerHTML: `<a>Include Work Status in AutoTag: NO</a>`
-		});
-		w4BM_includeWorkStatusButton_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_includeWorkStatus`, true);
-			w4BM_includeWorkStatusButton_no.replaceWith(w4BM_includeWorkStatusButton_yes);
-		});
-
-		// create button - AutoTag: Add tag for when work is part of series - yes
-		const w4BM_partOfSeriesAutoTag_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_partOfSeriesAutoTag_yes`,
-			id: `w4BM_partOfSeriesAutoTag_yes`,
-			innerHTML: `<a>Autotag, Work is Part of Series: YES</a>`
-		});
-		w4BM_partOfSeriesAutoTag_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_partOfSeriesAutoTag`, false);
-			w4BM_partOfSeriesAutoTag_yes.replaceWith(w4BM_partOfSeriesAutoTag_no);
-		});
-
-		// create button - AutoTag: Add tag for when work is part of series - no
-		const w4BM_partOfSeriesAutoTag_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_partOfSeriesAutoTag_no`,
-			id: `w4BM_partOfSeriesAutoTag_no`,
-			innerHTML: `<a>Autotag, Work is Part of Series: NO</a>`
-		});
-		w4BM_partOfSeriesAutoTag_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_partOfSeriesAutoTag`, true);
-			w4BM_partOfSeriesAutoTag_no.replaceWith(w4BM_partOfSeriesAutoTag_yes);
-		});
-
-		// create button - AutoTag: Use custom tag for when work is part of series - yes
-		const w4BM_partOfSeriesAutoTagCustom_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_partOfSeriesAutoTagCustom_yes`,
-			id: `w4BM_partOfSeriesAutoTagCustom_yes`,
-			innerHTML: `<a>Autotag, Use Custom Tag for Work is Part of Series: YES</a>`
-		});
-		w4BM_partOfSeriesAutoTagCustom_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_partOfSeriesAutoTagCustom`, false);
-			w4BM_partOfSeriesAutoTagCustom_yes.replaceWith(w4BM_partOfSeriesAutoTagCustom_no);
-		});
-
-		// create button - AutoTag: Use custom tag for when work is part of series - no
-		const w4BM_partOfSeriesAutoTagCustom_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_partOfSeriesAutoTagCustom_no`,
-			id: `w4BM_partOfSeriesAutoTagCustom_no`,
-			innerHTML: `<a>Autotag, Use Custom Tag for Work is Part of Series: NO</a>`
-		});
-		w4BM_partOfSeriesAutoTagCustom_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_partOfSeriesAutoTagCustom`, true);
-			w4BM_partOfSeriesAutoTagCustom_no.replaceWith(w4BM_partOfSeriesAutoTagCustom_yes);
-		});
+		// create buttons - AutoTag: Use custom tag for when work is part of series
+		const [
+			w4BM_partOfSeriesAutoTagCustom_yes,
+			w4BM_partOfSeriesAutoTagCustom_no
+		] = CreateBooleanPrefButtonPair(`w4BM_partOfSeriesAutoTagCustom`, `Autotag, Use Custom Tag for Work is Part of Series`);
 
 		// create the input area for partOfSeriesAutoTagCustomValue
 		const w4BM_partOfSeriesAutoTagCustomValue_input_area = createAutoTagCustomValueInputArea('w4BM_partOfSeriesAutoTagCustomValue', 'Custom tag text for "Autotag: Work is Part of Series":');
 
-		// create button - show AutoTag button - yes
-		const w4BM_seriesAutoTag_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_seriesAutoTag_yes`,
-			id: `w4BM_seriesAutoTag_yes`,
-			innerHTML: `<a>Autotag, Bookmark is a Series: YES</a>`
-		});
-		w4BM_seriesAutoTag_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_seriesAutoTag`, false);
-			w4BM_seriesAutoTag_yes.replaceWith(w4BM_seriesAutoTag_no);
-		});
+		// create buttons - AutoTag: Add tag for when bookmark is for a series
+		const [
+			w4BM_seriesAutoTag_yes,
+			w4BM_seriesAutoTag_no
+		] = CreateBooleanPrefButtonPair(`w4BM_seriesAutoTag`, `Autotag, Bookmark is a Series`);
 
-		// create button - AutoTag: Add tag for when bookmark is for a series - no
-		const w4BM_seriesAutoTag_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_seriesAutoTag_no`,
-			id: `w4BM_seriesAutoTag_no`,
-			innerHTML: `<a>Autotag, Bookmark is a Series: NO</a>`
-		});
-		w4BM_seriesAutoTag_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_seriesAutoTag`, true);
-			w4BM_seriesAutoTag_no.replaceWith(w4BM_seriesAutoTag_yes);
-		});
-
-		// create button - AutoTag: Use custom tag for when bookmark is for a series - yes
-		const w4BM_seriesAutoTagCustom_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_seriesAutoTagCustom_yes`,
-			id: `w4BM_seriesAutoTagCustom_yes`,
-			innerHTML: `<a>Autotag, Use Custom Tag for Bookmark is Series: YES</a>`
-		});
-		w4BM_seriesAutoTagCustom_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_seriesAutoTagCustom`, false);
-			w4BM_seriesAutoTagCustom_yes.replaceWith(w4BM_seriesAutoTagCustom_no);
-		});
-
-		// create button - AutoTag: Use custom tag for when bookmark is for a series - no
-		const w4BM_seriesAutoTagCustom_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_seriesAutoTagCustom_no`,
-			id: `w4BM_seriesAutoTagCustom_no`,
-			innerHTML: `<a>Autotag, Use Custom Tag for Bookmark is Series: NO</a>`
-		});
-		w4BM_seriesAutoTagCustom_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_seriesAutoTagCustom`, true);
-			w4BM_seriesAutoTagCustom_no.replaceWith(w4BM_seriesAutoTagCustom_yes);
-		});
+		// create buttons - AutoTag: Use custom tag for when bookmark is for a series
+		const [
+			w4BM_seriesAutoTagCustom_yes,
+			w4BM_seriesAutoTagCustom_no
+		] = CreateBooleanPrefButtonPair(`w4BM_seriesAutoTagCustom`, `Autotag, Use Custom Tag for Bookmark is Series`);
 
 		// create the input area for seriesAutoTagCustomValue
 		const w4BM_seriesAutoTagCustomValue_input_area = createAutoTagCustomValueInputArea('w4BM_seriesAutoTagCustomValue', 'Custom tag text for "Autotag, Bookmark is a Series":');
 
-		const w4BM_addSeriesStatusToWorkBookmark_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_addSeriesStatusToWorkBookmark_yes`,
-			id: `w4BM_addSeriesStatusToWorkBookmark_yes`,
-			innerHTML: `<a>Autotag, Add Series Completion Status: YES</a>`
-		});
-		w4BM_addSeriesStatusToWorkBookmark_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_addSeriesStatusToWorkBookmark`, false);
-			w4BM_addSeriesStatusToWorkBookmark_yes.replaceWith(w4BM_addSeriesStatusToWorkBookmark_no);
-		});
+		// create buttons - AutoTag: Add Series Completion Status
+		const [
+			w4BM_addSeriesStatusToWorkBookmark_yes,
+			w4BM_addSeriesStatusToWorkBookmark_no
+		] = CreateBooleanPrefButtonPair(`w4BM_addSeriesStatusToWorkBookmark`, `Autotag, Add Series Completion Status`);
 
-		const w4BM_addSeriesStatusToWorkBookmark_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_addSeriesStatusToWorkBookmark_no`,
-			id: `w4BM_addSeriesStatusToWorkBookmark_no`,
-			innerHTML: `<a>Autotag, Add Series Completion Status: NO</a>`
-		});
-		w4BM_addSeriesStatusToWorkBookmark_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_addSeriesStatusToWorkBookmark`, true);
-			w4BM_addSeriesStatusToWorkBookmark_no.replaceWith(w4BM_addSeriesStatusToWorkBookmark_yes);
-		});
+		// create buttons - AutoTag: Add Series Word Count
+		const [
+			w4BM_addSeriesWordCountToWorkBookmark_yes,
+			w4BM_addSeriesWordCountToWorkBookmark_no
+		] = CreateBooleanPrefButtonPair(`w4BM_addSeriesWordCountToWorkBookmark`, `Autotag, Add Series Word Count Status`);
 
-		const w4BM_addSeriesWordCountToWorkBookmark_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_addSeriesWordCountToWorkBookmark_yes`,
-			id: `w4BM_addSeriesWordCountToWorkBookmark_yes`,
-			innerHTML: `<a>Autotag, Add Series Word Count Status: YES</a>`
-		});
-		w4BM_addSeriesWordCountToWorkBookmark_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_addSeriesWordCountToWorkBookmark`, false);
-			w4BM_addSeriesWordCountToWorkBookmark_yes.replaceWith(w4BM_addSeriesWordCountToWorkBookmark_no);
-		});
+		// create buttons for including the fandom in AutoTag
+		const [
+			w4BM_includeFandomButton_yes,
+			w4BM_includeFandomButton_no
+		] = CreateBooleanPrefButtonPair(`w4BM_includeFandom`, `Include Fandom in AutoTag`);
 
-		const w4BM_addSeriesWordCountToWorkBookmark_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_addSeriesWordCountToWorkBookmark_no`,
-			id: `w4BM_addSeriesWordCountToWorkBookmark_no`,
-			innerHTML: `<a>Autotag, Add Series Word Count Status: NO</a>`
-		});
-		w4BM_addSeriesWordCountToWorkBookmark_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_addSeriesWordCountToWorkBookmark`, true);
-			w4BM_addSeriesWordCountToWorkBookmark_no.replaceWith(w4BM_addSeriesWordCountToWorkBookmark_yes);
-		});
+		// create buttons for including the main relationship tag in AutoTag
+		const [
+			w4BM_includeMainRelationshipButton_yes,
+			w4BM_includeMainRelationshipButton_no
+		] = CreateBooleanPrefButtonPair(`w4BM_includeMainRelationship`, `Include Main Relationship in AutoTag`);
 
-		// create button - include fandom in AutoTag - yes
-		const w4BM_includeFandomButton_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_includeFandomButton_yes`,
-			id: `w4BM_includeFandomButton_yes`,
-			innerHTML: `<a>Include Fandom in AutoTag: YES</a>`
-		});
-		w4BM_includeFandomButton_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_includeFandom`, false);
-			w4BM_includeFandomButton_yes.replaceWith(w4BM_includeFandomButton_no);
-		});
+		// create buttons for including the main romantic relationship tag in AutoTag
+		const [
+			w4BM_includeMainRomRelationshipButton_yes,
+			w4BM_includeMainRomRelationshipButton_no
+		] = CreateBooleanPrefButtonPair(`w4BM_includeMainRomRelationship`, `Include Main Romantic Relationship in AutoTag`);
 
-		// create button - include fandom in AutoTag - no
-		const w4BM_includeFandomButton_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_includeFandomButton_no`,
-			id: `w4BM_includeFandomButton_no`,
-			innerHTML: `<a>Include Fandom in AutoTag: NO</a>`
-		});
-		w4BM_includeFandomButton_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_includeFandom`, true);
-			w4BM_includeFandomButton_no.replaceWith(w4BM_includeFandomButton_yes);
-		});
-
-		// create button - include main relationship tag in AutoTag - yes
-		const w4BM_includeMainRelationshipButton_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_includeMainRelationshipButton_yes`,
-			id: `w4BM_includeMainRelationshipButton_yes`,
-			innerHTML: `<a>Include Main Relationship in AutoTag: YES</a>`
-		});
-		w4BM_includeMainRelationshipButton_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_includeMainRelationship`, false);
-			w4BM_includeMainRelationshipButton_yes.replaceWith(w4BM_includeMainRelationshipButton_no);
-		});
-
-		// create button - include main relationship tag in AutoTag - no
-		const w4BM_includeMainRelationshipButton_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_includeMainRelationshipButton_no`,
-			id: `w4BM_includeMainRelationshipButton_no`,
-			innerHTML: `<a>Include Main Relationship in AutoTag: NO</a>`
-		});
-		w4BM_includeMainRelationshipButton_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_includeMainRelationship`, true);
-			w4BM_includeMainRelationshipButton_no.replaceWith(w4BM_includeMainRelationshipButton_yes);
-		});
-
-		// create button - include main romantic relationship tag in AutoTag - yes
-		const w4BM_includeMainRomRelationshipButton_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_includeMainRomRelationshipButton_yes`,
-			id: `w4BM_includeMainRomRelationshipButton_yes`,
-			innerHTML: `<a>Include Main Romantic Relationship in AutoTag: YES</a>`
-		});
-		w4BM_includeMainRomRelationshipButton_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_includeMainRomRelationship`, false);
-			w4BM_includeMainRomRelationshipButton_yes.replaceWith(w4BM_includeMainRomRelationshipButton_no);
-		});
-
-		// create button - include main romantic relationship tag in AutoTag - no
-		const w4BM_includeMainRomRelationshipButton_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_includeMainRomRelationshipButton_no`,
-			id: `w4BM_includeMainRomRelationshipButton_no`,
-			innerHTML: `<a>Include Main Romantic Relationship in AutoTag: NO</a>`
-		});
-		w4BM_includeMainRomRelationshipButton_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_includeMainRomRelationship`, true);
-			w4BM_includeMainRomRelationshipButton_no.replaceWith(w4BM_includeMainRomRelationshipButton_yes);
-		});
-
-		// create button - include main platonic relationship tag in AutoTag - yes
-		const w4BM_includeMainPltRelationshipButton_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_includeMainPltRelationshipButton_yes`,
-			id: `w4BM_includeMainPltRelationshipButton_yes`,
-			innerHTML: `<a>Include Main Platonic Relationship in AutoTag: YES</a>`
-		});
-		w4BM_includeMainPltRelationshipButton_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_includeMainPltRelationship`, false);
-			w4BM_includeMainPltRelationshipButton_yes.replaceWith(w4BM_includeMainPltRelationshipButton_no);
-		});
-
-		// create button - include main relationship tag in AutoTag - no
-		const w4BM_includeMainPltRelationshipButton_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_includeMainPltRelationshipButton_no`,
-			id: `w4BM_includeMainPltRelationshipButton_no`,
-			innerHTML: `<a>Include Main Platonic Relationship in AutoTag: NO</a>`
-		});
-		w4BM_includeMainPltRelationshipButton_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_includeMainPltRelationship`, true);
-			w4BM_includeMainPltRelationshipButton_no.replaceWith(w4BM_includeMainPltRelationshipButton_yes);
-		});
+		// create buttons for including the main platonic relationship tag in AutoTag
+		const [
+			w4BM_includeMainPltRelationshipButton_yes,
+			w4BM_includeMainPltRelationshipButton_no
+		] = CreateBooleanPrefButtonPair(`w4BM_includeMainPltRelationship`, `Include Main Platonic Relationship in AutoTag`);
 
 		// create the input area for excludeRelationshipAutoTaggingWorks & excludeRelationshipAutoTaggingSeries
 		const w4BM_excludeRelationshipAutoTaggingWorks_input_area = createAutoTagCustomValueInputArea('w4BM_excludeRelationshipAutoTaggingWorks', 'Work IDs to exclude from Relationship AutoTagging:');
 		const w4BM_excludeRelationshipAutoTaggingSeries_input_area = createAutoTagCustomValueInputArea('w4BM_excludeRelationshipAutoTaggingSeries', 'Series IDs to exclude from Relationship AutoTagging:');
 
-		// create button - include word count in AutoTag - yes
-		const w4BM_includeWordCountButton_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_includeWordCountButton_yes`,
-			id: `w4BM_includeWordCountButton_yes`,
-			innerHTML: `<a>Include Word Count in AutoTag: YES</a>`
-		});
-		w4BM_includeWordCountButton_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_includeWordCount`, false);
-			w4BM_includeWordCountButton_yes.replaceWith(w4BM_includeWordCountButton_no);
-		});
+		// create buttons for including the word count of the work/series in AutoTag
+		const [
+			w4BM_includeWordCountButton_yes,
+			w4BM_includeWordCountButton_no
+		] = CreateBooleanPrefButtonPair(`w4BM_includeWordCount`, `Include Word Count in AutoTag`);
 
-		// create button - include word count in AutoTag - no
-		const w4BM_includeWordCountButton_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_includeWordCountButton_no`,
-			id: `w4BM_includeWordCountButton_no`,
-			innerHTML: `<a>Include Word Count in AutoTag: NO</a>`
-		});
-		w4BM_includeWordCountButton_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_includeWordCount`, true);
-			w4BM_includeWordCountButton_no.replaceWith(w4BM_includeWordCountButton_yes);
-		});
+		// create buttons for AutoTag's word count type
+		const [w4BM_AutoTagWCType_1, w4BM_AutoTagWCType_0] = CreateBooleanPrefButtonPair(
+			`w4BM_AutoTag_wordcount_type`,
+			`AutoTag Type`,
+			true,
+			{
+				yes_val: `Canon AO3 Wordcount tags`,
+				no_val: `Original`
+			}
+		);
 
-		// create button - AutoTag type 0
-		const w4BM_AutoTagWCType_0 = Object.assign(document.createElement(`li`), {
-			className: `w4BM_AutoTagType_0`,
-			id: `w4BM_AutoTagType_0`,
-			innerHTML: `<a>AutoTag Type: Original</a>`
-		});
-		w4BM_AutoTagWCType_0.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_AutoTag_wordcount_type`, 1);
-			w4BM_AutoTagWCType_0.replaceWith(w4BM_AutoTagWCType_1);
-		});
+		// create buttons for including the last read date in AutoTag
+		const [
+			w4BM_includeReadDateButton_yes,
+			w4BM_includeReadDateButton_no
+		] = CreateBooleanPrefButtonPair(`w4BM_includeReadDate`, `Include Read Date in AutoTag`);
 
-		// create button - AutoTag type 1
-		const w4BM_AutoTagWCType_1 = Object.assign(document.createElement(`li`), {
-			className: `w4BM_AutoTagType_1`,
-			id: `w4BM_AutoTagType_1`,
-			innerHTML: `<a>AutoTag Type: Canon AO3 Wordcount tags</a>`
-		});
-		w4BM_AutoTagWCType_1.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_AutoTag_wordcount_type`, 0);
-			w4BM_AutoTagWCType_1.replaceWith(w4BM_AutoTagWCType_0);
-		});
+		// create buttons for adding a "Summary Page" button to the bottom navbar
+		const [
+			w4BM_bottomSummaryPage_yes,
+			w4BM_bottomSummaryPage_no
+		] = CreateBooleanPrefButtonPair(`w4BM_bottomSummaryPage`, `"Summary Page" button in bottom navbar`);
 
-		// create button - include read date in AutoTag - yes
-		const w4BM_includeReadDateButton_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_includeReadDateButton_yes`,
-			id: `w4BM_includeReadDateButton_yes`,
-			innerHTML: `<a>Include Read Date in AutoTag: YES</a>`
-		});
-		w4BM_includeReadDateButton_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_includeReadDate`, false);
-			w4BM_includeReadDateButton_yes.replaceWith(w4BM_includeReadDateButton_no);
-		});
+		// create buttons for adding a "Summary Page" button to top navbar
+		const [
+			w4BM_topSummaryPage_yes,
+			w4BM_topSummaryPage_no
+		] = CreateBooleanPrefButtonPair(`w4BM_topSummaryPage`, `"Summary Page" button in top navbar`);
 
-		// create button - include read date in AutoTag - no
-		const w4BM_includeReadDateButton_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_includeReadDateButton_no`,
-			id: `w4BM_includeReadDateButton_no`,
-			innerHTML: `<a>Include Read Date in AutoTag: NO</a>`
-		});
-		w4BM_includeReadDateButton_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_includeReadDate`, true);
-			w4BM_includeReadDateButton_no.replaceWith(w4BM_includeReadDateButton_yes);
-		});
+		// create buttons for whether to use a simple summary
+		const [
+			w4BM_simpleWorkSummary_yes,
+			w4BM_simpleWorkSummary_no
+		] = CreateBooleanPrefButtonPair(`w4BM_simpleWorkSummary`, `Use a simpler work summary`);
 
-		// create button - add "Summary Page" button to bottom navbar
-		const w4BM_bottomSummaryPage_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_bottomSummaryPage_yes`,
-			id: `w4BM_bottomSummaryPage_yes`,
-			innerHTML: `<a>"Summary Page" button in bottom navbar: YES</a>`
-		});
-		w4BM_bottomSummaryPage_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_bottomSummaryPage`, false);
-			w4BM_bottomSummaryPage_yes.replaceWith(w4BM_bottomSummaryPage_no);
-		});
+		// create buttons for whether to use blockquotes when using fancy work summary
+		const [
+			w4BM_FWS_asBlockquote_yes,
+			w4BM_FWS_asBlockquote_no
+		] = CreateBooleanPrefButtonPair(`w4BM_FWS_asBlockquote`, `Use blockquote w/ fancy work summary`);
 
-		// create button - do not add "Summary Page" button to bottom navbar
-		const w4BM_bottomSummaryPage_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_bottomSummaryPage_no`,
-			id: `w4BM_bottomSummaryPage_no`,
-			innerHTML: `<a>"Summary Page" button in bottom navbar: NO</a>`
-		});
-		w4BM_bottomSummaryPage_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_bottomSummaryPage`, true);
-			w4BM_bottomSummaryPage_no.replaceWith(w4BM_bottomSummaryPage_yes);
-		});
+		// create buttons for whether to always run the bookmark script (which will overwrite previously script generated info in a bookmark)
+		const [
+			w4BM_alwaysInjectBookmark_yes,
+			w4BM_alwaysInjectBookmark_no
+		] = CreateBooleanPrefButtonPair(`w4BM_alwaysInjectBookmark`, `Always run script on valid pages`);
 
-		// create button - add "Summary Page" button to top navbar
-		const w4BM_topSummaryPage_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_topSummaryPage_yes`,
-			id: `w4BM_topSummaryPage_yes`,
-			innerHTML: `<a>"Summary Page" button in top navbar: YES</a>`
-		});
-		w4BM_topSummaryPage_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_topSummaryPage`, false);
-			w4BM_topSummaryPage_yes.replaceWith(w4BM_topSummaryPage_no);
-		});
-
-		// create button - do not add "Summary Page" button to top navbar
-		const w4BM_topSummaryPage_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_topSummaryPage_no`,
-			id: `w4BM_topSummaryPage_no`,
-			innerHTML: `<a>"Summary Page" button in top navbar: NO</a>`
-		});
-		w4BM_topSummaryPage_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_topSummaryPage`, true);
-			w4BM_topSummaryPage_no.replaceWith(w4BM_topSummaryPage_yes);
-		});
-
-		// create button - use simple summary
-		const w4BM_simpleWorkSummary_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_simpleWorkSummary_yes`,
-			id: `w4BM_simpleWorkSummary_yes`,
-			innerHTML: `<a>Use a simpler work summary: YES</a>`
-		});
-		w4BM_simpleWorkSummary_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_simpleWorkSummary`, false);
-			w4BM_simpleWorkSummary_yes.replaceWith(w4BM_simpleWorkSummary_no);
-		});
-
-		// create button - don't use simple summary
-		const w4BM_simpleWorkSummary_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_simpleWorkSummary_no`,
-			id: `w4BM_simpleWorkSummary_no`,
-			innerHTML: `<a>Use a simpler work summary: NO</a>`
-		});
-		w4BM_simpleWorkSummary_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_simpleWorkSummary`, true);
-			w4BM_simpleWorkSummary_no.replaceWith(w4BM_simpleWorkSummary_yes);
-		});
-
-		// create button - use blockquotes when using fancy work summary
-		const w4BM_FWS_asBlockquote_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_FWS_asBlockquote_yes`,
-			id: `w4BM_FWS_asBlockquote_yes`,
-			innerHTML: `<a>Use blockquote w/ fancy work summary: YES</a>`
-		});
-		w4BM_FWS_asBlockquote_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_FWS_asBlockquote`, false);
-			w4BM_FWS_asBlockquote_yes.replaceWith(w4BM_FWS_asBlockquote_no);
-		});
-
-		// create button - dont use blockquotes when using fancy work summary
-		const w4BM_FWS_asBlockquote_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_FWS_asBlockquote_no`,
-			id: `w4BM_FWS_asBlockquote_no`,
-			innerHTML: `<a>Use blockquote w/ fancy work summary: NO</a>`
-		});
-		w4BM_FWS_asBlockquote_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_FWS_asBlockquote`, true);
-			w4BM_FWS_asBlockquote_no.replaceWith(w4BM_FWS_asBlockquote_yes);
-		});
-
-		// create button - always overwrite bookmark notes
-		const w4BM_alwaysInjectBookmark_no = Object.assign(document.createElement(`li`), {
-			className: `w4BM_alwaysInjectBookmark_no`,
-			id: `w4BM_alwaysInjectBookmark_no`,
-			innerHTML: `<a>Always run script on valid pages: NO</a>`
-		});
-		w4BM_alwaysInjectBookmark_no.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_alwaysInjectBookmark`, true);
-			w4BM_alwaysInjectBookmark_no.replaceWith(w4BM_alwaysInjectBookmark_yes);
-		});
-
-		// create button - don't always overwrite bookmark notes
-		const w4BM_alwaysInjectBookmark_yes = Object.assign(document.createElement(`li`), {
-			className: `w4BM_alwaysInjectBookmark_yes`,
-			id: `w4BM_alwaysInjectBookmark_yes`,
-			innerHTML: `<a>Always run script on valid pages: YES</a>`
-		});
-		w4BM_alwaysInjectBookmark_yes.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_alwaysInjectBookmark`, false);
-			w4BM_alwaysInjectBookmark_yes.replaceWith(w4BM_alwaysInjectBookmark_no);
-		});
-
-		// create button - set splitSelect to 1
-		const w4BM_splitSelect_1 = Object.assign(document.createElement(`li`), {
-			className: `w4BM_splitSelect_1`,
-			id: `w4BM_splitSelect_1`,
-			innerHTML: `<a>splitSelect: 1</a>`
-		});
-		w4BM_splitSelect_1.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_splitSelect`, 0);
-			w4BM_splitSelect_1.replaceWith(w4BM_splitSelect_0);
-		});
-
-		// create button - set splitSelect to 0
-		const w4BM_splitSelect_0 = Object.assign(document.createElement(`li`), {
-			className: `w4BM_splitSelect_0`,
-			id: `w4BM_splitSelect_0`,
-			innerHTML: `<a>splitSelect: 0</a>`
-		});
-		w4BM_splitSelect_0.addEventListener(`click`, function (event) {
-			localStorage.setItem(`w4BM_splitSelect`, 1);
-			w4BM_splitSelect_0.replaceWith(w4BM_splitSelect_1);
-		});
+		// create buttons for setting splitSelect
+		const [w4BM_splitSelect_1, w4BM_splitSelect_0] = CreateBooleanPrefButtonPair(
+			`w4BM_splitSelect`,
+			`splitSelect`,
+			true,
+			{
+				yes_val: `1`,
+				no_val: `0`
+			}
+		);
 
 		// append binary choice buttons to the dropdown menu
 		if (typeof (Storage) !== `undefined`) {
@@ -2259,7 +1950,7 @@ ${input_value}`
 			// showing seriesAutoTagCustomValue input area
 			w4BM_dropMenu.append(w4BM_seriesAutoTagCustomValue_input_area);
 
-			// 
+			// include series status as a tag in work bookmark
 			if (addSeriesStatusToWorkBookmark == true || addSeriesStatusToWorkBookmark == `true`) {
 				w4BM_dropMenu.append(w4BM_addSeriesStatusToWorkBookmark_yes);
 			}
@@ -2267,7 +1958,7 @@ ${input_value}`
 				w4BM_dropMenu.append(w4BM_addSeriesStatusToWorkBookmark_no);
 			}
 
-			// 
+			// include series word count as a tag in work bookmark
 			if (addSeriesWordCountToWorkBookmark == true || addSeriesWordCountToWorkBookmark == `true`) {
 				w4BM_dropMenu.append(w4BM_addSeriesWordCountToWorkBookmark_yes);
 			}
